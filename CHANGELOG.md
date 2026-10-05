@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.sheet` 新設 — 複数骨格レンダを1枚のグリッド画像に並べる
+  コンタクトシート（アスペクト比保持レターボックス、歪めず
+  データセット丸ごと目視QA）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

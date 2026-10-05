@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.paf` 新設 — Part Affinity Field。各骨に「親→子の方向
+  ベクトル場」を帯域上に生成（OpenPoseの連結チャネル）。検出点
+  だけでなく「どの関節同士が繋がるか」を場として表現。predicted
+  骨は strength 減衰 — 連結の確からしさも誠実に表現
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

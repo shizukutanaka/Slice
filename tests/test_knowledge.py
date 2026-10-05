@@ -55,6 +55,28 @@ class TestKnowledge(unittest.TestCase):
         doc["skeleton"]["joints"]["head"]["confidence"] = 2
         self.assertTrue(knowledge.validate(doc))
 
+    def test_validate_strict_fields(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+
+        bad_id = dict(doc, id="nope")
+        self.assertTrue(knowledge.validate(bad_id))
+
+        bad_flat = dict(doc)
+        bad_flat["export"] = dict(doc["export"],
+                                  keypoints_2d=[1.0, 2.0])
+        self.assertTrue(any("keypoints_2d" in e
+                            for e in knowledge.validate(bad_flat)))
+
+        bad_pred = dict(doc)
+        bad_pred["prediction"] = dict(doc["prediction"],
+                                      observed=["not_a_joint"])
+        self.assertTrue(knowledge.validate(bad_pred))
+
+        bad_frame = dict(doc)
+        bad_frame["skeleton"] = dict(doc["skeleton"],
+                                     frame={"width": -1, "height": 0})
+        self.assertTrue(knowledge.validate(bad_frame))
+
 
 if __name__ == "__main__":
     unittest.main()

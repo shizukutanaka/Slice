@@ -17,6 +17,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.segment` 新設 — 前景ピクセルを最寄りの骨セグメントで
+  部位ラベル付け（head/torso/upper_arm/forearm/thigh/shin/foot L/R）。
+  DensePose系のdense part labelingの軽量版。`summary()` で部位ごとの
+  証拠ピクセル量・割合を集計。骨が欠損した部位はピクセル0 —
+  証拠のみをラベルし予測で増やさない設計
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Prediction Engine: 中間関節の線形補間 — 肘/膝が欠損でもチェーン末端
+  （手首/足首）が既知なら、親子間を四肢比率で内分して配置。
+  盲目的な真下へのプライア配置を解消（confidence 0.3、basis記録）
 - Pose Engine: 向き推定を強化。肩幅/身長比の側面判定＋頭頂行の偏移で
   left/right/side の向きを推定（`orientation.head_shift` 信号を追加）
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ

@@ -15,6 +15,7 @@ import os
 import re
 import secrets
 from datetime import datetime, timezone
+from typing import Optional
 
 from .landmarks import BONES, JOINTS
 from .skeleton import OBSERVED, PREDICTED, Skeleton
@@ -22,8 +23,9 @@ from .skeleton import OBSERVED, PREDICTED, Skeleton
 SCHEMA = "slice.knowledge/v1"
 
 
-def build(skel: Skeleton, ratios: dict, *, image_sha256: str = "",
-          source_name: str = "", engine: dict) -> dict:
+def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
+          *, image_sha256: str = "", source_name: str = "",
+          engine: dict) -> dict:
     joints = skel.joints
     flat = []
     for name in JOINTS:
@@ -40,6 +42,7 @@ def build(skel: Skeleton, ratios: dict, *, image_sha256: str = "",
             "image_retained": False,
         },
         "skeleton": skel.to_dict(),
+        "pose": pose or {},
         "ratio": ratios,
         "prediction": {
             "observed": [n for n, j in joints.items() if j.state == OBSERVED],

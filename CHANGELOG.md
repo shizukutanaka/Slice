@@ -6,6 +6,10 @@
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の
   データセット管理を外部ツールへ橋渡し
+- `slice.gltf` 新設 — 骨格を glTF 2.0 ノード階層としてエクスポート
+  （pelvisルートの運動学ツリー、子translationは親相対、各ノードの
+  extrasに state/confidence/basis を保持）。2D→XY平面リフトで
+  Z=0を asset.extras に正直に開示 — Phase 3 への第2ブリッジ
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測

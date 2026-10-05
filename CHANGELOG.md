@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.balance` 新設 — 静的バランス評価。Winter人体計測質量プライア
+  で重心を推定し足の支持多角形に投影（inside/marginal/outside、
+  証拠不足はunknown推測せず）。バイオメカニクス的「立っていられるか」
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

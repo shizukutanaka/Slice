@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.mask` 新設 — 推定器の前景マスクを公開（foreground/
+  coverage/to_bitmap可視化/cutout背景透過）。downscale座標系の
+  注意書き付き
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

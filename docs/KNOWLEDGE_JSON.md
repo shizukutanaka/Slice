@@ -17,6 +17,7 @@ Slice の成果物。画像そのものではなく、画像から推論した�
 | `style` | object | `{style, label, confidence, signals}` スタイル推定（real/anime/illustration/unknown） |
 | `ratio` | object | 比率解析結果 |
 | `prediction` | object | `observed`/`predicted`/`filled` 関節名リスト |
+| `warnings` | string[] | 証拠の薄さの警告コード（`few_observed_joints`, `no_observed_wrists`, `no_observed_feet`） |
 | `export` | object | 相互運用形式 |
 
 ## skeleton

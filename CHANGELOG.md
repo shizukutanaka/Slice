@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.mirror` 新設 — `flip_bitmap` / `flip_skeleton`（x反転＋
+  _l/_r交換、facingも反転）。推定器の左右整合性
+  `estimate(flip) ≈ flip(estimate)` を検証・拡張に使う
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

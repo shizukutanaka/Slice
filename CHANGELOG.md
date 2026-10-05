@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.reach` 新設 — 機能的リーチ包絡。肩中心に上腕+前腕(+8%手)
+  の作業空間で任意点の届き判定（inside<85%/edge/outside、欠腕骨は
+  身長プライアでestimated明記）。`workspace()` で両腕包絡
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

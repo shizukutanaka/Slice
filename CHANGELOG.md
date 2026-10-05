@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.ascii` 新設 — 骨格のターミナル文字描画（観測=`@`/#、
+  予測=`o`/: の誠実性グリフ、行数はフレーム縦横比×文字セル補正）。
+  CLI/ログでの第3描画バックエンド
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

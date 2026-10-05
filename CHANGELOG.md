@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.horizon` 新設 — 両足接地線から地面傾斜=カメラロール角を
+  推定＋足の奥行きヒント（低い足=近い）＋カメラ高さ仮定での
+  horizon_y。仮定は `assumption` に全開示、足が揃わなければ
+  state:"unknown" で推測しないシーン幾何層
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

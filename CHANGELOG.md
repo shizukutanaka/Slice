@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.pad` 新設 — Bitmapレターボックス（中央配置＋オフセット
+  返却で座標系を保全、縮小は拒否してcropへ誘導、
+  to_aspect/to_square）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

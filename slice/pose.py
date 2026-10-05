@@ -1,0 +1,350 @@
+"""Pose Engine: silhouette-based stick-figure extraction.
+
+This is a deterministic, model-free estimator — Slice's baseline port.
+It segments the figure from the background, reads the row/column profile
+of the silhouette, and locates anatomical landmarks by profile features
+(head blob, shoulder line, crotch split, arm protrusions).
+
+Any joint whose image evidence is missing is left absent; the Prediction
+Engine fills those in later, keeping observed vs predicted separate.
+"""
+
+from __future__ import annotations
+
+from collections import deque
+from typing import List, Optional, Tuple
+
+from .anatomy import BODY_MODELS, DEFAULT_MODEL, select_model
+from .bitmap import Bitmap
+from .skeleton import OBSERVED, Joint, Skeleton
+
+
+class PoseEstimator:
+    """Port: anything that turns a Bitmap into a Skeleton."""
+
+    name = "base"
+    version = "0"
+
+    def estimate(self, bmp: Bitmap, model: str = DEFAULT_MODEL) -> Skeleton:
+        raise NotImplementedError
+
+
+def _row_runs(mask: List[bytearray], y: int, w: int) -> List[Tuple[int, int]]:
+    runs, start = [], -1
+    row = mask[y]
+    for x in range(w):
+        if row[x] and start < 0:
+            start = x
+        elif not row[x] and start >= 0:
+            runs.append((start, x - 1))
+            start = -1
+    if start >= 0:
+        runs.append((start, w - 1))
+    return runs
+
+
+class HeuristicPoseEstimator(PoseEstimator):
+    name = "heuristic-silhouette"
+    version = "0.1.0"
+
+    def __init__(self, max_dim: int = 512, bg_threshold: int = 40):
+        self.max_dim = max_dim
+        self.bg_threshold = bg_threshold
+
+    # -- segmentation ----------------------------------------------------
+
+    def _background(self, bmp: Bitmap) -> Tuple[int, int, int]:
+        """Most common quantized color along the image border."""
+        counts: dict = {}
+        w, h = bmp.width, bmp.height
+        for x in range(0, w, 4):
+            for y in (0, h - 1):
+                r, g, b, _a = bmp.get(x, y)
+                key = (r // 32, g // 32, b // 32)
+                counts[key] = counts.get(key, 0) + 1
+        for y in range(0, h, 4):
+            for x in (0, w - 1):
+                r, g, b, _a = bmp.get(x, y)
+                key = (r // 32, g // 32, b // 32)
+                counts[key] = counts.get(key, 0) + 1
+        q = max(counts, key=counts.get)
+        return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
+
+    def _mask(self, bmp: Bitmap) -> List[bytearray]:
+        br, bg, bb = self._background(bmp)
+        thr = self.bg_threshold
+        w, h = bmp.width, bmp.height
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
+        for y in range(h):
+            row = mask[y]
+            base = y * w * 4
+            for x in range(w):
+                i = base + x * 4
+                if d[i + 3] < 128:
+                    continue
+                if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
+                        or abs(d[i + 2] - bb) > thr):
+                    row[x] = 1
+        return mask
+
+    def _largest_component(self, mask: List[bytearray], w: int, h: int
+                           ) -> Tuple[List[bytearray], int]:
+        best_label, best_size = -1, 0
+        labels = [bytearray(w) for _ in range(h)]
+        label = 0
+        for y0 in range(h):
+            for x0 in range(w):
+                if not mask[y0][x0] or labels[y0][x0]:
+                    continue
+                label += 1
+                size = 0
+                q = deque([(x0, y0)])
+                labels[y0][x0] = label
+                while q:
+                    x, y = q.popleft()
+                    size += 1
+                    for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                        if (0 <= nx < w and 0 <= ny < h and mask[ny][nx]
+                                and not labels[ny][nx]):
+                            labels[ny][nx] = label
+                            q.append((nx, ny))
+                if size > best_size:
+                    best_size, best_label = size, label
+        comp = [bytearray(w) for _ in range(h)]
+        if best_label > 0:
+            for y in range(h):
+                lr, cr = labels[y], comp[y]
+                for x in range(w):
+                    if lr[x] == best_label:
+                        cr[x] = 1
+        return comp, best_size
+
+    # -- profile features -------------------------------------------------
+
+    def _profile(self, mask, w, h):
+        rows = []   # (min_x, max_x, count) per row, None if empty
+        for y in range(h):
+            xs = [x for x in range(w) if mask[y][x]]
+            rows.append((xs[0], xs[-1], len(xs)) if xs else None)
+        return rows
+
+    def _bbox(self, rows, w, h):
+        ys = [y for y, r in enumerate(rows) if r]
+        if not ys:
+            return None
+        top, bot = ys[0], ys[-1]
+        l = min(r[0] for r in rows if r)
+        r = max(r[1] for r in rows if r)
+        return l, top, r, bot
+
+    def _centroid(self, mask, w, h) -> Tuple[float, float]:
+        sx = sy = n = 0
+        for y in range(h):
+            row = mask[y]
+            for x in range(w):
+                if row[x]:
+                    sx += x
+                    sy += y
+                    n += 1
+        return (sx / n, sy / n) if n else (w / 2, h / 2)
+
+    def _widest_row(self, rows, y0: int, y1: int) -> int:
+        best, best_w = y0, -1
+        for y in range(max(0, y0), min(len(rows), y1)):
+            r = rows[y]
+            if r and r[2] > best_w:
+                best, best_w = y, r[2]
+        return best
+
+    def _crotch_row(self, mask, w, y0: int, y1: int, torso_runs) -> Optional[int]:
+        """First row below the torso band whose mask splits into two runs."""
+        for y in range(max(0, y0), min(y1, len(mask) - 1)):
+            runs = _row_runs(mask, y, w)
+            if len(runs) >= 2:
+                gap = runs[-1][0] - runs[0][1]
+                torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
+                if gap >= max(2, torso_w * 0.08):
+                    return y
+        return None
+
+    # -- main ---------------------------------------------------------------
+
+    def estimate(self, bmp: Bitmap, model: str = DEFAULT_MODEL) -> Skeleton:
+        small = bmp.downscale(self.max_dim)
+        w, h = small.width, small.height
+        sk = Skeleton(image_width=w, image_height=h)
+
+        mask = self._mask(small)
+        comp, size = self._largest_component(mask, w, h)
+        if size < w * h * 0.005:
+            return sk  # no person-sized foreground
+        rows = self._profile(comp, w, h)
+        bbox = self._bbox(rows, w, h)
+        if not bbox:
+            return sk
+        left, top, right, bottom = bbox
+        body_h = bottom - top + 1
+        body_w = right - left + 1
+        if body_h < 24:
+            return sk
+
+        prior = BODY_MODELS.get(model, BODY_MODELS[DEFAULT_MODEL])
+        head_h = max(4.0, body_h * prior["head_ratio"])
+        sk.centroid = self._centroid(comp, w, h)
+
+        def put(name, x, y, conf, basis):
+            sk.set(Joint(name, round(x, 2), round(y, 2),
+                         round(min(max(conf, 0.0), 1.0), 3), OBSERVED, basis))
+
+        # Head: centroid of the top head_h band.
+        hx0, hx1, hn = 0, 0, 0
+        for y in range(top, min(bottom, int(top + head_h)) + 1):
+            r = rows[y]
+            if r:
+                span = (r[0] + r[1]) / 2 * r[2]
+                hx0 += span
+                hn += r[2]
+                hx1 = y
+        head_cx = hx0 / hn if hn else (left + right) / 2
+        head_cy = top + head_h / 2
+        put("head", head_cx, head_cy, 0.85, "top blob centroid")
+
+        neck_y = top + head_h
+        put("neck", head_cx, neck_y, 0.7, "head height prior")
+
+        # Shoulders: widest row in the upper body band.
+        sh_row = self._widest_row(rows, int(neck_y),
+                                  int(top + body_h * 0.35))
+        sr = rows[sh_row] or (left, right, body_w)
+        put("shoulder_l", sr[0], sh_row, 0.8, "widest upper row")
+        put("shoulder_r", sr[1], sh_row, 0.8, "widest upper row")
+
+        # Pelvis / hips: crotch split, else widest row in the hip band.
+        # Torso column = the mask run under the spine at chest height;
+        # arm protrusions are the runs lying outside it.
+        chest_y = (sh_row + int(top + body_h * 0.55)) / 2
+        cx_spine = (sr[0] + sr[1]) / 2
+        torso_run = next(
+            (r for r in _row_runs(comp, int(chest_y), w)
+             if r[0] <= cx_spine <= r[1]),
+            (min(sr[0], sr[1]), max(sr[0], sr[1])))
+        crotch = self._crotch_row(comp, w, int(top + body_h * 0.45),
+                                  int(top + body_h * 0.72), torso_run)
+        if crotch is None:
+            hip_row = self._widest_row(rows, int(top + body_h * 0.45),
+                                       int(top + body_h * 0.65))
+            hr = rows[hip_row] or torso_run
+            crotch = hip_row + max(2, int(head_h * 0.4))
+            hip_conf = 0.55
+            hip_basis = "widest hip-band row"
+        else:
+            hr = rows[crotch - 1] or rows[crotch] or torso_run
+            hip_row = crotch - 1
+            hip_conf = 0.75
+            hip_basis = "crotch split row"
+        put("pelvis", (hr[0] + hr[1]) / 2, hip_row, hip_conf, hip_basis)
+        put("hip_l", hr[0], hip_row, hip_conf, hip_basis)
+        put("hip_r", hr[1], hip_row, hip_conf, hip_basis)
+
+        chest_y = (sh_row + hip_row) / 2
+        cr = rows[int(chest_y)] or torso_run
+        put("chest", (cr[0] + cr[1]) / 2, chest_y, 0.65,
+            "midpoint shoulders-pelvis")
+        put("spine", head_cx, (neck_y + hip_row) / 2, 0.6,
+            "axis midpoint")
+
+        # Legs: below the crotch, split the row runs.
+        legs_split = False
+        for side, take in (("l", 0), ("r", -1)):
+            knee_y = crotch + (bottom - crotch) * 0.55
+            kr = _row_runs(comp, min(int(knee_y), h - 1), w)
+            ar = _row_runs(comp, bottom, w)
+            if len(kr) >= 2 and len(ar) >= 2:
+                legs_split = True
+                krun = kr[take]
+                arun = ar[take] if len(ar) > abs(take) else ar[0]
+                put(f"knee_{side}", (krun[0] + krun[1]) / 2, knee_y, 0.7,
+                    "leg run at knee height")
+                put(f"ankle_{side}", (arun[0] + arun[1]) / 2, bottom - 1,
+                    0.7, "leg run at bottom")
+                put(f"foot_{side}", (arun[0] + arun[1]) / 2, bottom,
+                    0.6, "silhouette bottom")
+            elif len(ar) >= 1:
+                run = ar[0] if side == "l" else ar[-1]
+                # Merged legs: place both on the merged run at low conf.
+                put(f"ankle_{side}", (run[0] + run[1]) / 2, bottom - 1,
+                    0.35, "merged leg run")
+                put(f"foot_{side}", (run[0] + run[1]) / 2, bottom,
+                    0.3, "merged leg run")
+        if not legs_split:
+            for side in ("l", "r"):
+                put(f"knee_{side}", (hr[0] + hr[1]) / 2,
+                    crotch + (bottom - crotch) * 0.55, 0.3,
+                    "legs not separable")
+
+        # Arms: silhouette protrusions beside the torso column.
+        arm_len = body_h * (prior["upper_arm_ratio"]
+                            + prior["forearm_ratio"])
+        for side, sign in (("l", -1), ("r", 1)):
+            shoulder = sk.get(f"shoulder_{side}")
+            tx = torso_run[0] if sign < 0 else torso_run[1]
+            cand = []
+            for y in range(int(sh_row), int(hip_row) + 1):
+                for run in _row_runs(comp, y, w):
+                    if sign < 0 and run[1] < tx - 2:
+                        for x in range(run[0], run[1] + 1):
+                            cand.append((x, y))
+                    elif sign > 0 and run[0] > tx + 2:
+                        for x in range(run[0], run[1] + 1):
+                            cand.append((x, y))
+            if cand and shoulder:
+                far = max(cand,
+                          key=lambda p: (p[0] - shoulder.x) ** 2
+                          + (p[1] - shoulder.y) ** 2)
+                elbow = max(
+                    cand,
+                    key=lambda p: -abs(((p[0] - shoulder.x) ** 2
+                                       + (p[1] - shoulder.y) ** 2) ** 0.5
+                                     - arm_len * 0.55))
+                conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
+                put(f"wrist_{side}", far[0], far[1], conf,
+                    "arm blob extremity")
+                put(f"elbow_{side}", elbow[0], elbow[1], conf - 0.05,
+                    "arm blob mid-extent")
+
+        # Orientation + body model selection.
+        sym = self._symmetry(comp, w, int(crotch), bottom)
+        aspect = body_w / body_h
+        if legs_split and sym > 0.75:
+            facing, fconf = "front", min(0.8, sym)
+        elif not legs_split and aspect < 0.3:
+            facing, fconf = "side", 0.5
+        else:
+            facing, fconf = "three-quarter", 0.4
+        sk.orientation = {"facing": facing, "confidence": round(fconf, 3),
+                          "symmetry": round(sym, 3)}
+
+        measured_head_ratio = (hx1 - top + 1) / body_h if hn else prior["head_ratio"]
+        mname, mconf = select_model(measured_head_ratio)
+        sk.body_model = {"name": mname,
+                         "label": BODY_MODELS[mname]["label"],
+                         "confidence": mconf,
+                         "measured_head_ratio": round(measured_head_ratio, 3),
+                         "state": "estimated"}
+        return sk
+
+    def _symmetry(self, mask, w, y0, y1) -> float:
+        """Left/right run-width agreement across the lower body."""
+        diffs = 0
+        n = 0
+        cx = w // 2
+        for y in range(y0, min(y1, len(mask))):
+            row = mask[y]
+            lw = sum(row[x] for x in range(0, cx))
+            rw = sum(row[x] for x in range(cx, w))
+            if lw + rw == 0:
+                continue
+            diffs += abs(lw - rw) / (lw + rw)
+            n += 1
+        return 1 - (diffs / n) if n else 0.0

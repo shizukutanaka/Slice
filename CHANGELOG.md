@@ -5,6 +5,10 @@
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測
+- `slice.norm` 新設 — 座標変換（crop/resize/to_unit/from_unit）。
+  画像変換に骨格座標を追従、フレーム外に出た関節は消さず
+  `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
+  測れなくなったことを知識として残す
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

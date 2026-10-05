@@ -17,6 +17,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.heatmap` 新設 — 関節をガウシアン分布としてグレースケール
+  描画する OpenPose系 confidence map 出力。輝度=confidence で
+  observedは明るく・predictedは gain 0.3 で薄く — 「どこに自信を
+  持っているか」を同じ表現形式で示す（Hourglass/PAF/BlazePose
+  系の標準中間表現に準拠）
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

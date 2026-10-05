@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Dataset Export: `slice export` で Knowledge Store をフラットJSONL
+  （labels/ratios/keypoints/信頼度統計）に書き出し。将来の学習用データ基盤
+- fix: CLI `--model` 未指定時に "adult" が強制指定扱いになるバグを修正
+  （default=None で自動推定を維持）
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

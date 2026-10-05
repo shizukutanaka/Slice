@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.gait` 新設 — 歩行位相キュー。脚ごとに stance/swing/unknown
+  （膝屈曲角150°+股関直下=支持脚、膝屈曲or軸外=遊脚）＋step_width
+  ＋double_support。静止画で「歩行中に見える」位相推測、欠損脚は
+  unknown
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

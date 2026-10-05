@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.quality` 新設 — 解析信頼度グレード。観測率(0.5)＋
+  observed平均confidence(0.3)＋4身体領域の証拠分散(0.2)を
+  加重して0–1スコア＋A–E等級。「証拠の評価」であって
+  「ポーズの正しさ」ではないとbasis明記
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

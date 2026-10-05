@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.dataset` 新設 — Knowledge Store の一括エクスポート
+  （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
+  欠損関節は行を出さず state/basis を保持 — Phase 2 の
+  データセット管理を外部ツールへ橋渡し
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測

@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.rig` 新設 — 骨格をアニメーション用リグとして出力
+  （name/parent/head/tail/length/dir/confidence の17ボーン、
+  pelvisルート）。リターゲット・BVH/GLTF変換・3D化で使う骨構造。
+  欠損関節の骨はゼロ化せず省略 — リグは知っている分だけを正直に表す
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

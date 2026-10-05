@@ -16,6 +16,7 @@ LABELS = {
     "real": "リアル（写真・写実）",
     "anime": "アニメ・セル塗り",
     "illustration": "イラスト・絵画的",
+    "sketch": "線画・ラフ",
     "unknown": "不明",
 }
 
@@ -56,7 +57,9 @@ def analyze(bmp: Bitmap) -> dict:
 
     inner = max(1, (w - 2) * (h - 2))
     uniq_ratio = len(colors) / n
-    top_cov = max(colors.values()) / n
+    top_two = sorted(colors.values(), reverse=True)[:2]
+    top_cov = top_two[0] / n
+    second_cov = top_two[1] / n if len(top_two) > 1 else 0.0
     grad_mean = grad_sum / inner
     edge_density = grad_hi / inner
     sat_ratio = sat_hi / n
@@ -64,6 +67,7 @@ def analyze(bmp: Bitmap) -> dict:
     signals = {
         "unique_color_ratio": round(uniq_ratio, 4),
         "top_color_coverage": round(top_cov, 3),
+        "second_color_coverage": round(second_cov, 3),
         "edge_density": round(edge_density, 4),
         "grad_mean": round(grad_mean, 2),
         "saturation_ratio": round(sat_ratio, 3),
@@ -73,6 +77,13 @@ def analyze(bmp: Bitmap) -> dict:
         return {"style": style, "label": LABELS[style],
                 "confidence": round(min(conf, 0.9), 3), "signals": signals}
 
+    # 線画: near-zero saturation, dominant paper background, and the
+    # second color is only thin strokes (<12%). A monochrome cel flat
+    # shares the palette sparseness but fills regions, so the second
+    # color covers much more. Checked before anime.
+    if (sat_ratio < 0.02 and top_cov > 0.4 and second_cov < 0.12
+            and 0.005 < edge_density and uniq_ratio < 0.05):
+        return result("sketch", 0.5 + min(top_cov, 0.7) * 0.3)
     # セル塗り: few flat colors dominate, edges are sparse and sharp.
     if uniq_ratio < 0.02 and top_cov > 0.35 and edge_density < 0.08:
         return result("anime", 0.55 + top_cov * 0.4)

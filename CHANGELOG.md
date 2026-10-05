@@ -20,6 +20,9 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Skeleton: `normalized` エクスポート追加 — pelvis原点・neck–pelvis
+  距離=1の正規化座標を skeleton ブロックに出力。解像度・構図に
+  非依存で画像間のポーズ比較が可能に（pelvis/neck欠損時は省略）
 - Prediction Engine: 中間関節の線形補間 — 肘/膝が欠損でもチェーン末端
   （手首/足首）が既知なら、親子間を四肢比率で内分して配置。
   盲目的な真下へのプライア配置を解消（confidence 0.3、basis記録）

@@ -28,6 +28,13 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertLess(j["shoulder_l"].x, j["shoulder_r"].x)
         self.assertLess(j["ankle_l"].x, j["ankle_r"].x)
 
+    def test_dangling_wrist_below_hip(self):
+        j = self.skel.joints
+        for side in ("l", "r"):
+            self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
+            self.assertGreater(j[f"wrist_{side}"].y, j[f"hip_{side}"].y,
+                               f"wrist_{side} should hang below the hip line")
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

@@ -283,21 +283,41 @@ class HeuristicPoseEstimator(PoseEstimator):
                     crotch + (bottom - crotch) * 0.55, 0.3,
                     "legs not separable")
 
-        # Arms: silhouette protrusions beside the torso column.
+        # Arms: silhouette protrusions beside the torso column, tracked
+        # down past the hips so dangling hands are still found.
         arm_len = body_h * (prior["upper_arm_ratio"]
                             + prior["forearm_ratio"])
+        crotch_y = crotch
         for side, sign in (("l", -1), ("r", 1)):
             shoulder = sk.get(f"shoulder_{side}")
             tx = torso_run[0] if sign < 0 else torso_run[1]
             cand = []
-            for y in range(int(sh_row), int(hip_row) + 1):
-                for run in _row_runs(comp, y, w):
-                    if sign < 0 and run[1] < tx - 2:
-                        for x in range(run[0], run[1] + 1):
-                            cand.append((x, y))
-                    elif sign > 0 and run[0] > tx + 2:
-                        for x in range(run[0], run[1] + 1):
-                            cand.append((x, y))
+            band = None  # x-range of the arm beside the torso
+            for y in range(int(sh_row), bottom + 1):
+                runs = _row_runs(comp, y, w)
+                if y <= crotch_y:
+                    for run in runs:
+                        if (sign < 0 and run[1] < tx - 2) \
+                                or (sign > 0 and run[0] > tx + 2):
+                            cand += [(x, y) for x in range(run[0], run[1] + 1)]
+                else:
+                    # Below the torso the two widest runs are the legs;
+                    # narrower side runs continuing the arm band are limbs.
+                    if len(runs) <= 2 or band is None:
+                        continue
+                    order = sorted(range(len(runs)),
+                                   key=lambda i: runs[i][1] - runs[i][0])
+                    leg_idx = set(order[-2:])
+                    for i, run in enumerate(runs):
+                        if i in leg_idx or run[1] < band[0] - 4 \
+                                or run[0] > band[1] + 4:
+                            continue
+                        if (sign < 0) != ((run[0] + run[1]) / 2 < cx_spine):
+                            continue
+                        cand += [(x, y) for x in range(run[0], run[1] + 1)]
+                if cand and y <= crotch_y:
+                    band = (min(p[0] for p in cand),
+                            max(p[0] for p in cand))
             if cand and shoulder:
                 far = max(cand,
                           key=lambda p: (p[0] - shoulder.x) ** 2

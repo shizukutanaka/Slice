@@ -5,6 +5,9 @@
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測
+- `slice.hu` 新設 — Hu不変モーメント7値＋matchShapes風log距離。
+  平行移動・スケール・回転に不変な形状照合（cv2.matchShapes
+  I1相当をstdlibで）。momentsの不変版
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

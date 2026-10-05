@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.symmetry` 新設 — 左右対称性スコア。左骨方向を垂直軸で
+  ミラーして右骨と内積（0–1、欠側ペアはmissing報告）。T字/直立
+  の高対称 vs 片腕上げの非対称を定量化、`asymmetric_side` で
+  最も逸脱するペアを同定
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

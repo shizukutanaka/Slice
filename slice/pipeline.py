@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Optional
 
 from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, style
+from .anatomy import BODY_MODELS
 from .skeleton import PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -16,8 +17,19 @@ ESTIMATOR = pose.HeuristicPoseEstimator()
 
 def analyze(raw: bytes, *, model: Optional[str] = None,
             source_name: str = "") -> dict:
+    if model and model not in BODY_MODELS:
+        raise ValueError(f"unknown body model {model!r} "
+                         f"(expected one of {sorted(BODY_MODELS)})")
     bmp = bitmap.decode(raw)
     skel = ESTIMATOR.estimate(bmp, model or "adult")
+    if model:
+        # A user-selected model pins every prior AND the reported model —
+        # mark it 'forced' so the JSON never reads it as an estimate.
+        skel.body_model = {"name": model,
+                           "label": BODY_MODELS[model]["label"],
+                           "measured_head_ratio":
+                               skel.body_model.get("measured_head_ratio"),
+                           "state": "forced"}
     added = predict.complete(skel, model)
     ratios = ratio.analyze(skel, centroid=skel.centroid)
     cls = classify.analyze(skel)

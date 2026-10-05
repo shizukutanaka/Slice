@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Model Switching: `GET /models` でモデル一覧公開、`?model=` の未知名を
+  400 拒否、強制指定は `body_model.state="forced"` として記録。
+  ビューアにモデル切替ドロップダウン追加
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

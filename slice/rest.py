@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 from . import __version__, bitmap, knowledge, pipeline, render
+from .anatomy import BODY_MODELS
 
 _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
@@ -56,6 +57,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._bytes(f.read(), "text/html; charset=utf-8")
         elif path == "/health":
             self._json({"ok": True, "version": __version__})
+        elif path == "/models":
+            self._json({"models": [{"name": n, "label": m["label"]}
+                                   for n, m in BODY_MODELS.items()]})
         elif path == "/knowledge":
             self._json({"items": self.store.list()})
         elif path.startswith("/knowledge/"):
@@ -84,6 +88,9 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         qs = parse_qs(url.query)
         model = (qs.get("model") or [None])[0]
+        if model and model not in BODY_MODELS:
+            return self._error(
+                400, f"unknown model {model!r}; see GET /models")
         try:
             doc = pipeline.analyze(raw, model=model,
                                    source_name=self.headers.get(

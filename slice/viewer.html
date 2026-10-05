@@ -39,6 +39,12 @@
 <div id="side">
   <h1>Slice</h1>
   <div id="info">未解析</div>
+  <label style="display:flex;align-items:center;gap:6px">身体モデル
+    <select id="modelSel" style="flex:1;background:#14161a;color:#e8e8ea;
+      border:1px solid #2a2e38;border-radius:4px;padding:4px">
+      <option value="">自動推定</option>
+    </select>
+  </label>
   <h2>Style</h2><div id="style">—</div>
   <h2>Body Model</h2><div id="model">—</div>
   <h2>Ratios</h2><div id="ratios">—</div>
@@ -65,12 +71,24 @@ drop.ondrop = e => { e.preventDefault(); drop.classList.remove('drag');
   e.dataTransfer.files[0] && analyze(e.dataTransfer.files[0]); };
 document.getElementById('showPred').onchange = draw;
 document.getElementById('save').onclick = save;
+document.getElementById('modelSel').onchange =
+  () => lastBlob && analyze(lastBlob);
+
+fetch('/models').then(r => r.json()).then(m => {
+  const sel = document.getElementById('modelSel');
+  for (const mo of m.models || []) {
+    const o = document.createElement('option');
+    o.value = mo.name; o.textContent = mo.label; sel.appendChild(o);
+  }
+}).catch(() => {});
 
 async function analyze(blob) {
   lastBlob = blob;
   document.getElementById('info').textContent = '解析中…';
-  const res = await fetch('/analyze', { method: 'POST', body: blob,
-    headers: {'X-Image-Name': blob.name || ''} });
+  const mq = document.getElementById('modelSel').value;
+  const res = await fetch('/analyze' + (mq ? `?model=${mq}` : ''),
+    { method: 'POST', body: blob,
+      headers: {'X-Image-Name': blob.name || ''} });
   doc = await res.json();
   if (doc.error) { document.getElementById('info').textContent = doc.error; return; }
   if (imgURL) URL.revokeObjectURL(imgURL);
@@ -124,7 +142,10 @@ function render_side() {
   const bm = doc.skeleton.body_model;
   document.getElementById('model').innerHTML =
     `<div class="row"><span>${bm.label||bm.name||'—'}</span>` +
-    `<span class="tag pred">推定 ${Math.round((bm.confidence||0)*100)}%</span></div>`;
+    (bm.state === 'forced'
+      ? '<span class="tag pred">指定</span>'
+      : `<span class="tag pred">推定 ${Math.round((bm.confidence||0)*100)}%</span>`)
+    + '</div>';
   const R = doc.ratio || {};
   document.getElementById('ratios').innerHTML =
     ['head_to_body','shoulder_width','hip_width','torso_length',

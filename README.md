@@ -52,6 +52,7 @@ python3 -m slice serve --port 8000
 |---|---|---|
 | GET | `/` | 2Dスケルトンビューア |
 | POST | `/analyze?model=&save=1` | 画像bytes → Knowledge JSON |
+| GET | `/models` | 身体モデル一覧（adult/child/deformed） |
 | GET | `/knowledge` | 保存済み一覧 |
 | GET | `/knowledge/<id>` | 個別取得 |
 | GET | `/overlay/<id>.png` | 骨格オーバーレイPNG |

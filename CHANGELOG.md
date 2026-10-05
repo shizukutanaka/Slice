@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.bvh` 新設 — 骨格をBVH（Biovision Hierarchy）テキスト出力。
+  pelvisルート・OFFSETは親相対・CHANNELSはroot6+各関節3、
+  1フレームモーション（回転は未観測ゆえ全0 — 誠実なゼロ埋め）。
+  Blender/MotionBuilder等のリターゲットツールが読む標準形式
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

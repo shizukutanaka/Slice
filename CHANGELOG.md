@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.dedup` 新設 — データセット重複検出（pelvis基準・
+  トルソ正規化の平均関節距離がeps未満のペアを列挙、
+  解像度/平行移動不変）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

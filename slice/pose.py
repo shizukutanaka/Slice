@@ -91,7 +91,7 @@ class HeuristicPoseEstimator(PoseEstimator):
     def _largest_component(self, mask: List[bytearray], w: int, h: int
                            ) -> Tuple[List[bytearray], int]:
         best_label, best_size = -1, 0
-        labels = [bytearray(w) for _ in range(h)]
+        labels = [[0] * w for _ in range(h)]
         label = 0
         for y0 in range(h):
             for x0 in range(w):

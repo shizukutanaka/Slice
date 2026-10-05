@@ -6,6 +6,10 @@
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測
 ||||||| parent of e36e824 (norm: skeleton coordinate transforms (crop/resize/unit))
+- topology: Devin Review 3件修正 — `_largest_component` の bytearray
+  ラベルが256成分で溢れてクラッシュ（pose推定自体も影響、
+  list化で解消）、穴スキャンを最大成分→全前景に拡大（小さい
+  リングの穴も計数）、`fg_px` を最大成分のみ→全前景合計に
 - `slice.norm` 新設 — 座標変換（crop/resize/to_unit/from_unit）。
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —

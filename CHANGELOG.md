@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.ground` 新設 — 地面ライン推定。最下observed支持関節
+  （foot→ankle）でground_yを決め、接地/浮遊/端切れを判定
+  （support_is_lowest=grounded、フレーム端=cropped — 推測で
+  接地と言わない、他関節が足下=airborne）＋clearance
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

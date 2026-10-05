@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.stats` 新設 — 複数解析結果の集約統計。`joint_stats` で
+  関節ごとの観測率/補完率/平均信頼度、`weakest_joints` で推定器の
+  死角を同定、`summary` でケース数＋平均観測率＋弱点リストの
+  メタ知識化。入力ドメインと推定器の相性を数値で見る層
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

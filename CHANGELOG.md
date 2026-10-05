@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.limbs` 新設 — 四肢長プロファイル。腕（肩→手首）/脚
+  （股関→足）のチェーン合計をpx＋身長比＋partial（一部predicted
+  含む）＋左右差deltaで計測 — 人体測定レポート層
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

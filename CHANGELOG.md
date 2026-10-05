@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.dominance` 新設 — 荷重優位側推定。骨盤の足首中点偏移
+  （>15%半脚間=側方荷重）＋膝屈曲による脱荷脚の逆側投票で
+  dominant l|r|even|unknown＋confidence＋全cues開示
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

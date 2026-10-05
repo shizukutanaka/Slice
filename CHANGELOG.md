@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.handpos` 新設 — 手の位置意味づけ。手首を身体スキーマ
+  相対でゾーニング（above_head/at_head/at_chest/at_waist/at_hip/
+  at_knee/hanging）、胴体スパン比で身長非依存、predicted手首は
+  ゾーニングしない
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

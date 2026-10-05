@@ -57,6 +57,31 @@ class TestClassify(unittest.TestCase):
                ankle_l=(45, 375), ankle_r=(160, 375))
         self.assertEqual(classify.analyze(s)["pose"], "run")
 
+    def test_arms_up(self):
+        s = sk(head=(100, 30), neck=(100, 80), chest=(100, 160),
+               pelvis=(100, 200), hip_l=(85, 205), hip_r=(115, 205),
+               knee_l=(80, 290), knee_r=(120, 290),
+               ankle_l=(80, 380), ankle_r=(120, 380),
+               shoulder_l=(70, 90), shoulder_r=(130, 90),
+               wrist_l=(70, 20), wrist_r=(130, 20))
+        self.assertEqual(classify.analyze(s)["pose"], "arms_up")
+
+    def test_t_pose(self):
+        s = sk(head=(100, 30), neck=(100, 80), chest=(100, 160),
+               pelvis=(100, 200), hip_l=(85, 205), hip_r=(115, 205),
+               knee_l=(80, 290), knee_r=(120, 290),
+               ankle_l=(80, 380), ankle_r=(120, 380),
+               shoulder_l=(70, 90), shoulder_r=(130, 90),
+               wrist_l=(10, 92), wrist_r=(190, 88))
+        self.assertEqual(classify.analyze(s)["pose"], "t_pose")
+
+    def test_arm_pose_needs_observed_wrists(self):
+        s = sk(head=(100, 30), neck=(100, 80), chest=(100, 160),
+               pelvis=(100, 200), hip_l=(85, 205), hip_r=(115, 205),
+               knee_l=(80, 290), knee_r=(120, 290),
+               ankle_l=(80, 380), ankle_r=(120, 380))
+        self.assertEqual(classify.analyze(s)["pose"], "stand")
+
     def test_unknown_empty(self):
         r = classify.analyze(Skeleton(10, 10))
         self.assertEqual(r["pose"], "unknown")

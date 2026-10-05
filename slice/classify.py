@@ -18,7 +18,8 @@ Point = Tuple[float, float]
 
 LABELS = {
     "stand": "立つ", "sit": "座る", "walk": "歩く", "run": "走る",
-    "lie": "寝る", "crouch": "しゃがむ", "unknown": "不明",
+    "lie": "寝る", "crouch": "しゃがむ", "arms_up": "両手上げ",
+    "t_pose": "T字", "unknown": "不明",
 }
 
 
@@ -42,6 +43,10 @@ def analyze(skel: Skeleton) -> dict:
     def pt(name):
         v = J.get(name)
         return (v[0], v[1]) if v else None
+
+    def obs(name):
+        v = J.get(name)
+        return bool(v and v[2] == OBSERVED)
 
     head, ankle_l, ankle_r = pt("head"), pt("ankle_l"), pt("ankle_r")
     hip_l, hip_r = pt("hip_l"), pt("hip_r")
@@ -122,5 +127,24 @@ def analyze(skel: Skeleton) -> dict:
         if shin and knee_gap > shin * 0.6:
             return result("run", 0.6)
         return result("walk", 0.6)
+
+    # Arm poses — checked last so gait/crouch labels win; both wrists
+    # must be observed, a predicted hand can invent a pose.
+    neck = pt("neck")
+    wr_l, wr_r = pt("wrist_l"), pt("wrist_r")
+    sh_l, sh_r = pt("shoulder_l"), pt("shoulder_r")
+    if neck and wr_l and wr_r and sh_l and sh_r \
+            and all(obs(n) for n in
+                    ("wrist_l", "wrist_r", "shoulder_l", "shoulder_r")):
+        if wr_l[1] < neck[1] and wr_r[1] < neck[1]:
+            return result("arms_up", 0.6)
+        arm_l, arm_r = _d(sh_l, wr_l), _d(sh_r, wr_r)
+        if arm_l and arm_r:
+            t_l = (abs(wr_l[1] - sh_l[1]) < arm_l * 0.3
+                   and abs(wr_l[0] - sh_l[0]) > arm_l * 0.7)
+            t_r = (abs(wr_r[1] - sh_r[1]) < arm_r * 0.3
+                   and abs(wr_r[0] - sh_r[0]) > arm_r * 0.7)
+            if t_l and t_r:
+                return result("t_pose", 0.6)
 
     return result("stand", 0.65)

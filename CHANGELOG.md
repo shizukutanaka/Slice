@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Pose Classification: 腕ラベル追加（両手上げ=arms_up、T字=t_pose）。
+  歩行・しゃがみ等より後段で判定し、両手首は observed の場合のみ
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice.crop` 新設 — Bitmap矩形切り出し（autocropのcrop提案を
+  適用する実行側、枠外はclamp・重なり無しはValueError）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

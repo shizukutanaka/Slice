@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.bundle` 新設 — Knowledge Store の単一zip梱包/展開
+  （manifest.json付き配布フォーマット、スキーマ検証ゲート
+  をexport側にも適用、id無しエントリはskipped計上）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

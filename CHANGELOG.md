@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.project` 新設 — シルエット射影プロファイル（縦横
+  ヒストグラム＋ピーク検出＋upper/middle/lowerバンド質量）。
+  骨格とは独立した「影の文法」の形状解析
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

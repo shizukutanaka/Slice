@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
+  レンダリング（render.pyのPNGと対）。observed=青実線・
+  predicted=橙破線（stroke-dasharray）、全関節に
+  state/confidence/basis の `<title>` ツールチップ
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

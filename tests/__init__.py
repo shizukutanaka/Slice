@@ -38,11 +38,12 @@ def synthetic_person(width=160, height=300, *, arms_down=True,
     # shoulder bar connects arms and torso into one silhouette
     rect(cx - torso_w / 2 - 10, sh_y, cx + torso_w / 2 + 10, sh_y + 6)
     rect(cx - torso_w / 2, sh_y, cx + torso_w / 2, hip_y)  # torso
-    # arms below the bar: separate runs beside the torso
+    # arms below the bar: separate runs beside the torso, dangling
+    # well below the hip line (hands at ~75% of body height)
     rect(cx - torso_w / 2 - 10, sh_y + 6, cx - torso_w / 2 - 2,
-         hip_y + 20)                                    # left arm
+         height * 0.75)                                 # left arm
     rect(cx + torso_w / 2 + 2, sh_y + 6, cx + torso_w / 2 + 10,
-         hip_y + 20)                                    # right arm
+         height * 0.75)                                 # right arm
     # legs separated by a gap
     gap = 8
     rect(cx - torso_w / 2, hip_y, cx - gap / 2, height - 10)

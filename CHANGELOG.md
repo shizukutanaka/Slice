@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.occlusion` 新設 — 欠損理由推定。unobserved関節を理由別に
+  分類（シルエット内=occluded、フレーム外=truncated、未予測=
+  absent、マスク外=unobserved）。「欠損」を単一語でなく証拠の
+  性質で区別する監査層
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

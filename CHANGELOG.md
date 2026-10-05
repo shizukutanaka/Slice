@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.describe` 新設 — 骨格＋姿勢/向きラベルを人間可読な
+  説明文に変換する NLG 層（"standing; facing the camera; left arm
+  not directly observed; 19 of 19 joints observed"）。observed と
+  predicted を文面で厳密に区別し、データが言っていないことは言わない
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

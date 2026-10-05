@@ -2,10 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.radial` 新設 — 放射状シグネチャ（重心から64方向の
+  輪郭距離、最長正規化）。matchは全循環シフト最良L1で回転
+  不変 — 質量の伸び方を見るcompact形状照合
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測
-||||||| parent of e36e824 (norm: skeleton coordinate transforms (crop/resize/unit))
 - `slice.norm` 新設 — 座標変換（crop/resize/to_unit/from_unit）。
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —

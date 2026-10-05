@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.mutate` 新設 — ノイズ・遮蔽・クロップの画像変換。
+  証拠が部分的な時に関節が predicted/欠損に落ち（observed を
+  捏造しない）誠実性をロバストネステストで検証するための道具
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

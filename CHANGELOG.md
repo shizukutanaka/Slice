@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- knowledge: `validate()` 強化 — id形式・frame正値・prediction↔関節state
+  整合・keypoints_2d長/範囲・bone関節名の既知チェックを追加
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

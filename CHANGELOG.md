@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Pose Engine: 向き推定を強化。肩幅/身長比の側面判定＋頭頂行の偏移で
+  left/right/side の向きを推定（`orientation.head_shift` 信号を追加）
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

@@ -2,8 +2,30 @@ import unittest
 
 from tests import synthetic_person
 
+from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import OBSERVED
+
+
+def profile_person(width=100, height=300, side=-1, bg=235, fg=60):
+    """Side-view silhouette: narrow fused column, head blob leaning
+    toward the faced side (side=-1 left, +1 right)."""
+    bmp = Bitmap.new(width, height, (bg, bg, bg, 255))
+    cx = width // 2 - side * 8
+    for y in range(int(height * 0.32), height - 2):  # torso + fused legs
+        for x in range(cx, cx + 12):
+            bmp.set(x, y, (fg, fg, fg, 255))
+    r = int(height * 0.08)
+    hcx = cx + 6 + side * (r + 2)  # head center offset toward `side`
+    cy = int(height * 0.12)
+    for y in range(cy - r, cy + r):
+        for x in range(hcx - r, hcx + r):
+            if (x - hcx) ** 2 + (y - cy) ** 2 <= r * r:
+                bmp.set(x, y, (fg, fg, fg, 255))
+    for y in range(cy, int(height * 0.34)):  # neck bridge keeps one component
+        for x in range(min(cx + 6, hcx) - 2, max(cx + 6, hcx) + 2):
+            bmp.set(x, y, (fg, fg, fg, 255))
+    return bmp
 
 
 class TestHeuristicPose(unittest.TestCase):
@@ -41,12 +63,21 @@ class TestHeuristicPose(unittest.TestCase):
 
     def test_orientation_and_model(self):
         self.assertIn(self.skel.orientation["facing"],
-                      ("front", "side", "three-quarter"))
+                      ("front", "side", "three-quarter", "left", "right"))
+        self.assertEqual(self.skel.orientation["facing"], "front")
         self.assertIn(self.skel.body_model["name"],
                       ("adult", "child", "deformed"))
 
+    def test_profile_facing_direction(self):
+        est = HeuristicPoseEstimator()
+        left = est.estimate(profile_person(side=-1))
+        right = est.estimate(profile_person(side=1))
+        self.assertEqual(left.orientation["facing"], "left")
+        self.assertLess(left.orientation["head_shift"], 0)
+        self.assertEqual(right.orientation["facing"], "right")
+        self.assertGreater(right.orientation["head_shift"], 0)
+
     def test_blank_image(self):
-        from slice.bitmap import Bitmap
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,
                                                           (255, 255, 255, 255)))
         self.assertFalse(sk.joints)

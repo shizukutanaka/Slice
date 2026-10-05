@@ -128,8 +128,8 @@ def _decode_png(raw: bytes) -> Bitmap:
             break
     if width is None:
         raise UnsupportedFormat("PNG missing IHDR")
-    if interlace:
-        raise UnsupportedFormat("interlaced (Adam7) PNG not supported")
+    if interlace not in (0, 1):
+        raise UnsupportedFormat(f"PNG interlace {interlace} unknown")
     if bit_depth != 8:
         raise UnsupportedFormat(f"PNG bit depth {bit_depth} not supported (8 only)")
 
@@ -138,57 +138,88 @@ def _decode_png(raw: bytes) -> Bitmap:
         raise UnsupportedFormat(f"PNG color type {color_type} not supported")
 
     data = zlib.decompress(bytes(idat))
-    stride = width * channels
     out = bytearray(width * height * 4)
-    prev = bytearray(stride)
-    o = di = 0
-    for _y in range(height):
-        filt = data[o]
-        o += 1
-        row = bytearray(data[o:o + stride])
-        o += stride
-        if filt == 1:  # sub
-            for i in range(channels, stride):
-                row[i] = (row[i] + row[i - channels]) & 0xFF
-        elif filt == 2:  # up
-            for i in range(stride):
-                row[i] = (row[i] + prev[i]) & 0xFF
-        elif filt == 3:  # average
-            for i in range(stride):
-                a = row[i - channels] if i >= channels else 0
-                row[i] = (row[i] + ((a + prev[i]) >> 1)) & 0xFF
-        elif filt == 4:  # paeth
-            for i in range(stride):
-                a = row[i - channels] if i >= channels else 0
-                b = prev[i]
-                c = prev[i - channels] if i >= channels else 0
-                p = a + b - c
-                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
-                row[i] = (row[i] + pr) & 0xFF
-        elif filt != 0:
-            raise UnsupportedFormat(f"PNG filter {filt} unknown")
-        for x in range(width):
-            s = x * channels
-            if color_type == 0:
-                g = row[s]
-                px = (g, g, g, 255)
-            elif color_type == 2:
-                px = (row[s], row[s + 1], row[s + 2], 255)
-            elif color_type == 3:
-                idx = row[s]
-                pi = idx * 3
-                a = trns[idx] if idx < len(trns) else 255
-                px = (palette[pi], palette[pi + 1], palette[pi + 2], a)
-            elif color_type == 4:
-                g = row[s]
-                px = (g, g, g, row[s + 1])
-            else:  # 6
-                px = (row[s], row[s + 1], row[s + 2], row[s + 3])
-            out[di:di + 4] = bytes(px)
-            di += 4
-        prev = row
+
+    def unfilter(o, nrows, rowbytes):
+        """Read nrows filtered scanlines starting at o; return (rows, o')."""
+        rows = []
+        prev = bytearray(rowbytes)
+        for _ in range(nrows):
+            filt = data[o]
+            o += 1
+            row = bytearray(data[o:o + rowbytes])
+            o += rowbytes
+            if filt == 1:  # sub
+                for i in range(channels, rowbytes):
+                    row[i] = (row[i] + row[i - channels]) & 0xFF
+            elif filt == 2:  # up
+                for i in range(rowbytes):
+                    row[i] = (row[i] + prev[i]) & 0xFF
+            elif filt == 3:  # average
+                for i in range(rowbytes):
+                    a = row[i - channels] if i >= channels else 0
+                    row[i] = (row[i] + ((a + prev[i]) >> 1)) & 0xFF
+            elif filt == 4:  # paeth
+                for i in range(rowbytes):
+                    a = row[i - channels] if i >= channels else 0
+                    b = prev[i]
+                    c = prev[i - channels] if i >= channels else 0
+                    p = a + b - c
+                    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                    pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+                    row[i] = (row[i] + pr) & 0xFF
+            elif filt != 0:
+                raise UnsupportedFormat(f"PNG filter {filt} unknown")
+            rows.append(row)
+            prev = row
+        return rows, o
+
+    def to_rgba(row, j):
+        s = j * channels
+        if color_type == 0:
+            g = row[s]
+            return (g, g, g, 255)
+        if color_type == 2:
+            return (row[s], row[s + 1], row[s + 2], 255)
+        if color_type == 3:
+            idx = row[s]
+            pi = idx * 3
+            a = trns[idx] if idx < len(trns) else 255
+            return (palette[pi], palette[pi + 1], palette[pi + 2], a)
+        if color_type == 4:
+            g = row[s]
+            return (g, g, g, row[s + 1])
+        return (row[s], row[s + 1], row[s + 2], row[s + 3])
+
+    def emit(x, y, px):
+        i = (y * width + x) * 4
+        out[i:i + 4] = bytes(px)
+
+    o = 0
+    if interlace == 0:
+        rows, _o = unfilter(o, height, width * channels)
+        for y, row in enumerate(rows):
+            for x in range(width):
+                emit(x, y, to_rgba(row, x))
+    else:
+        # Adam7: 7 passes over the image grid.
+        for x0, y0, dx, dy in _ADAM7:
+            pw = (width - x0 + dx - 1) // dx if width > x0 else 0
+            ph = (height - y0 + dy - 1) // dy if height > y0 else 0
+            if pw <= 0 or ph <= 0:
+                continue
+            rows, o = unfilter(o, ph, pw * channels)
+            for i, row in enumerate(rows):
+                y = y0 + i * dy
+                for j in range(pw):
+                    emit(x0 + j * dx, y, to_rgba(row, j))
     return Bitmap(width, height, out)
+
+
+_ADAM7 = (
+    (0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
+    (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2),
+)
 
 
 def _decode_bmp(raw: bytes) -> Bitmap:

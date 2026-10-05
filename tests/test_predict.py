@@ -35,6 +35,23 @@ class TestPredict(unittest.TestCase):
         self.assertEqual(el.state, PREDICTED)
         self.assertGreater(el.y, 50)
 
+    def test_mid_chain_interpolation(self):
+        # elbow missing but shoulder and wrist known -> elbow sits on the
+        # segment between them, not on a straight prior drop
+        sk = Skeleton(100, 200)
+        from slice.skeleton import Joint
+        sk.set(Joint("shoulder_l", 30, 60, 0.8))
+        sk.set(Joint("wrist_l", 10, 120, 0.8))
+        predict.complete(sk)
+        el = sk.get("elbow_l")
+        self.assertEqual(el.state, PREDICTED)
+        self.assertIn("interpolated", el.basis)
+        # adult prior: upper/(upper+fore) ≈ .545 -> el ≈ lerp(sh, wr, .545)
+        self.assertAlmostEqual(el.x, 30 + (10 - 30) * 0.545, delta=3)
+        self.assertAlmostEqual(el.y, 60 + (120 - 60) * 0.545, delta=3)
+        # the straight prior drop would have kept x near shoulder+x
+        self.assertLess(el.x, 30)
+
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         added = predict.complete(sk)

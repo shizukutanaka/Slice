@@ -49,6 +49,24 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
             "predicted": [n for n, j in joints.items()
                           if j.state == PREDICTED],
         },
+        # how much of the document rests on image evidence — the
+        # honesty contract as numbers, not just colors
+        "coverage": {
+            "joints_total": len(JOINTS),
+            "observed": sum(1 for j in joints.values()
+                            if j.state == OBSERVED),
+            "predicted": sum(1 for j in joints.values()
+                             if j.state == PREDICTED),
+            "unfilled": len(JOINTS) - len(joints),
+            "observed_ratio": round(
+                sum(1 for j in joints.values() if j.state == OBSERVED)
+                / len(JOINTS), 3),
+            "mean_observed_confidence": round(
+                sum(j.confidence for j in joints.values()
+                    if j.state == OBSERVED)
+                / max(1, sum(1 for j in joints.values()
+                             if j.state == OBSERVED)), 3),
+        },
         "export": {
             "keypoints_2d": flat,
             "keypoint_order": JOINTS,

@@ -20,6 +20,9 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Ratio Engine: `arm_span`（指先-指先/身長、ウィトルウィウス的比例）と
+  `leg_to_torso`（脚長/胴長）を追加 — 姿勢と身体プロポーションの
+  両シグナルとして Knowledge JSON に出力
 - Prediction Engine: 中間関節の線形補間 — 肘/膝が欠損でもチェーン末端
   （手首/足首）が既知なら、親子間を四肢比率で内分して配置。
   盲目的な真下へのプライア配置を解消（confidence 0.3、basis記録）

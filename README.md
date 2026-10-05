@@ -79,6 +79,7 @@ Import → Pose(シルエット推定) → Skeleton
 | `slice/predict.py` | 欠損推定（対称ミラー → プライア配置） |
 | `slice/ratio.py` | 比率解析（頭身・四肢長・重心・対称性） |
 | `slice/classify.py` | 姿勢分類（立つ/座る/歩く/走る/寝る/しゃがむ/不明） |
+| `slice/style.py` | スタイル推定（real/anime/illustration、画像統計） |
 | `slice/knowledge.py` | Knowledge JSON v1 構築・検証・ファイルストア |
 | `slice/render.py` | 骨格オーバーレイ描画 |
 | `slice/rest.py` | REST API（http.server） |

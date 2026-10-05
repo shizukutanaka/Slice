@@ -14,6 +14,7 @@ Slice の成果物。画像そのものではなく、画像から推論した�
 | `source` | object | `{name, sha256, image_retained}` |
 | `skeleton` | object | 下記 |
 | `pose` | object | `{pose, label, confidence, signals}` 姿勢分類（`unknown` あり） |
+| `style` | object | `{style, label, confidence, signals}` スタイル推定（real/anime/illustration/unknown） |
 | `ratio` | object | 比率解析結果 |
 | `prediction` | object | `observed`/`predicted`/`filled` 関節名リスト |
 | `export` | object | 相互運用形式 |

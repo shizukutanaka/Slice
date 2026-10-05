@@ -5,6 +5,8 @@
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）
+- Style Detection: 色数・平坦領域・エッジ密度・彩度の画像統計で
+  real/anime/illustration/unknown を推定し `style` フィールドとビューアに出力
 - Pose Engine: 腕候補スキャンを股下〜足元まで拡張。腰より下に垂れた腕・手首を
   observed として検出（脚領域では最広2ラン=脚を除外し、胴体横の腕バンドを追跡）
 

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- render: オーバーレイに信頼度反映 — 低信頼（<0.55）の骨を破線化、
+  関節円の半径を confidence に比例
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

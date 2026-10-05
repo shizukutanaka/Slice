@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.diff` 新設 — Knowledgeドキュメント差分監査（関節の
+  追加/消失/移動px・state反転（observed→predicted降格を明示）・
+  信頼度ドリフト・モデル/ポーズ変更をフィールド単位列挙）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

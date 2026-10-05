@@ -336,14 +336,31 @@ class HeuristicPoseEstimator(PoseEstimator):
         # Orientation + body model selection.
         sym = self._symmetry(comp, w, int(crotch), bottom)
         aspect = body_w / body_h
+        sh_span = abs(sr[1] - sr[0]) + 1
+        torso_cx = (torso_run[0] + torso_run[1]) / 2
+        # Facing direction: the topmost silhouette row (top of the head)
+        # leans toward the faced side in profile; row centroid is cleaner
+        # than the whole-head centroid, which the neck mass cancels out.
+        top_run = rows[top] if 0 <= top < len(rows) else None
+        head_shift = ((top_run[0] + top_run[1]) / 2 - torso_cx
+                      if top_run else head_cx - torso_cx)
+        profile = sh_span < body_h * 0.12 or (not legs_split and aspect < 0.3)
         if legs_split and sym > 0.75:
             facing, fconf = "front", min(0.8, sym)
-        elif not legs_split and aspect < 0.3:
-            facing, fconf = "side", 0.5
+        elif profile:
+            # Direction from where the head blob leans off the torso axis.
+            if head_shift < -head_h * 0.1:
+                facing = "left"
+            elif head_shift > head_h * 0.1:
+                facing = "right"
+            else:
+                facing = "side"
+            fconf = 0.55
         else:
             facing, fconf = "three-quarter", 0.4
         sk.orientation = {"facing": facing, "confidence": round(fconf, 3),
-                          "symmetry": round(sym, 3)}
+                          "symmetry": round(sym, 3),
+                          "head_shift": round(head_shift, 2)}
 
         measured_head_ratio = (hx1 - top + 1) / body_h if hn else prior["head_ratio"]
         mname, mconf = select_model(measured_head_ratio)

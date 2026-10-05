@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.autocrop` 新設 — 前景bboxの人物クロップ提案
+  （マージン/アスペクト比指定、フレーム超過は正直にclamp、
+  空フレームは state:"unknown" で推測しない）。前処理ユーティリティ
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

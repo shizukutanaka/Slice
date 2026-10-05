@@ -17,6 +17,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.lift` 新設 — 2D骨格の擬似3Dリフト。向き推定の奥行き
+  手がかりからz座標を割当（front/unknown=全z0「奥行き証拠なし
+  =平坦を正直に」、side=遠側肢に+z肩幅半分）。全zにbasis
+  （no_depth_cue/facing_side）を明記 — zは計測ではなくプライア
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

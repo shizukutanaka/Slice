@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.query` 新設 — ポーズ検索（by example）。クエリ骨格と
+  候補の共有骨方向コサイン類似度でランク付け、compared数を
+  開示（欠骨は投票しない）。kmeans・signatureに並ぶ検索層
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

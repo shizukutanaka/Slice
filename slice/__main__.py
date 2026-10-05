@@ -12,7 +12,7 @@ import argparse
 import json
 import sys
 
-from . import __version__, bitmap, knowledge, pipeline, render, rest
+from . import __version__, bitmap, export, knowledge, pipeline, render, rest
 from .anatomy import BODY_MODELS
 
 
@@ -52,6 +52,17 @@ def _cmd_serve(a) -> int:
     return 0
 
 
+def _cmd_export(a) -> int:
+    store = knowledge.KnowledgeStore(a.store)
+    n = len(store.list())
+    text = export.dump_jsonl(store, a.output)
+    if a.output:
+        print(f"exported {n} record(s) -> {a.output}", file=sys.stderr)
+    else:
+        print(text, end="")
+    return 0
+
+
 def _cmd_list(a) -> int:
     for item in knowledge.KnowledgeStore(a.store).list():
         print(item["id"], item["created_at"], item.get("body_model"))
@@ -66,7 +77,8 @@ def main(argv=None) -> int:
     a = sub.add_parser("analyze", help="analyze one image")
     a.add_argument("image")
     a.add_argument("-o", "--output")
-    a.add_argument("--model", choices=sorted(BODY_MODELS), default="adult")
+    # default=None keeps auto-selection; forcing marks body_model 'forced'
+    a.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.set_defaults(fn=_cmd_analyze)
@@ -79,6 +91,11 @@ def main(argv=None) -> int:
     l = sub.add_parser("list", help="list stored knowledge")
     l.add_argument("--store", default="knowledge")
     l.set_defaults(fn=_cmd_list)
+
+    e = sub.add_parser("export", help="export knowledge store as JSONL dataset")
+    e.add_argument("--store", default="knowledge")
+    e.add_argument("-o", "--output")
+    e.set_defaults(fn=_cmd_export)
 
     args = p.parse_args(argv)
     return args.fn(args)

@@ -39,6 +39,9 @@ python3 -m slice analyze person.png --store knowledge/
 
 # 人体モデル指定（adult / child / deformed）
 python3 -m slice analyze person.png --model deformed
+
+# Knowledge Store を学習用JSONLに書き出し
+python3 -m slice export --store knowledge/ -o dataset.jsonl
 ```
 
 ### REST + ビューア

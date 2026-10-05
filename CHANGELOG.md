@@ -20,6 +20,8 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Overlay: facing が left/right のとき頭上に向き矢印を描画（緑、
+  状態色と区別）
 - Prediction Engine: 中間関節の線形補間 — 肘/膝が欠損でもチェーン末端
   （手首/足首）が既知なら、親子間を四肢比率で内分して配置。
   盲目的な真下へのプライア配置を解消（confidence 0.3、basis記録）

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dataset+knowledge: Devin Review 3件修正 — ストア内の非object
+  JSON（`[]`等）で `list()` が AttributeError で全エクスポート
+  中止 → スキップ、`from_store` がスキーマ不正docを通す →
+  `validate()` で除外、`to_jsonl([])` が `"\n"` の幽霊レコード
+  を返す → `""` に
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

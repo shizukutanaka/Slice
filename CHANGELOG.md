@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.plumb` 新設 — 鉛直線姿勢整列。head/neck/chest/pelvis/足首
+  の横偏移を身長比で計測（頭部前方位=forward_head検出、
+  stack_score=胴チェーン平均偏移で姿勢品質を連続量化）
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

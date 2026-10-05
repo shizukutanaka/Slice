@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.evaluate` 新設 — 正解座標を記録しながら図を描く
+  `draw_case()` と、検出率・observed率・平均位置誤差(px)を報告する
+  `evaluate()`。推定精度を「言い張る」のでなく測るための評価系
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

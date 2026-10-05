@@ -5,6 +5,9 @@
 - `slice.topology` 新設 — シルエット位相解析（前景成分数＋
   囲まれた背景穴＋Euler数）。「腰に手」の三角穴のような
   骨格では表せないポーズ意味を直接計測
+- `slice.agecue` 新設 — 頭部/身長比の発達推定（乳児≥0.28・幼児
+  ≥0.22・juvenile≥0.16・成人≥0.11の連続バンド、head/neckから
+  crown≈2×neck-head推定、estimated明記）＋heads_tall（頭身数）
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

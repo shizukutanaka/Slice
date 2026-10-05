@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.moments` 新設 — シルエット画像モーメント（m00/重心/
+  共分散→等価楕円の角度・長短軸・離心率）。contour・hullと
+  対になる統計的形状記述（OpenCV moments相当をstdlibで）
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

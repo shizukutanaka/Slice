@@ -63,6 +63,7 @@ python3 -m slice serve --port 8000
 Import → Pose(シルエット推定) → Skeleton
        → Prediction(対称+プライアで欠損補完)
        → Ratio(頭身/肩幅/脚長/重心/対称性)
+       → Pose Classification(立つ/座る/歩く/走る/寝る/しゃがむ)
        → Knowledge(slice.knowledge/v1 JSON) → Export
 ```
 
@@ -77,6 +78,7 @@ Import → Pose(シルエット推定) → Skeleton
 | `slice/anatomy.py` | 統計的人体モデル（成人/子供/デフォルメ）+ 選択 |
 | `slice/predict.py` | 欠損推定（対称ミラー → プライア配置） |
 | `slice/ratio.py` | 比率解析（頭身・四肢長・重心・対称性） |
+| `slice/classify.py` | 姿勢分類（立つ/座る/歩く/走る/寝る/しゃがむ/不明） |
 | `slice/knowledge.py` | Knowledge JSON v1 構築・検証・ファイルストア |
 | `slice/render.py` | 骨格オーバーレイ描画 |
 | `slice/rest.py` | REST API（http.server） |

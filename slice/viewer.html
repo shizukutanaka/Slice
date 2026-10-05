@@ -111,9 +111,11 @@ function render_side() {
   const J = doc.skeleton.joints;
   const obs = Object.values(J).filter(j=>j.state==='observed').length;
   const prd = Object.values(J).filter(j=>j.state==='predicted').length;
+  const poseTxt = doc.pose && doc.pose.label
+    ? ` — ${doc.pose.label} (${Math.round((doc.pose.confidence||0)*100)}%)` : '';
   document.getElementById('info').textContent =
     `${obs} observed / ${prd} predicted — facing: ` +
-    `${doc.skeleton.orientation.facing || '?'}`;
+    `${doc.skeleton.orientation.facing || '?'}${poseTxt}`;
   const bm = doc.skeleton.body_model;
   document.getElementById('model').innerHTML =
     `<div class="row"><span>${bm.label||bm.name||'—'}</span>` +

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import __version__, bitmap, knowledge, pose, predict, ratio
+from . import __version__, bitmap, classify, knowledge, pose, predict, ratio
 from .skeleton import PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -20,8 +20,9 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
     skel = ESTIMATOR.estimate(bmp, model or "adult")
     added = predict.complete(skel, model)
     ratios = ratio.analyze(skel, centroid=skel.centroid)
+    cls = classify.analyze(skel)
     doc = knowledge.build(
-        skel, ratios,
+        skel, ratios, cls,
         image_sha256=knowledge.sha256(raw),
         source_name=source_name,
         engine={"name": ESTIMATOR.name, "version": ESTIMATOR.version,

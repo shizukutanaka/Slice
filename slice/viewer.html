@@ -39,6 +39,7 @@
 <div id="side">
   <h1>Slice</h1>
   <div id="info">未解析</div>
+  <h2>Style</h2><div id="style">—</div>
   <h2>Body Model</h2><div id="model">—</div>
   <h2>Ratios</h2><div id="ratios">—</div>
   <h2>Joints</h2><div id="joints">—</div>
@@ -116,6 +117,10 @@ function render_side() {
   document.getElementById('info').textContent =
     `${obs} observed / ${prd} predicted — facing: ` +
     `${doc.skeleton.orientation.facing || '?'}${poseTxt}`;
+  const st = doc.style || {};
+  document.getElementById('style').innerHTML =
+    `<div class="row"><span>${st.label||'—'}</span>` +
+    `<span class="tag pred">推定 ${Math.round((st.confidence||0)*100)}%</span></div>`;
   const bm = doc.skeleton.body_model;
   document.getElementById('model').innerHTML =
     `<div class="row"><span>${bm.label||bm.name||'—'}</span>` +

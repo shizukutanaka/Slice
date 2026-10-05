@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from typing import Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import OBSERVED, Skeleton
 
 
 def _dist(a: Optional[Tuple[float, float]],
@@ -48,12 +48,48 @@ def analyze(skel: Skeleton, *, centroid: Optional[Tuple[float, float]] = None
     }
     sym = _symmetry(skel)
     ratios["limb_symmetry"] = round(sym, 3) if sym is not None else None
+    cue = _gender_cue(skel)
+    if cue:
+        ratios["gender_cue"] = cue
     if centroid:
         ratios["center_of_mass"] = {
             "x": round(centroid[0], 2), "y": round(centroid[1], 2),
             "y_ratio": round((centroid[1] - _top_y(skel)) / body_h, 3),
         }
     return ratios
+
+
+_GENDER_LABELS = {
+    "masculine": "男性寄り",
+    "feminine": "女性寄り",
+    "androgynous": "中性",
+}
+
+
+def _gender_cue(skel: Skeleton) -> Optional[dict]:
+    """Shoulder/hip proportion cue — a weak population-level signal, never
+    a claim. Only runs when all four joints are observed; confidence caps
+    at 0.7 because one silhouette ratio cannot determine gender."""
+    need = ("shoulder_l", "shoulder_r", "hip_l", "hip_r")
+    joints = [skel.get(n) for n in need]
+    if any(j is None or j.state != OBSERVED for j in joints):
+        return None
+    sw = _dist(skel.point("shoulder_l"), skel.point("shoulder_r"))
+    hw = _dist(skel.point("hip_l"), skel.point("hip_r"))
+    if not sw or not hw:
+        return None
+    r = sw / hw
+    if r > 1.15:
+        cue, margin = "masculine", (r - 1.15) / 0.15
+    elif r < 0.95:
+        cue, margin = "feminine", (0.95 - r) / 0.10
+    else:
+        cue, margin = "androgynous", 0.0
+    conf = round(min(0.7, 0.35 + margin * 0.35), 3)
+    return {"cue": cue, "label": _GENDER_LABELS[cue],
+            "confidence": conf, "shoulder_hip": round(r, 3),
+            "basis": "observed shoulder/hip width ratio",
+            "state": "estimated"}
 
 
 def _top_y(skel: Skeleton) -> float:

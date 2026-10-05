@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Ratio Engine: `gender_cue` 追加。肩/腰の observed 幅比から
+  masculine/feminine/androgynous の傾向を推定（confidence≤0.7、
+  4関節が predicted の場合は出力しない）
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

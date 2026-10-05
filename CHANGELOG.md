@@ -17,6 +17,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.coco` 新設 — COCOキーポイント形式エクスポート。
+  17関節[x,y,v]で v=2観測/1不可視/0欠損のCOCO可視性規約が
+  observed/predicted/missingに対応（誠実性契約がそのままCOCOの
+  意味論に乗る）。Slice固有関節は unmapped_joints に列挙。
+  学習データセット標準との互換レイヤー
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

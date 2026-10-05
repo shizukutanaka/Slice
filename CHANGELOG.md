@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.audit` 新設 — Knowledgeドキュメントの誠実性リント
+  （validateの先：観測率閾値・basis有無・confidence疑義・
+  prediction帳簿の陳腐化・低証拠上の意味ラベルを警告コード化）
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の

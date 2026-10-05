@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import collections
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,7 +22,9 @@ _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
 class Handler(BaseHTTPRequestHandler):
     store: "knowledge.KnowledgeStore" = None  # set by serve()
-    overlays: dict = {}                       # id -> png bytes
+    # bounded LRU — overlays are derivable, never let them grow the heap
+    overlays: "collections.OrderedDict" = collections.OrderedDict()
+    MAX_OVERLAYS = 32
     server_version = "Slice/" + __version__
 
     def log_message(self, fmt, *args):
@@ -78,16 +81,20 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path != "/analyze":
             return self._error(404, "not found")
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._error(400, "bad Content-Length")
         if not 0 < length <= 25 * 1024 * 1024:
             return self._error(400, "empty or >25MB body")
         raw = self.rfile.read(length)
         qs = parse_qs(url.query)
         model = (qs.get("model") or [None])[0]
+        name = "".join(
+            c for c in self.headers.get("X-Image-Name", "")
+            if c.isprintable() and c not in '<>&"\'')[:128]
         try:
-            doc = pipeline.analyze(raw, model=model,
-                                   source_name=self.headers.get(
-                                       "X-Image-Name", ""))
+            doc = pipeline.analyze(raw, model=model, source_name=name)
         except bitmap.UnsupportedFormat as e:
             return self._error(415, str(e))
         except Exception as e:  # noqa: BLE001 - API must not 500-blank
@@ -99,6 +106,9 @@ class Handler(BaseHTTPRequestHandler):
             if doc["_skeleton"].joints:
                 self.overlays[kid] = render.overlay_png(
                     doc["_bitmap"], doc["_skeleton"])
+                self.overlays.move_to_end(kid)
+                while len(self.overlays) > self.MAX_OVERLAYS:
+                    self.overlays.popitem(last=False)
         self._json(out)
 
 

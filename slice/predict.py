@@ -99,6 +99,16 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
         "chest": ("pelvis", 0, -prior["torso_ratio"] * 0.5),
         "pelvis": ("spine", 0, prior["torso_ratio"] * 0.5),
         "spine": ("chest", 0, prior["torso_ratio"] * 0.25),
+        # limb anchors from the torso — without these a torso-only
+        # skeleton can never grow arms or legs
+        "shoulder_l": ("neck", -prior["shoulder_ratio"] / 2,
+                       prior["head_ratio"] * 0.3),
+        "shoulder_r": ("neck", prior["shoulder_ratio"] / 2,
+                       prior["head_ratio"] * 0.3),
+        "hip_l": ("pelvis", -prior["hip_ratio"] / 2,
+                  prior["head_ratio"] * 0.15),
+        "hip_r": ("pelvis", prior["hip_ratio"] / 2,
+                  prior["head_ratio"] * 0.15),
     }
     if name in anchors:
         ref, dxr, dyr = anchors[name]
@@ -122,6 +132,24 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
             idx = names.index(child)
             frac = sum(prior[chain[i][1]] for i in range(idx + 1))
             total = sum(prior[k] for _, k in chain)
+            if idx > 0:
+                prev = skel.joints.get(f"{chain[idx - 1][0]}_{side}")
+            else:
+                prev = None
+            if prev is not None:
+                # Continue from the previous chain joint (e.g. wrist
+                # extends the shoulder->elbow direction by forearm
+                # length) instead of dropping from the chain root.
+                dx, dy = prev.x - p.x, prev.y - p.y
+                dist = (dx * dx + dy * dy) ** 0.5
+                if dist > 1e-6:
+                    seg = prior[chain[idx][1]] * body_h
+                    j = Joint(name, prev.x + dx / dist * seg,
+                              prev.y + dy / dist * seg,
+                              0.25, PREDICTED,
+                              f"prior off {prev.name}")
+                    skel.set(j)
+                    return j
             distal = next(
                 (skel.joints[f"{chain[i][0]}_{side}"]
                  for i in range(idx + 1, len(chain))

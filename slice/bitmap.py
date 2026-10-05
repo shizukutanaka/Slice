@@ -17,6 +17,10 @@ PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 BMP_MAGIC = b"BM"
 JPEG_MAGIC = b"\xff\xd8"
 
+# Declared dimensions can be far larger than the compressed payload;
+# refuse before allocating the decoded frame.
+MAX_PIXELS = 64_000_000
+
 
 class UnsupportedFormat(ValueError):
     pass
@@ -128,6 +132,9 @@ def _decode_png(raw: bytes) -> Bitmap:
             break
     if width is None:
         raise UnsupportedFormat("PNG missing IHDR")
+    if width * height > MAX_PIXELS:
+        raise UnsupportedFormat(
+            f"PNG dimensions {width}x{height} exceed {MAX_PIXELS} pixels")
     if interlace:
         raise UnsupportedFormat("interlaced (Adam7) PNG not supported")
     if bit_depth != 8:
@@ -203,6 +210,9 @@ def _decode_bmp(raw: bytes) -> Bitmap:
         raise UnsupportedFormat("only uncompressed 24/32-bit BMP supported")
     top_down = height < 0
     height = abs(height)
+    if width <= 0 or width * height > MAX_PIXELS:
+        raise UnsupportedFormat(
+            f"BMP dimensions {width}x{height} exceed {MAX_PIXELS} pixels")
     stride = ((width * bpp + 31) // 32) * 4
     out = bytearray(width * height * 4)
     for y in range(height):

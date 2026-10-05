@@ -52,6 +52,37 @@ class TestPredict(unittest.TestCase):
         # the straight prior drop would have kept x near shoulder+x
         self.assertLess(el.x, 30)
 
+    def test_wrist_extends_observed_elbow(self):
+        # wrist continues from the elbow, not from the shoulder's
+        # straight prior drop
+        sk = Skeleton(100, 200)
+        from slice.skeleton import Joint
+        sk.set(Joint("shoulder_l", 30, 60, 0.8))
+        sk.set(Joint("elbow_l", 10, 100, 0.8))   # bent arm
+        predict.complete(sk)
+        wr = sk.get("wrist_l")
+        self.assertEqual(wr.state, PREDICTED)
+        self.assertIn("elbow_l", wr.basis)
+        self.assertGreater(wr.y, 100, "wrist must not land above elbow")
+        self.assertLess(wr.x, 10)
+
+    def test_torso_only_grows_limbs(self):
+        # missing shoulders/hips are derived from the torso anchors so
+        # arm and leg chains can complete
+        sk = Skeleton(100, 300)
+        from slice.skeleton import Joint
+        sk.set(Joint("head", 50, 20, 0.8))
+        sk.set(Joint("neck", 50, 45, 0.8))
+        sk.set(Joint("chest", 50, 80, 0.8))
+        sk.set(Joint("pelvis", 50, 130, 0.8))
+        sk.set(Joint("spine", 50, 105, 0.8))
+        predict.complete(sk)
+        for n in ("shoulder_l", "shoulder_r", "hip_l", "hip_r",
+                  "wrist_l", "ankle_r"):
+            self.assertIn(n, sk.joints, n)
+        self.assertLess(sk.get("shoulder_l").x, sk.get("neck").x)
+        self.assertGreater(sk.get("shoulder_r").x, sk.get("neck").x)
+
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         added = predict.complete(sk)

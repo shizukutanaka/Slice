@@ -38,6 +38,19 @@ class TestBitmap(unittest.TestCase):
         with self.assertRaises(bitmap.UnsupportedFormat):
             bitmap.decode(b"\x00\x01\x02\x03")
 
+    def test_oversized_dimensions_rejected(self):
+        import struct as _struct
+        # declared dims far beyond MAX_PIXELS must fail before allocation
+        ihdr = _struct.pack(">IIBBBBB", 20000, 20000, 8, 6, 0, 0, 0)
+        import zlib as _zlib
+        def chunk(tag, payload):
+            c = _struct.pack(">I", len(payload)) + tag + payload
+            return c + _struct.pack(">I", _zlib.crc32(tag + payload) & 0xFFFFFFFF)
+        raw = (bitmap.PNG_MAGIC + chunk(b"IHDR", ihdr)
+               + chunk(b"IDAT", _zlib.compress(b"")) + chunk(b"IEND", b""))
+        with self.assertRaises(bitmap.UnsupportedFormat):
+            bitmap.decode(raw)
+
     def test_downscale(self):
         bmp = synthetic_person(200, 400)
         small = bmp.downscale(100)

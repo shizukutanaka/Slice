@@ -57,6 +57,32 @@ class TestHeuristicPose(unittest.TestCase):
             self.assertGreater(j[f"wrist_{side}"].y, j[f"hip_{side}"].y,
                                f"wrist_{side} should hang below the hip line")
 
+    def test_pelvis_below_arm_gap(self):
+        # arm-torso gaps are multi-run rows too, but only the leg split
+        # straddles the torso midline
+        j = self.skel.joints
+        self.assertGreater(j["pelvis"].y, 150,
+                           "pelvis must sit near the real leg split")
+
+    def test_transparent_background(self):
+        # opaque figure on a fully transparent canvas segments on alpha
+        bmp = synthetic_person(bg=(0, 0, 0, 0), skin=(0, 0, 0, 255))
+        skel = HeuristicPoseEstimator().estimate(bmp)
+        self.assertIn("pelvis", skel.joints)
+
+    def test_many_components_no_crash(self):
+        # >255 foreground islands must not overflow the label store
+        bmp = Bitmap.new(200, 200, (255, 255, 255, 255))
+        for i in range(300):
+            x = (i * 37) % 190
+            y = (i * 53) % 190
+            bmp.set(x, y, (0, 0, 0, 255))
+        for y in range(40, 190):
+            for x in range(80, 120):
+                bmp.set(x, y, (0, 0, 0, 255))
+        skel = HeuristicPoseEstimator().estimate(bmp)
+        self.assertTrue(skel.joints, "largest blob should still be found")
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

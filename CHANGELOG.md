@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- Landmarks: 運動学ツリー追加 — pelvisルートの `PARENT` マップと
+  `chain()` ヘルパ（SMPL系と同じルート規約。補完・正規化・将来の
+  3D化で共有する関節語彙）
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

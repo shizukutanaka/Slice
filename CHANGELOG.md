@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Style Detection: 線画（sketch）ラベル追加 — 低彩度・支配背景・
+  第2色が細いストローク（<12%）で判定。`second_color_coverage`
+  信号を追加
 - Pose Classification: 関節ジオメトリの規則で 立つ/座る/歩く/走る/寝る/しゃがむ
   を推定し Knowledge JSON の `pose` フィールドとビューアに出力。
   観測率で信頼度を減衰、判別不能時は `unknown`（座る=脛垂直、しゃがむ=両脚折れ）

@@ -17,6 +17,9 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.compare` 新設 — 2つの Knowledge ドキュメント間のポーズ距離
+  （pelvis原点・胴長=1の正規化空間で共通関節の平均距離）。
+  解像度・構図に非依存で、比較に使った関節数も報告
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

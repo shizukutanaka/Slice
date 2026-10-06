@@ -80,6 +80,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.mirror` 新設 — `flip_bitmap` / `flip_skeleton`（x反転＋
+  _l/_r交換、facingも反転）。推定器の左右整合性
+  `estimate(flip) ≈ flip(estimate)` を検証・拡張に使う
+||||||| 7a75385
 - `slice.distfield` 新設 — チャンファ(3-4)距離変換でシルエット内の
   各画素の「背景までの距離」を算出し、局所的な肢体の太さを計測
   （関節点の距離×2≈その部位の幅。胴=太・腕=細の定量化）。

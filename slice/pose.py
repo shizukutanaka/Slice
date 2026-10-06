@@ -288,6 +288,10 @@ class HeuristicPoseEstimator(PoseEstimator):
         arm_len = body_h * (prior["upper_arm_ratio"]
                             + prior["forearm_ratio"])
         crotch_y = crotch
+        # Feet anchor the legs: any run below the torso that x-overlaps a
+        # bottom-row run is leg, regardless of its width or how far out
+        # an arm or hip happens to reach.
+        feet = _row_runs(comp, bottom, w)
         for side, sign in (("l", -1), ("r", 1)):
             shoulder = sk.get(f"shoulder_{side}")
             tx = torso_run[0] if sign < 0 else torso_run[1]
@@ -301,20 +305,25 @@ class HeuristicPoseEstimator(PoseEstimator):
                                 or (sign > 0 and run[0] > tx + 2):
                             cand += [(x, y) for x in range(run[0], run[1] + 1)]
                 else:
-                    # Below the torso the two widest runs are the legs;
-                    # narrower side runs continuing the arm band are limbs.
+                    # Below the torso, legs are the runs that still have
+                    # feet under them at the bottom row; any other run on
+                    # the arm's side inside the arm band is a limb. The
+                    # band grows with accepted runs so arms drifting
+                    # outward stay tracked.
                     if len(runs) <= 2 or band is None:
                         continue
-                    order = sorted(range(len(runs)),
-                                   key=lambda i: runs[i][1] - runs[i][0])
-                    leg_idx = set(order[-2:])
-                    for i, run in enumerate(runs):
-                        if i in leg_idx or run[1] < band[0] - 4 \
-                                or run[0] > band[1] + 4:
+                    for run in runs:
+                        mid = (run[0] + run[1]) / 2
+                        if (sign < 0) != (mid < cx_spine):
                             continue
-                        if (sign < 0) != ((run[0] + run[1]) / 2 < cx_spine):
+                        if any(f[0] - 4 <= mid <= f[1] + 4 for f in feet):
+                            continue  # leg — centered over a foot
+                        if run[1] < band[0] - 4 or run[0] > band[1] + 4:
                             continue
-                        cand += [(x, y) for x in range(run[0], run[1] + 1)]
+                        cand += [(x, y)
+                                 for x in range(run[0], run[1] + 1)]
+                        band = (min(band[0], run[0]),
+                                max(band[1], run[1]))
                 if cand and y <= crotch_y:
                     band = (min(p[0] for p in cand),
                             max(p[0] for p in cand))

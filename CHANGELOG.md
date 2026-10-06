@@ -29,6 +29,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.gesture` 新設 — 規則ベースジェスチャ検出（wave=手首が
+  頭の上0.3腕長、hands_on_hips=手首が腰+肘外張り、point=腕水平
+  ~完全伸展）。証拠はobserved関節のみ — predicted肢からは
+  ジェスチャを主張しない
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）

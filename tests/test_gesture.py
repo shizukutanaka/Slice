@@ -1,0 +1,44 @@
+import unittest
+
+from tests import synthetic_person
+
+from slice import gesture
+from slice.pose import HeuristicPoseEstimator
+
+
+class TestGesture(unittest.TestCase):
+    def setUp(self):
+        self.skel = HeuristicPoseEstimator().estimate(synthetic_person())
+
+    def test_neutral_standing_no_gesture(self):
+        self.assertEqual(gesture.detect(self.skel), [])
+
+    def test_wave_detected_on_raised_observed_wrist(self):
+        self.skel.joints["wrist_r"].y = self.skel.point("head")[1] - 100
+        g = gesture.detect(self.skel)
+        self.assertEqual(len(g), 1)
+        self.assertEqual(g[0]["gesture"], "wave")
+        self.assertEqual(g[0]["side"], "r")
+
+    def test_predicted_wrist_never_fires(self):
+        self.skel.joints["wrist_r"].y = self.skel.point("head")[1] - 100
+        self.skel.joints["wrist_r"].state = "predicted"
+        self.assertEqual(gesture.detect(self.skel), [])
+
+    def test_point_detected(self):
+        s = self.skel.point("shoulder_r")
+        e = self.skel.joints["elbow_r"]
+        w = self.skel.joints["wrist_r"]
+        e.x, e.y = s[0] + 60, s[1]
+        w.x, w.y = s[0] + 118, s[1]
+        g = gesture.detect(self.skel)
+        self.assertIn("point", [x["gesture"] for x in g])
+
+    def test_summarize_shape(self):
+        s = gesture.summarize(self.skel)
+        self.assertEqual(s["count"], 0)
+        self.assertFalse(s["bilateral"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -176,9 +176,12 @@ class HeuristicPoseEstimator(PoseEstimator):
             torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
             # A split is a gap between *adjacent* runs; comparing the
             # first and last run spans everything in between and calls
-            # "arm | torso | arm" a crotch at chest height.
+            # "arm | torso | arm" a crotch at chest height. The gap
+            # threshold scales with torso width but stays ≤4px — a
+            # real leg gap doesn't grow with frame size, and the
+            # estimator's own downscale shrinks it further.
             if any(runs[i + 1][0] - runs[i][1]
-                   >= max(2, torso_w * 0.08)
+                   >= max(2, min(4, torso_w * 0.08))
                    for i in range(len(runs) - 1)):
                 return y
         return None

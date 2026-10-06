@@ -45,6 +45,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.balance` 新設 — 静的バランス評価。Winter人体計測質量プライア
+  で重心を推定し足の支持多角形に投影（inside/marginal/outside、
+  証拠不足はunknown推測せず）。バイオメカニクス的「立っていられるか」
+||||||| 7a75385
 - `slice.compare` 新設 — 2つの Knowledge ドキュメント間のポーズ距離
   （pelvis原点・胴長=1の正規化空間で共通関節の平均距離）。
   解像度・構図に非依存で、比較に使った関節数も報告

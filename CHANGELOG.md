@@ -10,13 +10,10 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
-<<<<<<< HEAD
 - `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
   （レイヤ名→自由形式dict、v1との相互後方互換、v1での
   analysis付け足しはvalidate拒否、build(analysis=...)で
   自動v1.1化、AUDIT P1-7/8対応）
-||||||| d0d9419
-=======
 - `docs/AUDIT.md` 新設 — 長所50/短所50/改善点の製品監査
   （第一原理＋ソクラテス問答によるP0–P4優先度付け）
 - `mask.cutout` 修正 — 透過黒初期化が暗色被写体を再推定で
@@ -37,7 +34,6 @@
 - `knowledge.KnowledgeStore.save` を原子的書き込みに
   （tmp+os.replace — クラッシュ時の半端なJSON残存を防止、
   AUDIT P1-11対応）
->>>>>>> origin/main
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

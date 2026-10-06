@@ -60,7 +60,6 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
-<<<<<<< HEAD
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()
         self.assertEqual(doc["schema"], "slice.knowledge/v1")
@@ -80,8 +79,6 @@ class TestKnowledge(unittest.TestCase):
         bad2["analysis"] = {"angles": [1, 2]}
         self.assertTrue(knowledge.validate(bad2))
 
-||||||| d0d9419
-=======
     def test_save_is_atomic_no_tmp_leftover(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:
@@ -93,7 +90,6 @@ class TestKnowledge(unittest.TestCase):
                       encoding="utf-8") as f:
                 self.assertEqual(json.load(f)["id"], doc["id"])
 
->>>>>>> origin/main
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))
         doc = pipeline.strip_runtime(analyze_synth())

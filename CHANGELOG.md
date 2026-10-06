@@ -50,6 +50,12 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.segment` 新設 — 前景ピクセルを最寄りの骨セグメントで
+  部位ラベル付け（head/torso/upper_arm/forearm/thigh/shin/foot L/R）。
+  DensePose系のdense part labelingの軽量版。`summary()` で部位ごとの
+  証拠ピクセル量・割合を集計。骨が欠損した部位はピクセル0 —
+  証拠のみをラベルし予測で増やさない設計
+||||||| 7a75385
 - `slice.contour` 新設 — 前景マスクの外周トレース（Moore近傍追跡）
   と形状記述子（面積・周長・bboxアスペクト・コンパクト性・重心）。
   部位をまたがない「形そのもの」の特徴量で、姿勢変動に頑健な

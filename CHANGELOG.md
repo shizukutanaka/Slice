@@ -6,6 +6,10 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `pose._mask` の背景推定を辺バンド別ローカル推定に改良
+  （`_background_bands`: y軸6バンドの境界モード色 — グラデ壁で
+  depth=140でも全身19関節を維持、旧単一モードはdepth=60で
+  observed 15に劣化、AUDIT P0-3対応）
 - `pose._background` 修正 — 透過画素のRGBを背景色として読んで
   いたバグ（cutout等の透過入力で背景推定が狂い暗色被写体を
   消失）。不透明サンプル優先・全て透過なら従来動作に

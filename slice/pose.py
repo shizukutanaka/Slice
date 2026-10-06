@@ -78,13 +78,54 @@ class HeuristicPoseEstimator(PoseEstimator):
         q = max(use, key=use.get)
         return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
 
-    def _mask(self, bmp: Bitmap) -> List[bytearray]:
-        br, bg, bb = self._background(bmp)
-        thr = self.bg_threshold
+    def _background_bands(self, bmp: Bitmap, n: int = 6
+                          ) -> List[Tuple[int, int, int]]:
+        """Per-band background estimates along the y axis.
+
+        A single global mode breaks on gradient walls (the top of the
+        frame and the bottom have different bg colors). Sampling the
+        side borders per band lets the mask threshold track a smooth
+        vertical drift; a band with no opaque border samples falls
+        back to the global estimate.
+        """
         w, h = bmp.width, bmp.height
+        bands: List[Tuple[int, int, int]] = []
+        for b in range(n):
+            y0, y1 = b * h // n, (b + 1) * h // n
+            counts: dict = {}
+            for y in range(y0, y1, 4):
+                for x in (0, w - 1):
+                    r, g, bl, a = bmp.get(x, y)
+                    if a < 128:
+                        continue
+                    key = (r // 32, g // 32, bl // 32)
+                    counts[key] = counts.get(key, 0) + 1
+            # the outer bands also see the top/bottom edge
+            edge_y = y0 if b == 0 else (y1 - 1 if b == n - 1 else None)
+            if edge_y is not None:
+                for x in range(0, w, 4):
+                    r, g, bl, a = bmp.get(x, edge_y)
+                    if a < 128:
+                        continue
+                    key = (r // 32, g // 32, bl // 32)
+                    counts[key] = counts.get(key, 0) + 1
+            if counts:
+                q = max(counts, key=counts.get)
+                bands.append((q[0] * 32 + 16, q[1] * 32 + 16,
+                              q[2] * 32 + 16))
+            else:
+                bands.append(self._background(bmp))
+        return bands
+
+    def _mask(self, bmp: Bitmap) -> List[bytearray]:
+        w, h = bmp.width, bmp.height
+        bands = self._background_bands(bmp)
+        n = len(bands)
+        thr = self.bg_threshold
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data
         for y in range(h):
+            br, bg, bb = bands[min(n - 1, y * n // h)]
             row = mask[y]
             base = y * w * 4
             for x in range(w):

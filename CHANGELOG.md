@@ -44,6 +44,11 @@
   ドキュメント配列を生成（各docに `people:{index,count,state,
   basis}` ブロック、接触シルエットは1成分のまま推測しない）
 
+- `slice.calib` 新設 — confidenceのキャリブレーション（正解フィクスチャ上で
+  confidence→実命中率のreliabilityテーブル、overconfident/underconfident
+  ビン集計、`apply`はraw scoreを残して較正値をサイド記録）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

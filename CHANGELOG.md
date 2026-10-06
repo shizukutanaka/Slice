@@ -36,6 +36,10 @@
   距離変換watershed分割（頭バンド複数コアを証拠に発動、分割由来
   の関節はbasisに "split region" 記録。AUDIT P0-1の接触ケース）
 
+- `pipeline.analyze_multi` 追加 — 1画像から複数人のKnowledge
+  ドキュメント配列を生成（各docに `people:{index,count,state,
+  basis}` ブロック、接触シルエットは1成分のまま推測しない）
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

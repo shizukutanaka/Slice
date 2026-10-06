@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.horizon` 新設 — 両足接地線から地面傾斜=カメラロール角を
+  推定＋足の奥行きヒント（低い足=近い）＋カメラ高さ仮定での
+  horizon_y。仮定は `assumption` に全開示、足が揃わなければ
+  state:"unknown" で推測しないシーン幾何層
+||||||| 7a75385
 - `slice.audit` 新設 — Knowledgeドキュメントの誠実性リント
   （validateの先：観測率閾値・basis有無・confidence疑義・
   prediction帳簿の陳腐化・低証拠上の意味ラベルを警告コード化）

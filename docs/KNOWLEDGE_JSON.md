@@ -72,3 +72,24 @@ OpenPose `pose_keypoints_2d` と同じ x,y,c 三つ組の並び
 - `schema` 値を変えずにフィールド**追加**は可（読み手は未知キーを無視）
 - 破壊的変更は `slice.knowledge/v2` として新スキーマ
 - `validate()` は必須キー・state 値・confidence 範囲を検査
+
+## v1.1: `analysis` 拡張スロット (`slice.knowledge/v1.1`)
+
+v1 の全フィールドに加えて、名前付き解析レイヤを格納する
+`analysis` キーを持てるマイナー拡張。`knowledge.build(analysis=...)`
+に渡すとスキーマが自動的に v1.1 になる。
+
+```json
+"analysis": {
+  "angles": {"elbow_l_flex": 174.2, ...},
+  "gesture": {"gestures": [], "count": 0},
+  "occlusion": {"reasons": {...}},
+}
+```
+
+- 各レイヤは自由形式のdict — 独自の `state`/`basis`/`assumption`
+  語彙（estimated/implied 等）を持ってよい
+- `analysis` ブロックは **v1.1 が必須** — v1ドキュメントへの
+  付け足しは validate で拒否（スキーマ偽装防止）
+- 関節の `state` は引き続き observed/predicted のみ
+  （拡張語彙はジョイントではなくレイヤ側に閉じ込める）

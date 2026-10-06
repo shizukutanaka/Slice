@@ -2,10 +2,10 @@
 
 ## [Unreleased]
 
-- `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
-  （`python -m slice.bench`: 推定時間/detection/observed/
-  mean_error/OKSを評価、精度閾値は現状実測値に固定＝
-  回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
+  （レイヤ名→自由形式dict、v1との相互後方互換、v1での
+  analysis付け足しはvalidate拒否、build(analysis=...)で
+  自動v1.1化、AUDIT P1-7/8対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

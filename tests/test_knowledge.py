@@ -60,6 +60,24 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_schema_v11_analysis_slot(self):
+        doc = analyze_synth()
+        self.assertEqual(doc["schema"], "slice.knowledge/v1")
+        # analysis upgrades the document to v1.1
+        doc11 = dict(doc)
+        doc11["schema"] = "slice.knowledge/v1.1"
+        doc11["analysis"] = {"angles": {"elbow_l_flex": 170.0},
+                             "gesture": {"count": 0}}
+        self.assertFalse(knowledge.validate(doc11))
+        # same block under v1 is rejected (schema honesty)
+        bad = dict(doc)
+        bad["analysis"] = doc11["analysis"]
+        self.assertTrue(knowledge.validate(bad))
+        # analysis layers must be dicts
+        bad2 = dict(doc11)
+        bad2["analysis"] = {"angles": [1, 2]}
+        self.assertTrue(knowledge.validate(bad2))
+
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))
         doc = pipeline.strip_runtime(analyze_synth())

@@ -21,18 +21,20 @@ from .landmarks import BONES, JOINTS
 from .skeleton import OBSERVED, PREDICTED, Skeleton
 
 SCHEMA = "slice.knowledge/v1"
+SCHEMA_V11 = "slice.knowledge/v1.1"
+SCHEMAS = (SCHEMA, SCHEMA_V11)
 
 
 def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
           *, image_sha256: str = "", source_name: str = "",
-          engine: dict) -> dict:
+          engine: dict, analysis: Optional[dict] = None) -> dict:
     joints = skel.joints
     flat = []
     for name in JOINTS:
         j = joints.get(name)
         flat += [j.x, j.y, j.confidence] if j else [0.0, 0.0, 0.0]
-    return {
-        "schema": SCHEMA,
+    doc = {
+        "schema": SCHEMA_V11 if analysis is not None else SCHEMA,
         "id": "k_" + secrets.token_hex(6),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "engine": engine,
@@ -73,16 +75,28 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
             "bones": [list(b) for b in BONES],
         },
     }
+    if analysis is not None:
+        doc["analysis"] = analysis
+    return doc
 
 
 def validate(doc: dict) -> list:
     """Return a list of schema problems; empty means valid."""
     errors = []
-    if doc.get("schema") != SCHEMA:
-        errors.append(f"schema must be {SCHEMA}")
+    if doc.get("schema") not in SCHEMAS:
+        errors.append(f"schema must be one of {SCHEMAS}")
     for key in ("id", "created_at", "engine", "skeleton", "export"):
         if key not in doc:
             errors.append(f"missing {key}")
+    # v1.1 extension slot: `analysis` is a dict of named layer outputs;
+    # each layer is a free-form dict (its own state/basis vocabulary)
+    analysis = doc.get("analysis")
+    if analysis is not None:
+        if doc.get("schema") != SCHEMA_V11:
+            errors.append("analysis block requires slice.knowledge/v1.1")
+        elif not isinstance(analysis, dict) or not all(
+                isinstance(v, dict) for v in analysis.values()):
+            errors.append("analysis must be a dict of layer dicts")
     joints = (doc.get("skeleton") or {}).get("joints") or {}
     for name, j in joints.items():
         for f in ("x", "y", "confidence", "state"):

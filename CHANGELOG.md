@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.paf` 新設 — Part Affinity Field。各骨に「親→子の方向
+  ベクトル場」を帯域上に生成（OpenPoseの連結チャネル）。検出点
+  だけでなく「どの関節同士が繋がるか」を場として表現。predicted
+  骨は strength 減衰 — 連結の確からしさも誠実に表現
+||||||| 7a75385
 - `slice.smooth` 新設 — 関節軌跡の時系列スムージング（対称移動
   平均）。フレームごとの推定ジッタを抑えつつ位置のみ平滑化し
   state/confidenceは中央フレームを保持。欠損フレームは欠損の

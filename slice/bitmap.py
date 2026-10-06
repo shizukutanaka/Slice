@@ -41,6 +41,8 @@ class Bitmap:
         return d[i], d[i + 1], d[i + 2], d[i + 3]
 
     def set(self, x: int, y: int, rgba: Tuple[int, int, int, int]) -> None:
+        if len(rgba) != 4:
+            raise ValueError("rgba must be a 4-tuple")
         if 0 <= x < self.width and 0 <= y < self.height:
             i = (y * self.width + x) * 4
             self.data[i:i + 4] = bytes(rgba)

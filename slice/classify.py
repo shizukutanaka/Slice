@@ -18,7 +18,8 @@ Point = Tuple[float, float]
 
 LABELS = {
     "stand": "立つ", "sit": "座る", "walk": "歩く", "run": "走る",
-    "lie": "寝る", "crouch": "しゃがむ", "unknown": "不明",
+    "lie": "寝る", "crouch": "しゃがむ", "bend": "前傾",
+    "unknown": "不明",
 }
 
 
@@ -113,6 +114,16 @@ def analyze(skel: Skeleton) -> dict:
         signals["leg_fold_r"] = round(fold_r, 3)
         if max(fold_l, fold_r) < 0.7:
             return result("crouch", 0.7)
+
+    # 前傾（お辞儀/屈み）: legs upright but the torso axis leans well
+    # off vertical. After sit/crouch — a seated lean is still sitting.
+    neck, pelvis = pt("neck"), pt("pelvis")
+    torso_len = _d(neck, pelvis)
+    if torso_len:
+        tilt = abs(neck[0] - pelvis[0]) / torso_len
+        signals["torso_tilt"] = round(tilt, 3)
+        if tilt > 0.45:
+            return result("bend", 0.6)
 
     # 歩く/走る: clear left-right leg separation.
     if ankle_w and hip_w and ankle_w > hip_w * 1.6:

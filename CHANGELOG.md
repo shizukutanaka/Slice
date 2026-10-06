@@ -219,6 +219,9 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Pipeline: `warnings` フィールド追加 — 観測関節<8個・手首未観測・
+  足部未観測の警告コードを Knowledge JSON に記録
+||||||| 7a75385
 - Viewer: 関節行に `basis`（配置根拠）をツールチップ表示、Ratiosに
   arm_l/arm_r/arm_span/leg_to_torso を追加
 ||||||| 7a75385

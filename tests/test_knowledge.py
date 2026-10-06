@@ -30,6 +30,17 @@ class TestKnowledge(unittest.TestCase):
             self.assertEqual(doc["skeleton"]["joints"][n]["state"],
                              "predicted")
 
+    def test_coverage_metrics(self):
+        doc = analyze_synth()
+        cov = doc["coverage"]
+        self.assertEqual(cov["joints_total"], len(JOINTS))
+        self.assertEqual(
+            cov["observed"] + cov["predicted"] + cov["unfilled"],
+            len(JOINTS))
+        self.assertGreater(cov["observed"], 0)
+        self.assertTrue(0 < cov["observed_ratio"] <= 1)
+        self.assertTrue(0 < cov["mean_observed_confidence"] <= 1)
+
     def test_keypoints_flat_layout(self):
         doc = analyze_synth()
         flat = doc["export"]["keypoints_2d"]

@@ -2,17 +2,13 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - READMEモジュール一覧の全面更新 — 14行の古い表を全77モジュールの
   関心事別索引に拡張（コア/意味レイヤ/形状・前処理/時系列・照合/
   評価・QA/描画/3D・外部形式の7群、AUDIT P4-21対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

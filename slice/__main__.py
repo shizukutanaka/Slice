@@ -2,6 +2,7 @@
 
     python -m slice analyze <image> [-o knowledge.json]
         [--model adult|child|deformed] [--overlay out.png] [--store DIR]
+    python -m slice batch <dir> --store DIR [--model M] [-r]
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -53,6 +54,37 @@ def _cmd_analyze(a) -> int:
     return 0
 
 
+def _cmd_batch(a) -> int:
+    """Analyze every image under a directory into a KnowledgeStore."""
+    import os
+    store = knowledge.KnowledgeStore(a.store)
+    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
+    paths = []
+    if a.recursive:
+        for root, _dirs, files in os.walk(a.dir):
+            paths += [os.path.join(root, f) for f in files]
+    else:
+        paths = [os.path.join(a.dir, f) for f in os.listdir(a.dir)]
+    paths = sorted(p for p in paths
+                   if p.lower().endswith(exts))
+    saved = failed = 0
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                raw = f.read()
+            doc = pipeline.analyze(raw, model=a.model, source_name=p)
+            kid = store.save(pipeline.strip_runtime(doc))
+            obs = doc["coverage"]["observed"]
+            print(f"{p}: {kid} ({obs} observed)")
+            saved += 1
+        except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
+            print(f"{p}: FAILED {e}", file=sys.stderr)
+            failed += 1
+    print(f"batch: {saved} saved, {failed} failed "
+          f"({len(paths)} images)", file=sys.stderr)
+    return 0 if saved else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store)
     return 0
@@ -77,6 +109,14 @@ def main(argv=None) -> int:
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.set_defaults(fn=_cmd_analyze)
+
+    b = sub.add_parser("batch", help="analyze a directory of images")
+    b.add_argument("dir")
+    b.add_argument("--store", required=True,
+                   help="KnowledgeStore directory to write into")
+    b.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    b.add_argument("-r", "--recursive", action="store_true")
+    b.set_defaults(fn=_cmd_batch)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

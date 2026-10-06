@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice batch <dir>` CLI 追加 — ディレクトリ内画像を一括解析し
+  KnowledgeStoreへ投入（png/bmp/jpg/webp、-r再帰、デコード不能は
+  理由付きでskip＋exit1、ファイル毎にid+observed数を出力、
+  AUDIT P2-16対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

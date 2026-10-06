@@ -148,6 +148,9 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Overlay: facing が left/right のとき頭上に向き矢印を描画（緑、
+  状態色と区別）
+||||||| 7a75385
 - Pose Classification: `bend`（前傾/お辞儀）ラベル追加 — 脚は直立なのに
   胴体軸の水平傾きが胴長の45%超。`torso_tilt` 信号を追加
 ||||||| 7a75385

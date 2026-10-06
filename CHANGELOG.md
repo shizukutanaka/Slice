@@ -54,6 +54,11 @@
   「成分=人」の暗黙前提を検証する層。判定はadvisory＝推測しない）
 
 
+- `slice.imgqual` 新設 — 入力画像の証拠適格性評価（size/dynamic/blur/contrast
+  の4計測フラグ→adequate/marginal/inadequate。推定前段の前提条件層、
+  各フラグは計測値を保持し「どれだけ不足か」を開示）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

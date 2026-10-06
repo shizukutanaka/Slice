@@ -10,6 +10,13 @@
   （`_background_bands`: y軸6バンドの境界モード色 — グラデ壁で
   depth=140でも全身19関節を維持、旧単一モードはdepth=60で
   observed 15に劣化、AUDIT P0-3対応）
+- `pose._background` 修正 — 透過画素のRGBを背景色として読んで
+  いたバグ（cutout等の透過入力で背景推定が狂い暗色被写体を
+  消失）。不透明サンプル優先・全て透過なら従来動作に
+  フォールバック（AUDIT短所#18/P0-3対応）
+- `knowledge.KnowledgeStore.save` を原子的書き込みに
+  （tmp+os.replace — クラッシュ時の半端なJSON残存を防止、
+  AUDIT P1-11対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

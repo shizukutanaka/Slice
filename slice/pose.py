@@ -56,18 +56,26 @@ class HeuristicPoseEstimator(PoseEstimator):
     def _background(self, bmp: Bitmap) -> Tuple[int, int, int]:
         """Most common quantized color along the image border."""
         counts: dict = {}
+        fallback: dict = {}
         w, h = bmp.width, bmp.height
         for x in range(0, w, 4):
             for y in (0, h - 1):
-                r, g, b, _a = bmp.get(x, y)
+                r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
+                fallback[key] = fallback.get(key, 0) + 1
+                if a >= 128:
+                    counts[key] = counts.get(key, 0) + 1
         for y in range(0, h, 4):
             for x in (0, w - 1):
-                r, g, b, _a = bmp.get(x, y)
+                r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
-        q = max(counts, key=counts.get)
+                fallback[key] = fallback.get(key, 0) + 1
+                if a >= 128:
+                    counts[key] = counts.get(key, 0) + 1
+        # transparent pixels carry no colour information; prefer
+        # opaque samples, keep the old behaviour when none exist
+        use = counts or fallback
+        q = max(use, key=use.get)
         return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
 
     def _background_bands(self, bmp: Bitmap, n: int = 6

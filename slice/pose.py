@@ -217,6 +217,58 @@ class HeuristicPoseEstimator(PoseEstimator):
                 out.append(sk)
         return out
 
+    def estimate_split(self, bmp: Bitmap, model: str = DEFAULT_MODEL,
+                       top_k: int = 4, min_dist: float = 5.0
+                       ) -> List[Skeleton]:
+        """Like `estimate_multi`, but each big component is first
+        offered to `slice.split`'s distance-field watershed — a
+        claimed split for silhouettes that touch. Sub-regions get the
+        same component gates and an independent skeleton; the split
+        hypothesis is still recorded on every joint's basis
+        ("split region"). Fewer cores than seeds, or one whole
+        component, both pass through unchanged — the pixels decide.
+        """
+        from . import split as _split
+        small = bmp.downscale(self.max_dim)
+        w, h = small.width, small.height
+        mask = self._mask(small)
+        labels, sizes = self._label_components(mask, w, h)
+        out: List[Skeleton] = []
+        for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
+            if sizes[lab] < w * h * 0.005:
+                break
+            comp = self._component_mask(labels, lab, w, h)
+            # splitting is only claimed with positive evidence:
+            # >=2 cores in the head band (top 20% of the bbox) that
+            # are horizontally distinct — a single person's head and
+            # chest don't count, two people's heads do.
+            peaks = _split.peaks(comp, min_dist=min_dist,
+                                 top_k=top_k)
+            rows = self._profile(comp, w, h)
+            bbox = self._bbox(rows, w, h)
+            head_line = (bbox[1] + (bbox[3] - bbox[1]) * 0.2
+                         if bbox else h)
+            spread = (bbox[2] - bbox[0]) * 0.25 if bbox else 0
+            heads = [(x, y) for x, y, _ in peaks if y <= head_line]
+            heads = [hpt for i, hpt in enumerate(heads)
+                     if all(abs(hpt[0] - o[0]) > spread
+                            for o in heads[:i])]
+            if len(heads) < 2:
+                subs = [comp]
+            else:
+                subs, _ = _split.split(comp, seeds=heads)
+            for sub in subs:
+                size = sum(sum(r) for r in sub)
+                sk = self._estimate_component(small, sub, size,
+                                              w, h, model)
+                if not sk.joints:
+                    continue
+                for j in sk.joints.values():
+                    j.basis = (j.basis + "; split region"
+                               if j.basis else "split region")
+                out.append(sk)
+        return out
+
     def _estimate_component(self, small, comp, size, w, h,
                             model: str) -> Skeleton:
         sk = Skeleton(image_width=w, image_height=h)

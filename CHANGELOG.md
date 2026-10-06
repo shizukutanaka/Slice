@@ -63,6 +63,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.axis` 新設 — 身体主軸。関節クラウドの2x2 PCA（閉形式、
+  numpy不要）で主軸角度＋異方性＋散布＋重心（直立=90°近辺・
+  横臥=0°・`tilt`=縦からの傾き連続量）
+||||||| 7a75385
 - `slice.plumb` 新設 — 鉛直線姿勢整列。head/neck/chest/pelvis/足首
   の横偏移を身長比で計測（頭部前方位=forward_head検出、
   stack_score=胴チェーン平均偏移で姿勢品質を連続量化）

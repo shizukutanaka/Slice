@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.diff` 新設 — Knowledgeドキュメント差分監査（関節の
+  追加/消失/移動px・state反転（observed→predicted降格を明示）・
+  信頼度ドリフト・モデル/ポーズ変更をフィールド単位列挙）
+||||||| 7a75385
 - `slice.autocrop` 新設 — 前景bboxの人物クロップ提案
   （マージン/アスペクト比指定、フレーム超過は正直にclamp、
   空フレームは state:"unknown" で推測しない）。前処理ユーティリティ

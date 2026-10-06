@@ -137,10 +137,12 @@ class HeuristicPoseEstimator(PoseEstimator):
                     row[x] = 1
         return mask
 
-    def _largest_component(self, mask: List[bytearray], w: int, h: int
-                           ) -> Tuple[List[bytearray], int]:
-        best_label, best_size = -1, 0
+    def _label_components(self, mask: List[bytearray], w: int,
+                          h: int) -> Tuple[list, dict]:
+        """4-connected component labelling. Returns (labels, sizes)
+        where sizes maps label -> pixel count."""
         labels = [[0] * w for _ in range(h)]
+        sizes: dict = {}
         label = 0
         for y0 in range(h):
             for x0 in range(w):
@@ -158,16 +160,26 @@ class HeuristicPoseEstimator(PoseEstimator):
                                 and not labels[ny][nx]):
                             labels[ny][nx] = label
                             q.append((nx, ny))
-                if size > best_size:
-                    best_size, best_label = size, label
+                sizes[label] = size
+        return labels, sizes
+
+    def _component_mask(self, labels, label: int, w: int,
+                        h: int) -> List[bytearray]:
         comp = [bytearray(w) for _ in range(h)]
-        if best_label > 0:
-            for y in range(h):
-                lr, cr = labels[y], comp[y]
-                for x in range(w):
-                    if lr[x] == best_label:
-                        cr[x] = 1
-        return comp, best_size
+        for y in range(h):
+            lr, cr = labels[y], comp[y]
+            for x in range(w):
+                if lr[x] == label:
+                    cr[x] = 1
+        return comp
+
+    def _largest_component(self, mask: List[bytearray], w: int, h: int
+                           ) -> Tuple[List[bytearray], int]:
+        labels, sizes = self._label_components(mask, w, h)
+        if not sizes:
+            return [bytearray(w) for _ in range(h)], 0
+        best = max(sizes, key=sizes.get)
+        return self._component_mask(labels, best, w, h), sizes[best]
 
     # -- profile features -------------------------------------------------
 
@@ -222,10 +234,41 @@ class HeuristicPoseEstimator(PoseEstimator):
     def estimate(self, bmp: Bitmap, model: str = DEFAULT_MODEL) -> Skeleton:
         small = bmp.downscale(self.max_dim)
         w, h = small.width, small.height
-        sk = Skeleton(image_width=w, image_height=h)
-
         mask = self._mask(small)
         comp, size = self._largest_component(mask, w, h)
+        return self._estimate_component(small, comp, size, w, h, model)
+
+    def estimate_multi(self, bmp: Bitmap, model: str = DEFAULT_MODEL,
+                       top_k: int = 4,
+                       min_fraction: float = 0.005) -> List[Skeleton]:
+        """One skeleton per large foreground component, biggest first.
+
+        The honest-contract multi-person path (AUDIT P0-1): each
+        connected component is estimated independently — two people
+        whose silhouettes touch merge into one component and remain a
+        single (wrong) skeleton; the API reports what the pixels
+        support, it does not guess at occluded overlap. Components
+        that fail the single-person gates (too small, too short) yield
+        no skeleton rather than a noisy one.
+        """
+        small = bmp.downscale(self.max_dim)
+        w, h = small.width, small.height
+        mask = self._mask(small)
+        labels, sizes = self._label_components(mask, w, h)
+        out: List[Skeleton] = []
+        for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
+            if sizes[lab] < w * h * min_fraction:
+                break
+            comp = self._component_mask(labels, lab, w, h)
+            sk = self._estimate_component(small, comp, sizes[lab],
+                                          w, h, model)
+            if sk.joints:
+                out.append(sk)
+        return out
+
+    def _estimate_component(self, small, comp, size, w, h,
+                            model: str) -> Skeleton:
+        sk = Skeleton(image_width=w, image_height=h)
         if size < w * h * 0.005:
             return sk  # no person-sized foreground
         rows = self._profile(comp, w, h)

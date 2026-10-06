@@ -1,0 +1,83 @@
+"""Dataset bundling — a KnowledgeStore as one portable archive.
+
+`dataset` flattens docs into tables; `bundle` packages them for
+transport: a single `.zip` containing every schema-valid document
+plus a `manifest.json` recording ids, models and counts, so a
+receiver knows what's inside without unzipping everything.
+
+Only valid documents ship — the same `validate` gate the store
+enforces on save is re-applied on export, and skipped files are
+counted in the manifest rather than silently dropped.
+"""
+
+from __future__ import annotations
+
+import json
+import zipfile
+from typing import List, Optional
+
+from .knowledge import validate
+
+SCHEMA = "slice.bundle/v1"
+
+
+def pack(store, path: str) -> dict:
+    """Write every valid doc in `store` to a zip at `path`.
+
+    Returns the manifest dict that was embedded.
+    """
+    docs, skipped = [], 0
+    for entry in store.list():
+        kid = entry.get("id")
+        if not isinstance(kid, str):
+            skipped += 1
+            continue
+        try:
+            doc = store.get(kid)
+        except (KeyError, OSError, json.JSONDecodeError):
+            skipped += 1
+            continue
+        if validate(doc):
+            skipped += 1
+            continue
+        docs.append(doc)
+    manifest = {
+        "schema": SCHEMA,
+        "count": len(docs),
+        "skipped": skipped,
+        "documents": [
+            {"id": d["id"],
+             "created_at": d.get("created_at"),
+             "body_model": (d.get("skeleton") or {})
+             .get("body_model", {}).get("name")}
+            for d in docs
+        ],
+    }
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("manifest.json",
+                   json.dumps(manifest, ensure_ascii=False,
+                              indent=2))
+        for d in docs:
+            z.writestr("docs/%s.json" % d["id"],
+                       json.dumps(d, ensure_ascii=False))
+    return manifest
+
+
+def manifest(path: str) -> dict:
+    """Read just the manifest from a bundle."""
+    with zipfile.ZipFile(path) as z:
+        return json.loads(z.read("manifest.json"))
+
+
+def unpack(path: str) -> List[dict]:
+    """Load all documents from a bundle back into memory."""
+    docs = []
+    with zipfile.ZipFile(path) as z:
+        for name in z.namelist():
+            if not name.startswith("docs/"):
+                continue
+            doc = json.loads(z.read(name))
+            if validate(doc):
+                continue
+            docs.append(doc)
+    return docs

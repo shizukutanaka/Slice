@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.ascii` 新設 — 骨格のターミナル文字描画（観測=`@`/#、
+  予測=`o`/: の誠実性グリフ、行数はフレーム縦横比×文字セル補正）。
+  CLI/ログでの第3描画バックエンド
+||||||| 7a75385
 - `slice.mask` 新設 — 推定器の前景マスクを公開（foreground/
   coverage/to_bitmap可視化/cutout背景透過）。downscale座標系の
   注意書き付き

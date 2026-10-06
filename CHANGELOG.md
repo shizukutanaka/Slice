@@ -32,6 +32,10 @@
   `_draw(out,skel,tint)`に抽出して再利用、単一経路の色は不変）
 
 
+- `slice.split` + `estimate_split` 新設 — 融合シルエットの
+  距離変換watershed分割（頭バンド複数コアを証拠に発動、分割由来
+  の関節はbasisに "split region" 記録。AUDIT P0-1の接触ケース）
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

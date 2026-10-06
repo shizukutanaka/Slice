@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.modelchk` 新設 — 選択モデルの整合性監査（頭身比だけで
+  選ばれたBODY_MODELを、肩/腰/胴/腕/脚の実測比率5次元で再検証、
+  2+次元乖離または総誤差超過でmismatch、better_modelは助言のみ）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

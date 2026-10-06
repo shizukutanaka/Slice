@@ -80,6 +80,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.signature` 新設 — ポーズ指紋。骨方向ベクトル（17骨×2、
+  固定順）＋胴傾き/腕幅/脚幅/肩幅の正規化スカラーで38次元の
+  固定長特徴量。`distance()` のRMS差でポーズ類似検索・近似重複
+  検出 — 関節マッチング不要の高速比較（解像度・構図に非依存）
+||||||| 7a75385
 - `slice.framepos` 新設 — 構図解析。関節クラウドbboxで
   headroom/footroom/side_gap/center_offset/body_fraction/三分割
   ゾーンをフレーム比で計測、framing=tight|portrait|wide

@@ -1,0 +1,56 @@
+"""Pose signature — a fixed-length fingerprint for search and dedup.
+
+Every skeleton becomes a vector of its bone directions (unit vectors
+per BONES edge, in a fixed order) plus torso-lean and limb-spread
+scalars. Two poses of the same shape produce nearly identical
+signatures regardless of image size or framing, so `distance` gives
+fast pose-similarity search and near-duplicate detection without
+pairwise joint matching.
+"""
+
+from __future__ import annotations
+
+import math
+from typing import List, Optional
+
+from .landmarks import BONES
+from .skeleton import Skeleton
+
+
+def signature(skel: Skeleton) -> List[float]:
+    """2 floats per bone (unit direction) + 4 pose scalars, fixed order."""
+    vec: List[float] = []
+    for a, b in BONES:
+        pa, pb = skel.point(a), skel.point(b)
+        if pa and pb:
+            dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+            L = math.hypot(dx, dy) or 1.0
+            vec += [dx / L, dy / L]
+        else:
+            vec += [0.0, 0.0]
+    # scalars: torso lean, arm spread (wrist span / body height),
+    # leg spread (ankle gap / body height), facing symmetry
+    head = skel.point("head")
+    feet = [p for p in (skel.point("foot_l"), skel.point("foot_r"))
+            if p]
+    body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 1.0
+    neck, pelvis = skel.point("neck"), skel.point("pelvis")
+    vec.append((neck[0] - pelvis[0]) / body_h if neck and pelvis else 0.0)
+    wl, wr = skel.point("wrist_l"), skel.point("wrist_r")
+    vec.append(math.hypot(wl[0] - wr[0], wl[1] - wr[1]) / body_h
+               if wl and wr else 0.0)
+    al, ar = skel.point("ankle_l"), skel.point("ankle_r")
+    vec.append(math.hypot(al[0] - ar[0], al[1] - ar[1]) / body_h
+               if al and ar else 0.0)
+    sl, sr = skel.point("shoulder_l"), skel.point("shoulder_r")
+    vec.append(math.hypot(sl[0] - sr[0], sl[1] - sr[1]) / body_h
+               if sl and sr else 0.0)
+    return vec
+
+
+def distance(a: List[float], b: List[float]) -> Optional[float]:
+    """RMS difference of two signatures (0 = identical pose)."""
+    if not a or not b or len(a) != len(b):
+        return None
+    s = sum((x - y) ** 2 for x, y in zip(a, b)) / len(a)
+    return round(math.sqrt(s), 4)

@@ -54,6 +54,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.spine` 新設 — 脊柱カーブ。neck-chest-pelvisで横偏移
+  （側弯様）＋前傾角（前弯様）＋curvature（鎖長/弦長）を計測、
+  classify=straight|lateral / upright|leaning
+||||||| 7a75385
 - `slice.dominance` 新設 — 荷重優位側推定。骨盤の足首中点偏移
   （>15%半脚間=側方荷重）＋膝屈曲による脱荷脚の逆側投票で
   dominant l|r|even|unknown＋confidence＋全cues開示

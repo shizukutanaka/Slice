@@ -6,6 +6,10 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `tests/realistic.py` + `test_realistic.py` 新設 — 準実写
+  フィクスチャ（グラデ壁・センサーノイズ・遮蔽物・落ち影、
+  背景画素のみ再描画で前景形状は共通）。強いグラデは
+  observed低下する既知の劣化も数値で固定。AUDIT P0-4対応
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

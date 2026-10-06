@@ -47,9 +47,14 @@ class HeuristicPoseEstimator(PoseEstimator):
     name = "heuristic-silhouette"
     version = "0.1.0"
 
-    def __init__(self, max_dim: int = 512, bg_threshold: int = 40):
+    def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
+                 adaptive: bool = False):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
+        self.adaptive = adaptive
+        # (value, "otsu"|"fixed") from the last _mask call —
+        # diagnostic surface, not part of the skeleton contract
+        self.last_threshold = None
 
     # -- segmentation ----------------------------------------------------
 
@@ -72,7 +77,16 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     def _mask(self, bmp: Bitmap) -> List[bytearray]:
         br, bg, bb = self._background(bmp)
+        if self.adaptive:
+            return self._mask_adaptive(bmp, (br, bg, bb))
         thr = self.bg_threshold
+        self.last_threshold = (thr, "fixed")
+        return self._mask_fixed(bmp, (br, bg, bb), thr)
+
+    @staticmethod
+    def _mask_fixed(bmp: Bitmap, bg_rgb,
+                    thr: float) -> List[bytearray]:
+        br, bg, bb = bg_rgb
         w, h = bmp.width, bmp.height
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data
@@ -86,6 +100,30 @@ class HeuristicPoseEstimator(PoseEstimator):
                 if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
                         or abs(d[i + 2] - bb) > thr):
                     row[x] = 1
+        return mask
+
+    def _mask_adaptive(self, bmp: Bitmap,
+                       bg_rgb) -> List[bytearray]:
+        """Otsu-thresholded mask: per-pixel distance to background
+        decides foreground, with the split chosen by the histogram.
+        When no bimodal split exists, falls back to the fixed
+        per-channel rule (method recorded on `last_threshold`)."""
+        from . import adapt
+        dist = adapt.distances(bmp, bg_rgb)
+        thr, method = adapt.threshold(dist, fallback=self.bg_threshold)
+        self.last_threshold = (thr, method)
+        if method != "otsu":
+            return self._mask_fixed(bmp, bg_rgb, self.bg_threshold)
+        w, h = bmp.width, bmp.height
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
+        k = 0
+        for y in range(h):
+            row = mask[y]
+            for x in range(w):
+                if dist[k] > thr:
+                    row[x] = 1
+                k += 1
         return mask
 
     def _label_components(self, mask: List[bytearray], w: int,

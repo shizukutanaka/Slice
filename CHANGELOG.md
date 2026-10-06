@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.bundle` 新設 — Knowledge Store の単一zip梱包/展開
+  （manifest.json付き配布フォーマット、スキーマ検証ゲート
+  をexport側にも適用、id無しエントリはskipped計上）
+||||||| 7a75385
 - `slice.pad` 新設 — Bitmapレターボックス（中央配置＋オフセット
   返却で座標系を保全、縮小は拒否してcropへ誘導、
   to_aspect/to_square）

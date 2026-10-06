@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.consensus` 新設 — 複数パラメータ実行の合意骨格（閾値±25%/解像度±25%
+  の5変体で推定→関節位置は中央値投票、confidenceは観測率で割引、
+  合意未達関節はdisputedに列挙。stabilityの感度計測に対し頑健な骨格を
+  実際に生成する側）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

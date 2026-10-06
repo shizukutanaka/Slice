@@ -47,9 +47,18 @@ class HeuristicPoseEstimator(PoseEstimator):
     name = "heuristic-silhouette"
     version = "0.1.0"
 
-    def __init__(self, max_dim: int = 512, bg_threshold: int = 40):
+    def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
+                 adaptive: bool = False, reject_shadow: bool = False,
+                 clean: bool = False):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
+        self.adaptive = adaptive
+        self.reject_shadow = reject_shadow
+        self.clean = clean
+        # (value, "otsu"|"fixed") from the last _mask call —
+        # diagnostic surface, not part of the skeleton contract
+        self.last_threshold = None
+        self.last_shadow_removed = None
 
     # -- segmentation ----------------------------------------------------
 
@@ -118,10 +127,31 @@ class HeuristicPoseEstimator(PoseEstimator):
         return bands
 
     def _mask(self, bmp: Bitmap) -> List[bytearray]:
+        if self.adaptive:
+            mask = self._mask_adaptive(bmp, self._background(bmp))
+        else:
+            thr = self.bg_threshold
+            self.last_threshold = (thr, "fixed")
+            mask = self._mask_fixed(bmp, self._background_bands(bmp), thr)
+        if self.reject_shadow:
+            from . import shadow
+            shadow_m = shadow.shadow_pixels(bmp, self._background(bmp),
+                                            mask)
+            mask, self.last_shadow_removed = shadow.remove(
+                mask, shadow_m)
+        if self.clean:
+            from . import morph
+            mask = morph.clean(mask)
+        return mask
+
+    @staticmethod
+    def _mask_fixed(bmp: Bitmap, bg_rgb,
+                    thr: float) -> List[bytearray]:
+        """Per-channel threshold mask. `bg_rgb` is one (r, g, b) or a
+        list of per-band estimates from `_background_bands`."""
+        bands = bg_rgb if isinstance(bg_rgb, list) else [bg_rgb]
         w, h = bmp.width, bmp.height
-        bands = self._background_bands(bmp)
         n = len(bands)
-        thr = self.bg_threshold
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data
         for y in range(h):
@@ -135,6 +165,31 @@ class HeuristicPoseEstimator(PoseEstimator):
                 if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
                         or abs(d[i + 2] - bb) > thr):
                     row[x] = 1
+        return mask
+
+    def _mask_adaptive(self, bmp: Bitmap,
+                       bg_rgb) -> List[bytearray]:
+        """Otsu-thresholded mask: per-pixel distance to background
+        decides foreground, with the split chosen by the histogram.
+        When no bimodal split exists, falls back to the fixed
+        per-channel rule (method recorded on `last_threshold`)."""
+        from . import adapt
+        dist = adapt.distances(bmp, bg_rgb)
+        thr, method = adapt.threshold(dist, fallback=self.bg_threshold)
+        self.last_threshold = (thr, method)
+        if method != "otsu":
+            return self._mask_fixed(bmp, self._background_bands(bmp),
+                                    self.bg_threshold)
+        w, h = bmp.width, bmp.height
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
+        k = 0
+        for y in range(h):
+            row = mask[y]
+            for x in range(w):
+                if dist[k] > thr:
+                    row[x] = 1
+                k += 1
         return mask
 
     def _label_components(self, mask: List[bytearray], w: int,
@@ -263,6 +318,58 @@ class HeuristicPoseEstimator(PoseEstimator):
             sk = self._estimate_component(small, comp, sizes[lab],
                                           w, h, model)
             if sk.joints:
+                out.append(sk)
+        return out
+
+    def estimate_split(self, bmp: Bitmap, model: str = DEFAULT_MODEL,
+                       top_k: int = 4, min_dist: float = 5.0
+                       ) -> List[Skeleton]:
+        """Like `estimate_multi`, but each big component is first
+        offered to `slice.split`'s distance-field watershed — a
+        claimed split for silhouettes that touch. Sub-regions get the
+        same component gates and an independent skeleton; the split
+        hypothesis is still recorded on every joint's basis
+        ("split region"). Fewer cores than seeds, or one whole
+        component, both pass through unchanged — the pixels decide.
+        """
+        from . import split as _split
+        small = bmp.downscale(self.max_dim)
+        w, h = small.width, small.height
+        mask = self._mask(small)
+        labels, sizes = self._label_components(mask, w, h)
+        out: List[Skeleton] = []
+        for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
+            if sizes[lab] < w * h * 0.005:
+                break
+            comp = self._component_mask(labels, lab, w, h)
+            # splitting is only claimed with positive evidence:
+            # >=2 cores in the head band (top 20% of the bbox) that
+            # are horizontally distinct — a single person's head and
+            # chest don't count, two people's heads do.
+            peaks = _split.peaks(comp, min_dist=min_dist,
+                                 top_k=top_k)
+            rows = self._profile(comp, w, h)
+            bbox = self._bbox(rows, w, h)
+            head_line = (bbox[1] + (bbox[3] - bbox[1]) * 0.2
+                         if bbox else h)
+            spread = (bbox[2] - bbox[0]) * 0.25 if bbox else 0
+            heads = [(x, y) for x, y, _ in peaks if y <= head_line]
+            heads = [hpt for i, hpt in enumerate(heads)
+                     if all(abs(hpt[0] - o[0]) > spread
+                            for o in heads[:i])]
+            if len(heads) < 2:
+                subs = [comp]
+            else:
+                subs, _ = _split.split(comp, seeds=heads)
+            for sub in subs:
+                size = sum(sum(r) for r in sub)
+                sk = self._estimate_component(small, sub, size,
+                                              w, h, model)
+                if not sk.joints:
+                    continue
+                for j in sk.joints.values():
+                    j.basis = (j.basis + "; split region"
+                               if j.basis else "split region")
                 out.append(sk)
         return out
 

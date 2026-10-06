@@ -1,6 +1,6 @@
 import unittest
 
-from tests import synthetic_person
+from tests import synthetic_person, wide_hand_person
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -56,6 +56,16 @@ class TestHeuristicPose(unittest.TestCase):
             self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
             self.assertGreater(j[f"wrist_{side}"].y, j[f"hip_{side}"].y,
                                f"wrist_{side} should hang below the hip line")
+
+    def test_wide_drifting_hand_tracked(self):
+        """A hand wider than a leg run and drifting outward must still be
+        followed: width-based leg guessing drops it, and a frozen arm
+        band truncates it before the fingertips."""
+        skel = HeuristicPoseEstimator().estimate(wide_hand_person())
+        j = skel.joints
+        self.assertEqual(j["wrist_l"].state, OBSERVED)
+        self.assertGreater(j["wrist_l"].y, 300 * 0.8)
+        self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
 
     def test_confidence_range(self):
         for j in self.skel.joints.values():

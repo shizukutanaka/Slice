@@ -47,36 +47,115 @@ class HeuristicPoseEstimator(PoseEstimator):
     name = "heuristic-silhouette"
     version = "0.1.0"
 
-    def __init__(self, max_dim: int = 512, bg_threshold: int = 40):
+    def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
+                 adaptive: bool = False, reject_shadow: bool = False,
+                 clean: bool = False):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
+        self.adaptive = adaptive
+        self.reject_shadow = reject_shadow
+        self.clean = clean
+        # (value, "otsu"|"fixed") from the last _mask call —
+        # diagnostic surface, not part of the skeleton contract
+        self.last_threshold = None
+        self.last_shadow_removed = None
 
     # -- segmentation ----------------------------------------------------
 
     def _background(self, bmp: Bitmap) -> Tuple[int, int, int]:
         """Most common quantized color along the image border."""
         counts: dict = {}
+        fallback: dict = {}
         w, h = bmp.width, bmp.height
         for x in range(0, w, 4):
             for y in (0, h - 1):
-                r, g, b, _a = bmp.get(x, y)
+                r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
+                fallback[key] = fallback.get(key, 0) + 1
+                if a >= 128:
+                    counts[key] = counts.get(key, 0) + 1
         for y in range(0, h, 4):
             for x in (0, w - 1):
-                r, g, b, _a = bmp.get(x, y)
+                r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
-        q = max(counts, key=counts.get)
+                fallback[key] = fallback.get(key, 0) + 1
+                if a >= 128:
+                    counts[key] = counts.get(key, 0) + 1
+        # transparent pixels carry no colour information; prefer
+        # opaque samples, keep the old behaviour when none exist
+        use = counts or fallback
+        q = max(use, key=use.get)
         return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
 
-    def _mask(self, bmp: Bitmap) -> List[bytearray]:
-        br, bg, bb = self._background(bmp)
-        thr = self.bg_threshold
+    def _background_bands(self, bmp: Bitmap, n: int = 6
+                          ) -> List[Tuple[int, int, int]]:
+        """Per-band background estimates along the y axis.
+
+        A single global mode breaks on gradient walls (the top of the
+        frame and the bottom have different bg colors). Sampling the
+        side borders per band lets the mask threshold track a smooth
+        vertical drift; a band with no opaque border samples falls
+        back to the global estimate.
+        """
         w, h = bmp.width, bmp.height
+        bands: List[Tuple[int, int, int]] = []
+        for b in range(n):
+            y0, y1 = b * h // n, (b + 1) * h // n
+            counts: dict = {}
+            for y in range(y0, y1, 4):
+                for x in (0, w - 1):
+                    r, g, bl, a = bmp.get(x, y)
+                    if a < 128:
+                        continue
+                    key = (r // 32, g // 32, bl // 32)
+                    counts[key] = counts.get(key, 0) + 1
+            # the outer bands also see the top/bottom edge
+            edge_y = y0 if b == 0 else (y1 - 1 if b == n - 1 else None)
+            if edge_y is not None:
+                for x in range(0, w, 4):
+                    r, g, bl, a = bmp.get(x, edge_y)
+                    if a < 128:
+                        continue
+                    key = (r // 32, g // 32, bl // 32)
+                    counts[key] = counts.get(key, 0) + 1
+            if counts:
+                q = max(counts, key=counts.get)
+                bands.append((q[0] * 32 + 16, q[1] * 32 + 16,
+                              q[2] * 32 + 16))
+            else:
+                bands.append(self._background(bmp))
+        return bands
+
+    def _mask(self, bmp: Bitmap) -> List[bytearray]:
+        if self.adaptive:
+            mask = self._mask_adaptive(bmp, self._background(bmp))
+        else:
+            thr = self.bg_threshold
+            self.last_threshold = (thr, "fixed")
+            mask = self._mask_fixed(bmp, self._background_bands(bmp), thr)
+        if self.reject_shadow:
+            from . import shadow
+            shadow_m = shadow.shadow_pixels(bmp, self._background(bmp),
+                                            mask)
+            mask, self.last_shadow_removed = shadow.remove(
+                mask, shadow_m)
+        if self.clean:
+            from . import morph
+            mask = morph.clean(mask)
+        return mask
+
+    @staticmethod
+    def _mask_fixed(bmp: Bitmap, bg_rgb,
+                    thr: float) -> List[bytearray]:
+        """Per-channel threshold mask. `bg_rgb` is one (r, g, b) or a
+        list of per-band estimates from `_background_bands`."""
+        bands = bg_rgb if isinstance(bg_rgb, list) else [bg_rgb]
+        w, h = bmp.width, bmp.height
+        n = len(bands)
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data
         for y in range(h):
+            br, bg, bb = bands[min(n - 1, y * n // h)]
             row = mask[y]
             base = y * w * 4
             for x in range(w):
@@ -86,6 +165,31 @@ class HeuristicPoseEstimator(PoseEstimator):
                 if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
                         or abs(d[i + 2] - bb) > thr):
                     row[x] = 1
+        return mask
+
+    def _mask_adaptive(self, bmp: Bitmap,
+                       bg_rgb) -> List[bytearray]:
+        """Otsu-thresholded mask: per-pixel distance to background
+        decides foreground, with the split chosen by the histogram.
+        When no bimodal split exists, falls back to the fixed
+        per-channel rule (method recorded on `last_threshold`)."""
+        from . import adapt
+        dist = adapt.distances(bmp, bg_rgb)
+        thr, method = adapt.threshold(dist, fallback=self.bg_threshold)
+        self.last_threshold = (thr, method)
+        if method != "otsu":
+            return self._mask_fixed(bmp, self._background_bands(bmp),
+                                    self.bg_threshold)
+        w, h = bmp.width, bmp.height
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
+        k = 0
+        for y in range(h):
+            row = mask[y]
+            for x in range(w):
+                if dist[k] > thr:
+                    row[x] = 1
+                k += 1
         return mask
 
     def _label_components(self, mask: List[bytearray], w: int,

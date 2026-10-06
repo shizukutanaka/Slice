@@ -1,7 +1,10 @@
 """2D skeleton overlay rendering on a Bitmap (no dependencies).
 
 Observed joints/bones render blue, predicted render orange — the same
-honesty color code the web viewer uses.
+honesty color code the web viewer uses. The state distinction is also
+dual-encoded in shape so it survives colour-blindness and greyscale
+printing: observed = solid line + filled disc, predicted = dashed
+line + hollow ring.
 """
 
 from __future__ import annotations
@@ -43,6 +46,39 @@ def _disc(bmp: Bitmap, cx, cy, r, rgba):
                 bmp.set(x, y, rgba)
 
 
+def _ring(bmp: Bitmap, cx, cy, r, rgba):
+    """Hollow circle of radius r, ~1px stroke — predicted marker."""
+    for y in range(int(cy) - r, int(cy) + r + 1):
+        for x in range(int(cx) - r, int(cx) + r + 1):
+            d = (x - cx) ** 2 + (y - cy) ** 2
+            if (r - 1.6) ** 2 <= d <= r * r:
+                bmp.set(x, y, rgba)
+
+
+def _line_dashed(bmp: Bitmap, x0, y0, x1, y1, rgba):
+    """Bresenham line drawn in 5-on / 3-off dashes — predicted bone."""
+    x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+    dx, dy = abs(x1 - x0), -abs(y1 - y0)
+    sx, sy = (1 if x0 < x1 else -1), (1 if y0 < y1 else -1)
+    err = dx + dy
+    step = 0
+    while True:
+        if step % 8 < 5:
+            for ox in (-1, 0):
+                for oy in (-1, 0):
+                    bmp.set(x0 + ox, y0 + oy, rgba)
+        if x0 == x1 and y0 == y1:
+            return
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
+        step += 1
+
+
 def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
     """Return a copy of bmp with the skeleton drawn on it."""
     out = Bitmap(bmp.width, bmp.height, bytearray(bmp.data))
@@ -57,13 +93,18 @@ def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
         pa, pb = pt(a), pt(b)
         if not pa or not pb:
             continue
-        color = (BLUE if skel.get(a).state == OBSERVED
-                 and skel.get(b).state == OBSERVED else ORANGE)
-        _line(out, pa[0], pa[1], pb[0], pb[1], color)
+        both_obs = (skel.get(a).state == OBSERVED
+                    and skel.get(b).state == OBSERVED)
+        color = BLUE if both_obs else ORANGE
+        draw = _line if both_obs else _line_dashed
+        draw(out, pa[0], pa[1], pb[0], pb[1], color)
     for j in skel.joints.values():
-        color = BLUE if j.state == OBSERVED else ORANGE
-        _disc(out, j.x * sx, j.y * sy, max(2, bmp.width // 160), color)
-        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
+        r = max(2, bmp.width // 160)
+        if j.state == OBSERVED:
+            _disc(out, j.x * sx, j.y * sy, r, BLUE)
+            _disc(out, j.x * sx, j.y * sy, 1, WHITE)
+        else:
+            _ring(out, j.x * sx, j.y * sy, r + 1, ORANGE)
 
     # Facing arrow above the head when the estimator saw a side profile.
     facing = skel.orientation.get("facing")

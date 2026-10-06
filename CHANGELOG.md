@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.adapt` 新設＋`HeuristicPoseEstimator(adaptive=True)`
+  — Otsuクラス間分散で前景閾値を画像ごとに自動決定
+  （二峰性なしなら固定閾値へフォールバック、methodを
+  last_thresholdで開示）。`Bitmap.set` の非4要素代入を
+  ValueError化（バッファ静黙破壊の防止）
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

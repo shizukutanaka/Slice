@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.crop` 新設 — Bitmap矩形切り出し（autocropのcrop提案を
+  適用する実行側、枠外はclamp・重なり無しはValueError）
+||||||| 7a75385
 - dataset+knowledge: Devin Review 3件修正 — ストア内の非object
   JSON（`[]`等）で `list()` が AttributeError で全エクスポート
   中止 → スキップ、`from_store` がスキーマ不正docを通す →

@@ -38,3 +38,30 @@ MIRROR = {
     "ankle_l": "ankle_r", "ankle_r": "ankle_l",
     "foot_l": "foot_r", "foot_r": "foot_l",
 }
+
+# Kinematic tree rooted at the pelvis (the SMPL convention): every
+# joint's position is defined relative to its parent, which is what
+# prediction walks and what a future 3D lift needs.
+ROOT = "pelvis"
+PARENT = {
+    "hip_l": "pelvis", "hip_r": "pelvis",
+    "chest": "pelvis",
+    "neck": "chest",
+    "head": "neck",
+    "shoulder_l": "neck", "shoulder_r": "neck",
+    "elbow_l": "shoulder_l", "elbow_r": "shoulder_r",
+    "wrist_l": "elbow_l", "wrist_r": "elbow_r",
+    "knee_l": "hip_l", "knee_r": "hip_r",
+    "ankle_l": "knee_l", "ankle_r": "knee_r",
+    "foot_l": "ankle_l", "foot_r": "ankle_r",
+    # "spine" is a derived midpoint, not a kinematic node.
+}
+
+
+def chain(name: str) -> list:
+    """Joint names from the root down to `name` (inclusive)."""
+    path = [name]
+    while path[-1] != ROOT:
+        path.append(PARENT[path[-1]])
+    path.reverse()
+    return path

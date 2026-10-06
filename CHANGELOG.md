@@ -7,6 +7,10 @@
   ＋形態学クリーンアップを1フラグで有効化、実写向けopt-in、
   `engine.profile` で使用プロファイルを記録）
 
+- `slice.basis` 新設 — 関節provenance文字列の語彙レジストリ
+  （既存basisを観測/ミラー/補間/プライア/変換/不明の6カテゴリに
+  分類、新規は接頭辞規約、audit()で骨格の証拠内訳を集計、
+  既存文字列は改名せず保存ドキュメントを保護、AUDIT P4-22対応）
 - `slice.morph` 新設＋`clean` オプション — 前景マスクの
   形態学的クリーンアップ（open=斑点除去/close=ピンホール充填、
   4連結で成分ラベリングと整合。圧縮ノイズ・AA端由来の偽前景を除去）
@@ -32,6 +36,18 @@
   区別、observed/predicted契約は輝度で維持。`overlay`の描画部を
   `_draw(out,skel,tint)`に抽出して再利用、単一経路の色は不変）
 
+
+- `slice.split` + `estimate_split` 新設 — 融合シルエットの
+  距離変換watershed分割（頭バンド複数コアを証拠に発動、分割由来
+  の関節はbasisに "split region" 記録。AUDIT P0-1の接触ケース）
+
+- 複数人API接続 — REST `POST /analyze?multi=1`（`{people,count}`
+  + save時は各docにoverlay_url）とCLI `slice analyze --multi`
+  （JSON配列出力）。`analyze` 単一経路は不変
+
+- `pipeline.analyze_multi` 追加 — 1画像から複数人のKnowledge
+  ドキュメント配列を生成（各docに `people:{index,count,state,
+  basis}` ブロック、接触シルエットは1成分のまま推測しない）
 
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、

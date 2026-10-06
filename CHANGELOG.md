@@ -2,19 +2,15 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - `slice.extjoints` 新設 — v2拡張関節語彙（v1の17関節を不変のまま、
   mid_hip/waist/mid_thigh等の補間関節＋fingertip/toe/heelを
   predictedとして導出、nose/eye/earは証拠なし=reservedで
   発行しない、basisは共有語彙の接頭辞規約に準拠、
   AUDIT P2-15対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

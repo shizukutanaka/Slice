@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.bvh` 新設 — 骨格をBVH（Biovision Hierarchy）テキスト出力。
+  pelvisルート・OFFSETは親相対・CHANNELSはroot6+各関節3、
+  1フレームモーション（回転は未観測ゆえ全0 — 誠実なゼロ埋め）。
+  Blender/MotionBuilder等のリターゲットツールが読む標準形式
+||||||| 7a75385
 - `slice.ik` 新設 — 2ボーン逆運動学ソルバ（肩→手首目標から肘位置
   を円の交点で解析的に求解。bendで屈曲側選択、届かない目標は
   最大伸展にclampして「解剖学的に届く所」を正直に返す）。

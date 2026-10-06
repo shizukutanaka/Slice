@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.dedup` 新設 — データセット重複検出（pelvis基準・
+  トルソ正規化の平均関節距離がeps未満のペアを列挙、
+  解像度/平行移動不変）
+||||||| 7a75385
 - `slice.bundle` 新設 — Knowledge Store の単一zip梱包/展開
   （manifest.json付き配布フォーマット、スキーマ検証ゲート
   をexport側にも適用、id無しエントリはskipped計上）

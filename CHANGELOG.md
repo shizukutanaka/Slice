@@ -49,6 +49,57 @@
   ドキュメント配列を生成（各docに `people:{index,count,state,
   basis}` ブロック、接触シルエットは1成分のまま推測しない）
 
+- `slice.calib` 新設 — confidenceのキャリブレーション（正解フィクスチャ上で
+  confidence→実命中率のreliabilityテーブル、overconfident/underconfident
+  ビン集計、`apply`はraw scoreを残して較正値をサイド記録）
+
+
+- `slice.human` 新設 — 前景形状の人物らしさ検定（aspect/fill/head_mass/
+  symmetryの4信号→score＋weakest_signal、いずれかが床未満なら否。
+  「成分=人」の暗黙前提を検証する層。判定はadvisory＝推測しない）
+
+
+- `slice.imgqual` 新設 — 入力画像の証拠適格性評価（size/dynamic/blur/contrast
+  の4計測フラグ→adequate/marginal/inadequate。推定前段の前提条件層、
+  各フラグは計測値を保持し「どれだけ不足か」を開示）
+
+
+- `slice.contrad` 新設 — レイヤ間矛盾検出（classify×axis×ground×balanceの
+  規則セット: 寝姿勢だが主軸垂直、立位だが浮遊、安定だが接地なし等、
+  発火時は両側の生値をevidenceに保持。欠損レイヤはスキップ）
+
+
+- `slice.fit` 新設 — 骨格↔シルエット整合度（前景画素の骨/関節への距離で
+  explained fraction＋mean/worst距離＋未説明領域centroidを計測、
+  空マスク/空骨格はunmeasurable。推定が証拠を説明しているかの自己監査）
+
+
+- `slice.consensus` 新設 — 複数パラメータ実行の合意骨格（閾値±25%/解像度±25%
+  の5変体で推定→関節位置は中央値投票、confidenceは観測率で割引、
+  合意未達関節はdisputedに列挙。stabilityの感度計測に対し頑健な骨格を
+  実際に生成する側）
+
+
+- `slice.gate` 新設 — 品質判定の統一ゲート（detection+consistency+document
+  auditを1回に集約、verdict=pass/warn/fail＋layer別生結果、`keep()`で
+  保存可否判定。理由コードは各レイヤの語彙をそのまま通過）
+
+
+- `slice.evid` 新設 — 関節ごとの証拠ローカライゼーション（chamfer距離変換で
+  各関節を interior/on_boundary/off_mask に分類、マスク外のobserved関節は
+  unsupported()で列挙。`fit`の全体整合に対し関節粒度の監査）
+
+
+- `slice.repro` 新設 — 再現性検証（記録済み骨格を入力画像から再推定し
+  position_drift/state_flip/missing/addedを関節別に列挙→
+  reproducible/drifted/changed。フレーム解像度差はリスケールで吸収）
+
+
+- `slice.stability` 新設 — 摂動下の関節安定度（bg_threshold±10で再推定し
+  関節ごとの最大変位を計測→stable/sensitive/unstable、1runのみ観測は
+  single_runで不明扱い。calibの精度計測と対になる感度計測）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

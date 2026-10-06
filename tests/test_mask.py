@@ -42,3 +42,14 @@ class TestMask(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestCutoutRerun(unittest.TestCase):
+    def test_dark_subject_survives_rerun(self):
+        # dark figure on light bg: transparent-black bg used to
+        # poison _background's colour estimate on a second pass
+        bmp = Bitmap.new(60, 60, (200, 200, 200, 255))
+        for y in range(10, 50):
+            for x in range(20, 40):
+                bmp.set(x, y, (10, 10, 10, 255))
+        once = coverage(foreground(cutout(bmp)))
+        self.assertGreater(once, 0.05)

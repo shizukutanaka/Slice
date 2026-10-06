@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.occlusion` 新設 — 欠損理由推定。unobserved関節を理由別に
+  分類（シルエット内=occluded、フレーム外=truncated、未予測=
+  absent、マスク外=unobserved）。「欠損」を単一語でなく証拠の
+  性質で区別する監査層
+||||||| 7a75385
 - `slice.segment` 新設 — 前景ピクセルを最寄りの骨セグメントで
   部位ラベル付け（head/torso/upper_arm/forearm/thigh/shin/foot L/R）。
   DensePose系のdense part labelingの軽量版。`summary()` で部位ごとの

@@ -277,15 +277,21 @@ class HeuristicPoseEstimator(PoseEstimator):
         if crotch is None:
             hip_row = self._widest_row(rows, int(top + body_h * 0.45),
                                        int(top + body_h * 0.65))
-            hr = rows[hip_row] or torso_run
             crotch = hip_row + max(2, int(head_h * 0.4))
             hip_conf = 0.55
             hip_basis = "widest hip-band row"
         else:
-            hr = rows[crotch - 1] or rows[crotch] or torso_run
             hip_row = crotch - 1
             hip_conf = 0.75
             hip_basis = "crotch split row"
+        # Hip width = the torso-column run at the hip row, not the
+        # row's outermost pixels — arms dangling beside the torso
+        # would inflate "hip" to arm-to-arm span.
+        hip_run = next(
+            (r for r in _row_runs(comp, hip_row, w)
+             if r[0] <= cx_spine <= r[1]),
+            rows[hip_row] or torso_run)
+        hr = hip_run
         put("pelvis", (hr[0] + hr[1]) / 2, hip_row, hip_conf, hip_basis)
         put("hip_l", hr[0], hip_row, hip_conf, hip_basis)
         put("hip_r", hr[1], hip_row, hip_conf, hip_basis)
@@ -305,8 +311,13 @@ class HeuristicPoseEstimator(PoseEstimator):
             ar = _row_runs(comp, bottom, w)
             if len(kr) >= 2 and len(ar) >= 2:
                 legs_split = True
-                krun = kr[take]
+                # Anchor each leg to its foot run — picking the
+                # leftmost/rightmost knee-row run grabs a dangling
+                # arm that still reaches below knee height.
                 arun = ar[take] if len(ar) > abs(take) else ar[0]
+                fcx = (arun[0] + arun[1]) / 2
+                krun = next(
+                    (r for r in kr if r[0] <= fcx <= r[1]), kr[take])
                 put(f"knee_{side}", (krun[0] + krun[1]) / 2, knee_y, 0.7,
                     "leg run at knee height")
                 put(f"ankle_{side}", (arun[0] + arun[1]) / 2, bottom - 1,

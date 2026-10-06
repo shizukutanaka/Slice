@@ -13,6 +13,7 @@ from .skeleton import OBSERVED, Skeleton
 BLUE = (30, 120, 255, 255)
 ORANGE = (255, 150, 0, 255)
 WHITE = (255, 255, 255, 255)
+GREEN = (80, 220, 120, 255)  # facing indicator — not a state color
 
 
 def _line(bmp: Bitmap, x0, y0, x1, y1, rgba):
@@ -63,6 +64,21 @@ def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
         color = BLUE if j.state == OBSERVED else ORANGE
         _disc(out, j.x * sx, j.y * sy, max(2, bmp.width // 160), color)
         _disc(out, j.x * sx, j.y * sy, 1, WHITE)
+
+    # Facing arrow above the head when the estimator saw a side profile.
+    facing = skel.orientation.get("facing")
+    head = pt("head")
+    if facing in ("left", "right") and head:
+        sgn = -1 if facing == "left" else 1
+        ay = max(2, head[1] - bmp.height * 0.06)
+        ln = max(6, bmp.width * 0.08)
+        tail_x, tip_x = head[0] - sgn * ln, head[0] + sgn * ln * 0.4
+        _line(out, tail_x, ay, tip_x, ay, GREEN)
+        head_sz = ln * 0.25
+        _line(out, tip_x, ay, tip_x - sgn * head_sz, ay - head_sz * 0.6,
+              GREEN)
+        _line(out, tip_x, ay, tip_x - sgn * head_sz, ay + head_sz * 0.6,
+              GREEN)
     return out
 
 

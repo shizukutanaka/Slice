@@ -59,6 +59,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.handpos` 新設 — 手の位置意味づけ。手首を身体スキーマ
+  相対でゾーニング（above_head/at_head/at_chest/at_waist/at_hip/
+  at_knee/hanging）、胴体スパン比で身長非依存、predicted手首は
+  ゾーニングしない
+||||||| 7a75385
 - `slice.dynamics` 新設 — 運動含意スコア。単フレームから「動きの
   最中っぽさ」をキュー加重投票（脚軸外れ・腕外振り・重心が足外・
   広い歩幅）→ static/possibly_dynamic/dynamic。state:"implied"

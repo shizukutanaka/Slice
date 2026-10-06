@@ -128,11 +128,14 @@ function render_side() {
   const R = doc.ratio || {};
   document.getElementById('ratios').innerHTML =
     ['head_to_body','shoulder_width','hip_width','torso_length',
-     'leg_l','leg_r','limb_symmetry']
+     'arm_l','arm_r','leg_l','leg_r','arm_span','leg_to_torso',
+     'limb_symmetry']
     .filter(k => R[k] != null)
     .map(k => `<div class="row"><span>${k}</span><b>${R[k]}</b></div>`).join('');
+  // basis = the audit string saying why each joint sits where it does
   document.getElementById('joints').innerHTML = Object.entries(J)
-    .map(([n,j]) => `<div class="row"><span>${n}</span>` +
+    .map(([n,j]) => `<div class="row" title="${(j.basis||'').replace(/"/g,'')}">` +
+      `<span>${n}</span>` +
       `<span class="tag ${j.state==='observed'?'obs':'pred'}">` +
       `${Math.round(j.confidence*100)}%</span></div>`).join('');
 }

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Optional
 
 from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, style
-from .skeleton import PREDICTED
+from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
 
@@ -30,9 +30,24 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
+    doc["warnings"] = _warnings(skel)
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only
     return doc
+
+
+def _warnings(skel) -> list:
+    """Evidence-thinness flags: which parts of the document rest on
+    prediction rather than on anything visible in the image."""
+    obs = {n for n, j in skel.joints.items() if j.state == OBSERVED}
+    w = []
+    if len(obs) < 8:
+        w.append("few_observed_joints")
+    if not any(n.startswith("wrist") for n in obs):
+        w.append("no_observed_wrists")
+    if not any(n.startswith("ankle") or n.startswith("foot") for n in obs):
+        w.append("no_observed_feet")
+    return w
 
 
 def strip_runtime(doc: dict) -> dict:

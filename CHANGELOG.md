@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.limbcov` 新設 — 骨レベルのシルエット被覆監査（各骨を
+  ~2px刻みでサンプリし6px超の背景横断をbroken検出、predicted
+  端点の骨は計測のみで断罪しない、evidの点検査を線分へ拡張）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

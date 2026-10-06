@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.extjoints` 新設 — v2拡張関節語彙（v1の17関節を不変のまま、
+  mid_hip/waist/mid_thigh等の補間関節＋fingertip/toe/heelを
+  predictedとして導出、nose/eye/earは証拠なし=reservedで
+  発行しない、basisは共有語彙の接頭辞規約に準拠、
+  AUDIT P2-15対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

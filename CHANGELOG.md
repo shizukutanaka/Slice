@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- READMEモジュール一覧の全面更新 — 14行の古い表を全77モジュールの
+  関心事別索引に拡張（コア/意味レイヤ/形状・前処理/時系列・照合/
+  評価・QA/描画/3D・外部形式の7群、AUDIT P4-21対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

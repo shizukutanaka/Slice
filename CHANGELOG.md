@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.migrate` 新設 — 旧Knowledgeドキュメントのスキーマ正規化
+  （export/prediction/coverage/bonesを関節から再構築、欠損stateは
+  predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、
+  全変更をchangesに列挙＋valid_before/afterで検証可能）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

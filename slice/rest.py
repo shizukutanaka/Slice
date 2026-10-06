@@ -2,6 +2,7 @@
 
     GET  /                     viewer UI
     POST /analyze[?model=..&save=1]   raw image body -> Knowledge JSON
+    POST /analyze?multi=1           -> {"people": [docs], "count": n}
     GET  /knowledge            list stored knowledge ids
     GET  /knowledge/<id>       one stored document
     GET  /overlay/<id>         PNG overlay (requires ?save=1 at analyze)
@@ -84,6 +85,8 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         qs = parse_qs(url.query)
         model = (qs.get("model") or [None])[0]
+        if qs.get("multi"):
+            return self._analyze_multi(raw, qs, model)
         try:
             doc = pipeline.analyze(raw, model=model,
                                    source_name=self.headers.get(
@@ -100,6 +103,27 @@ class Handler(BaseHTTPRequestHandler):
                 self.overlays[kid] = render.overlay_png(
                     doc["_bitmap"], doc["_skeleton"])
         self._json(out)
+
+    def _analyze_multi(self, raw, qs, model):
+        try:
+            docs = pipeline.analyze_multi(
+                raw, model=model,
+                source_name=self.headers.get("X-Image-Name", ""))
+        except bitmap.UnsupportedFormat as e:
+            return self._error(415, str(e))
+        except Exception as e:  # noqa: BLE001
+            return self._error(422, f"analysis failed: {e}")
+        people = []
+        for d in docs:
+            out = pipeline.strip_runtime(d)
+            if qs.get("save"):
+                kid = self.store.save(out)
+                out["overlay_url"] = f"/overlay/{kid}.png"
+                if d["_skeleton"].joints:
+                    self.overlays[kid] = render.overlay_png(
+                        d["_bitmap"], d["_skeleton"])
+            people.append(out)
+        self._json({"people": people, "count": len(people)})
 
 
 def serve(port: int = 8000, store_dir: str = "knowledge"):

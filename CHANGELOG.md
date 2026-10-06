@@ -59,6 +59,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.dynamics` 新設 — 運動含意スコア。単フレームから「動きの
+  最中っぽさ」をキュー加重投票（脚軸外れ・腕外振り・重心が足外・
+  広い歩幅）→ static/possibly_dynamic/dynamic。state:"implied"
+  で「動いている」とは言わない誠実設計
+||||||| 7a75385
 - `slice.coco` 新設 — COCOキーポイント形式エクスポート。
   17関節[x,y,v]で v=2観測/1不可視/0欠損のCOCO可視性規約が
   observed/predicted/missingに対応（誠実性契約がそのままCOCOの

@@ -6,6 +6,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.framefit` 新設 — 部分人体/フレーム切り取りの推定
+  （骨格端点のフレーム辺距離、上下左右の辺別 possibly_truncated、
+  extremity判定で誤検出抑制、state:"estimated"、AUDIT P0-2対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

@@ -6,6 +6,10 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `pose._background` 修正 — 透過画素のRGBを背景色として読んで
+  いたバグ（cutout等の透過入力で背景推定が狂い暗色被写体を
+  消失）。不透明サンプル優先・全て透過なら従来動作に
+  フォールバック（AUDIT短所#18/P0-3対応）
 - `knowledge.KnowledgeStore.save` を原子的書き込みに
   （tmp+os.replace — クラッシュ時の半端なJSON残存を防止、
   AUDIT P1-11対応）

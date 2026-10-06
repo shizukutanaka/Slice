@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.rig` 新設 — 骨格をアニメーション用リグとして出力
+  （name/parent/head/tail/length/dir/confidence の17ボーン、
+  pelvisルート）。リターゲット・BVH/GLTF変換・3D化で使う骨構造。
+  欠損関節の骨はゼロ化せず省略 — リグは知っている分だけを正直に表す
+||||||| 7a75385
 - `slice.contact` 新設 — 自己接触検出。observed関節ペアの近接を
   身長比で判定（hands_together/hand_at_head/arms_crossed/
   feet_together）。predicted関節は絶対に接触と報告しない —

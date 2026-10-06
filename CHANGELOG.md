@@ -6,6 +6,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `KnowledgeStore.list()` に `_index.json` キャッシュ索引追加
+  （save時に追記、不在/破損/陳腐時は全走査で自動再構築、
+  索引自身はdocとして列挙しない、AUDIT P1-10対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

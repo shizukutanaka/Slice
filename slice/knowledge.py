@@ -96,8 +96,19 @@ def validate(doc: dict) -> list:
     return errors
 
 
+INDEX_NAME = "_index.json"
+
+
+def _list_entry(doc: dict) -> dict:
+    return {"id": doc.get("id"),
+            "created_at": doc.get("created_at"),
+            "body_model": (doc.get("skeleton") or {})
+            .get("body_model", {}).get("name")}
+
+
 class KnowledgeStore:
-    """File-backed store: one <id>.json per analysis, directory = index."""
+    """File-backed store: one <id>.json per analysis, with a cached
+    listing manifest so `list()` does not have to open every document."""
 
     def __init__(self, root: str):
         self.root = root
@@ -110,6 +121,7 @@ class KnowledgeStore:
         path = os.path.join(self.root, doc["id"] + ".json")
         with open(path, "w", encoding="utf-8") as f:
             json.dump(doc, f, ensure_ascii=False, indent=2)
+        self._index_add(doc)
         return doc["id"]
 
     def get(self, kid: str) -> dict:
@@ -121,10 +133,44 @@ class KnowledgeStore:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
+    def _index_path(self) -> str:
+        return os.path.join(self.root, INDEX_NAME)
+
+    def _index_load(self) -> Optional[dict]:
+        """Load the cached index -> {kid: entry}, or None if unusable."""
+        try:
+            with open(self._index_path(), encoding="utf-8") as f:
+                d = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(d, dict) or not isinstance(d.get("entries"), dict):
+            return None
+        return d["entries"]
+
+    def _index_add(self, doc: dict) -> None:
+        """Best-effort index update; a broken index self-heals in list()."""
+        entries = self._index_load()
+        if entries is None:
+            entries = {}
+        entries[doc["id"]] = _list_entry(doc)
+        try:
+            with open(self._index_path(), "w", encoding="utf-8") as f:
+                json.dump({"schema": "slice.index/v1", "entries": entries},
+                          f, ensure_ascii=False)
+        except OSError:
+            pass
+
     def list(self) -> list:
-        out = []
-        for fn in sorted(os.listdir(self.root)):
-            if fn.endswith(".json"):
+        files = [fn for fn in sorted(os.listdir(self.root))
+                 if fn.endswith(".json") and fn != INDEX_NAME]
+        indexed = self._index_load()
+        out, healed = [], indexed is None
+        entries = dict(indexed) if indexed else {}
+        for fn in files:
+            kid = fn[:-5]
+            ent = entries.pop(kid, None)
+            if ent is None:
+                healed = True
                 try:
                     with open(os.path.join(self.root, fn),
                               encoding="utf-8") as f:
@@ -133,10 +179,16 @@ class KnowledgeStore:
                     continue
                 if not isinstance(d, dict):
                     continue
-                out.append({"id": d.get("id"),
-                            "created_at": d.get("created_at"),
-                            "body_model": (d.get("skeleton") or {})
-                            .get("body_model", {}).get("name")})
+                ent = _list_entry(d)
+            out.append(ent)
+        if healed or entries:  # index was missing/stale -> rewrite it
+            known = {e.get("id"): e for e in out if e.get("id")}
+            try:
+                with open(self._index_path(), "w", encoding="utf-8") as f:
+                    json.dump({"schema": "slice.index/v1",
+                               "entries": known}, f, ensure_ascii=False)
+            except OSError:
+                pass
         return out
 
 

@@ -60,7 +60,6 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
-<<<<<<< HEAD
     def test_store_list_uses_index_and_heals(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:
@@ -82,8 +81,6 @@ class TestKnowledge(unittest.TestCase):
             os.remove(os.path.join(d, kid + ".json"))
             self.assertNotIn(kid, {i["id"] for i in store.list()})
 
-||||||| d0d9419
-=======
     def test_save_is_atomic_no_tmp_leftover(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:
@@ -95,7 +92,6 @@ class TestKnowledge(unittest.TestCase):
                       encoding="utf-8") as f:
                 self.assertEqual(json.load(f)["id"], doc["id"])
 
->>>>>>> origin/main
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))
         doc = pipeline.strip_runtime(analyze_synth())

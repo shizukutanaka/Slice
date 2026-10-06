@@ -69,10 +69,11 @@ class TestKnowledge(unittest.TestCase):
         doc11["analysis"] = {"angles": {"elbow_l_flex": 170.0},
                              "gesture": {"count": 0}}
         self.assertFalse(knowledge.validate(doc11))
-        # same block under v1 is rejected (schema honesty)
-        bad = dict(doc)
-        bad["analysis"] = doc11["analysis"]
-        self.assertTrue(knowledge.validate(bad))
+        # v1 doc carrying analysis is tolerated (read compatibility
+        # for documents written before the version bump)
+        legacy = dict(doc)
+        legacy["analysis"] = doc11["analysis"]
+        self.assertFalse(knowledge.validate(legacy))
         # analysis layers must be dicts
         bad2 = dict(doc11)
         bad2["analysis"] = {"angles": [1, 2]}

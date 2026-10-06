@@ -89,14 +89,14 @@ def validate(doc: dict) -> list:
         if key not in doc:
             errors.append(f"missing {key}")
     # v1.1 extension slot: `analysis` is a dict of named layer outputs;
-    # each layer is a free-form dict (its own state/basis vocabulary)
+    # each layer is a free-form dict (its own state/basis vocabulary).
+    # Tolerated on v1 too — docs written before the version bump stay
+    # readable; new documents carrying analysis are built as v1.1.
     analysis = doc.get("analysis")
-    if analysis is not None:
-        if doc.get("schema") != SCHEMA_V11:
-            errors.append("analysis block requires slice.knowledge/v1.1")
-        elif not isinstance(analysis, dict) or not all(
-                isinstance(v, dict) for v in analysis.values()):
-            errors.append("analysis must be a dict of layer dicts")
+    if analysis is not None and not (
+            isinstance(analysis, dict) and all(
+                isinstance(v, dict) for v in analysis.values())):
+        errors.append("analysis must be a dict of layer dicts")
     joints = (doc.get("skeleton") or {}).get("joints") or {}
     for name, j in joints.items():
         for f in ("x", "y", "confidence", "state"):

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- 複数人API接続 — REST `POST /analyze?multi=1`（`{people,count}`
+  + save時は各docにoverlay_url）とCLI `slice analyze --multi`
+  （JSON配列出力）。`analyze` 単一経路は不変
+
 - `pipeline.analyze_multi` 追加 — 1画像から複数人のKnowledge
   ドキュメント配列を生成（各docに `people:{index,count,state,
   basis}` ブロック、接触シルエットは1成分のまま推測しない）

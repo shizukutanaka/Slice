@@ -237,6 +237,10 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Skeleton: `normalized` エクスポート追加 — pelvis原点・neck–pelvis
+  距離=1の正規化座標を skeleton ブロックに出力。解像度・構図に
+  非依存で画像間のポーズ比較が可能に（pelvis/neck欠損時は省略）
+||||||| 7a75385
 - Ratio Engine: `arm_span`（指先-指先/身長、ウィトルウィウス的比例）と
   `leg_to_torso`（脚長/胴長）を追加 — 姿勢と身体プロポーションの
   両シグナルとして Knowledge JSON に出力

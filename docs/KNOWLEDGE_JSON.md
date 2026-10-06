@@ -37,9 +37,16 @@ Slice の成果物。画像そのものではなく、画像から推論した�
   "body_model": {"name": "adult|child|deformed",
                  "label": "...", "confidence": 0.0,
                  "measured_head_ratio": 0.0,
-                 "state": "estimated"}
+                 "state": "estimated"},
+  "normalized": {"origin": "pelvis",
+                 "unit": "neck_pelvis_length",
+                 "joints": {"elbow_l": {"x": 0.5, "y": -0.3}, ...}}
 }
 ```
+
+- `normalized`（任意）: pelvis原点・neck–pelvis距離=1の正規化座標。
+  画像サイズ・構図に非依存なので画像間のポーズ比較に使う。
+  pelvisかneckが欠損している場合は省略される。
 
 - `state`: `observed` | `predicted`。predicted はUIで橙表示必須。
 - `basis`: その関節を置いた根拠（監査用文字列）。

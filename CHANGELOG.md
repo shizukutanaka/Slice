@@ -223,6 +223,10 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Ratio Engine: `arm_span`（指先-指先/身長、ウィトルウィウス的比例）と
+  `leg_to_torso`（脚長/胴長）を追加 — 姿勢と身体プロポーションの
+  両シグナルとして Knowledge JSON に出力
+||||||| 7a75385
 - Pipeline: `warnings` フィールド追加 — 観測関節<8個・手首未観測・
   足部未観測の警告コードを Knowledge JSON に記録
 ||||||| 7a75385

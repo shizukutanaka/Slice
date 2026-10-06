@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.contact` 新設 — 自己接触検出。observed関節ペアの近接を
+  身長比で判定（hands_together/hand_at_head/arms_crossed/
+  feet_together）。predicted関節は絶対に接触と報告しない —
+  推測同士の近接は証拠にならない
+||||||| 7a75385
 - `slice.rom` 新設 — 可動域監査。肘10–180°/膝15–180°/足首30–175°
   /肩20–175°の解剖学的限界を超えた角度をoverextended（observed）
   またはimplausible（predicted混入）として報告、境界±8°は

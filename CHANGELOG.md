@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `analyze(robust=True)` / REST `?robust=1` / CLI `--robust` —
+  頑健性プロファイルのパイプライン接続（adaptive閾値＋落ち影除去
+  ＋形態学クリーンアップを1フラグで有効化、実写向けopt-in、
+  `engine.profile` で使用プロファイルを記録）
+
 - `slice.morph` 新設＋`clean` オプション — 前景マスクの
   形態学的クリーンアップ（open=斑点除去/close=ピンホール充填、
   4連結で成分ラベリングと整合。圧縮ノイズ・AA端由来の偽前景を除去）

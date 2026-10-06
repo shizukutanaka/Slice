@@ -1,7 +1,8 @@
 """Slice CLI.
 
     python -m slice analyze <image> [-o knowledge.json]
-        [--model adult|child|deformed] [--overlay out.png] [--store DIR]
+        [--model adult|child|deformed] [--robust] [--overlay out.png]
+        [--store DIR]
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -20,7 +21,8 @@ def _cmd_analyze(a) -> int:
     with open(a.image, "rb") as f:
         raw = f.read()
     try:
-        doc = pipeline.analyze(raw, model=a.model, source_name=a.image)
+        doc = pipeline.analyze(raw, model=a.model, source_name=a.image,
+                               robust=a.robust)
     except bitmap.UnsupportedFormat as e:
         print(f"unsupported image: {e}", file=sys.stderr)
         return 2
@@ -74,6 +76,9 @@ def main(argv=None) -> int:
     a.add_argument("-o", "--output")
     a.add_argument("--model", choices=sorted(BODY_MODELS), default=None,
                    help="body model to force (default: estimator's own pick)")
+    a.add_argument("--robust", action="store_true",
+                   help="robust profile: adaptive threshold, shadow "
+                        "rejection, mask cleanup (for real photos)")
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.set_defaults(fn=_cmd_analyze)

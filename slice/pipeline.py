@@ -12,12 +12,18 @@ from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, st
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
+# opt-in profile for noisy/uneven real photos: adaptive threshold,
+# cast-shadow rejection, morphological mask cleanup — all merged
+# estimator features that the default profile leaves off.
+ROBUST_ESTIMATOR = pose.HeuristicPoseEstimator(
+    adaptive=True, reject_shadow=True, clean=True)
 
 
 def analyze(raw: bytes, *, model: Optional[str] = None,
-            source_name: str = "") -> dict:
+            source_name: str = "", robust: bool = False) -> dict:
     bmp = bitmap.decode(raw)
-    skel = ESTIMATOR.estimate(bmp, model or "adult")
+    estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
+    skel = estimator.estimate(bmp, model or "adult")
     added = predict.complete(skel, model)
     ratios = ratio.analyze(skel, centroid=skel.centroid)
     cls = classify.analyze(skel)
@@ -25,8 +31,8 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
         skel, ratios, cls,
         image_sha256=knowledge.sha256(raw),
         source_name=source_name,
-        engine={"name": ESTIMATOR.name, "version": ESTIMATOR.version,
-                "slice": __version__},
+        engine={"name": estimator.name, "version": estimator.version,
+                "slice": __version__, "profile": "robust" if robust else "default"},
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)

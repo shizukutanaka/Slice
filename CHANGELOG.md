@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.audit` 新設 — Knowledgeドキュメントの誠実性リント
+  （validateの先：観測率閾値・basis有無・confidence疑義・
+  prediction帳簿の陳腐化・低証拠上の意味ラベルを警告コード化）
+||||||| 7a75385
 - `slice.dedup` 新設 — データセット重複検出（pelvis基準・
   トルソ正規化の平均関節距離がeps未満のペアを列挙、
   解像度/平行移動不変）

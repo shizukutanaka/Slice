@@ -2,17 +2,13 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - `docs/PHASES.md` 新設 — Phase完了基準の定量化（各条件を
   モジュール/テスト/コマンドで検証可能に、充足率ベースの
   完成度計算＋主要ギャップを第一原理順に列挙、AUDIT P4-24対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

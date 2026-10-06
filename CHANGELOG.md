@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.track` 新設 — フレーム列の骨格に安定track_idを付与
+  （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
+  空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を
+  assumptionに明記、AUDIT P3-19対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

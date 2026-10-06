@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.human` 新設 — 前景形状の人物らしさ検定（aspect/fill/head_mass/
+  symmetryの4信号→score＋weakest_signal、いずれかが床未満なら否。
+  「成分=人」の暗黙前提を検証する層。判定はadvisory＝推測しない）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

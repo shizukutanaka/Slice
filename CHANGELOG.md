@@ -2,18 +2,14 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - `examples/demo_3d.py` 新設 — Phase 3 パイプラインの
   エンドツーエンド実演（estimate→lift→rig→retarget→bvh/gltfを
   1コマンドで、各段がprovenanceを保持することを示す、
   AUDIT P3-20対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

@@ -64,6 +64,11 @@
   発火時は両側の生値をevidenceに保持。欠損レイヤはスキップ）
 
 
+- `slice.fit` 新設 — 骨格↔シルエット整合度（前景画素の骨/関節への距離で
+  explained fraction＋mean/worst距離＋未説明領域centroidを計測、
+  空マスク/空骨格はunmeasurable。推定が証拠を説明しているかの自己監査）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

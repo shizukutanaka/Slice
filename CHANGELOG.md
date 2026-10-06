@@ -292,6 +292,10 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- CLI: `--model` 未指定時に adult を強制していたバグを修正 — 省略時は
+  推定器が選んだ body model で補完。`analyze` の stderr に
+  pose/style/model の要約行を追加
+||||||| 7a75385
 - Skeleton: `normalized` エクスポート追加 — pelvis原点・neck–pelvis
   距離=1の正規化座標を skeleton ブロックに出力。解像度・構図に
   非依存で画像間のポーズ比較が可能に（pelvis/neck欠損時は省略）

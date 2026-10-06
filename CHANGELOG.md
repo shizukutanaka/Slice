@@ -6,6 +6,11 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `docs/AUDIT.md` 新設 — 長所50/短所50/改善点の製品監査
+  （第一原理＋ソクラテス問答によるP0–P4優先度付け）
+- `mask.cutout` 修正 — 透過黒初期化が暗色被写体を再推定で
+  消失させるバグ（#101レビュー指摘）: 元RGBを保持し
+  背景アルファのみゼロ化
 - `tests/realistic.py` + `test_realistic.py` 新設 — 準実写
   フィクスチャ（グラデ壁・センサーノイズ・遮蔽物・落ち影、
   背景画素のみ再描画で前景形状は共通）。強いグラデは

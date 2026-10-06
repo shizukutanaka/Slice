@@ -6,6 +6,10 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `pipeline.analyze` に `analysis` ブロック追加 — Knowledge
+  ドキュメントが angles/symmetry/balance/spine/gesture/dynamics/
+  occlusion/frame の8解析レイヤを同梱（これまでstyleのみ統合、
+  空入力でも全レイヤ安全にdegrade、AUDIT P1-9対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

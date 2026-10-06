@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, style
+from . import (__version__, angles, balance, bitmap, classify, dynamics,
+               framepos, gesture, knowledge, occlusion, pose, predict,
+               ratio, spine, style, symmetry)
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -30,6 +32,17 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
+    doc["analysis"] = {
+        "angles": angles.analyze(skel),
+        "symmetry": symmetry.score(skel),
+        "balance": balance.assess(skel),
+        "spine": spine.classify(skel),
+        "gesture": gesture.summarize(skel),
+        "dynamics": dynamics.score(skel),
+        "occlusion": occlusion.audit(skel),
+        "frame": framepos.analyze(skel, skel.image_width,
+                                  skel.image_height),
+    }
     doc["warnings"] = _warnings(skel)
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only

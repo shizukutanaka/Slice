@@ -9,6 +9,8 @@ line + hollow ring.
 
 from __future__ import annotations
 
+from typing import Tuple
+
 from .bitmap import Bitmap, encode_png
 from .landmarks import BONES
 from .skeleton import OBSERVED, Skeleton
@@ -82,8 +84,26 @@ def _line_dashed(bmp: Bitmap, x0, y0, x1, y1, rgba):
 def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
     """Return a copy of bmp with the skeleton drawn on it."""
     out = Bitmap(bmp.width, bmp.height, bytearray(bmp.data))
-    sx = bmp.width / skel.image_width
-    sy = bmp.height / skel.image_height
+    _draw(out, skel, None)
+    return out
+
+
+def _draw(out: Bitmap, skel: Skeleton,
+          tint: Tuple[int, int, int, int] = None) -> None:
+    """Draw one skeleton onto `out` (in place).
+
+    `tint` recolours the person for multi-person overlays: observed
+    parts get the tint, predicted parts get it at half intensity, so
+    the observed/predicted contract survives the colour coding.
+    """
+    if tint is None:
+        strong, faint = BLUE, ORANGE
+    else:
+        strong = tint
+        faint = tuple(min(255, int(c * 0.55) + 90) for c in tint[:3])
+        faint = (*faint, 255)
+    sx = out.width / skel.image_width
+    sy = out.height / skel.image_height
 
     def pt(name):
         j = skel.get(name)
@@ -98,6 +118,12 @@ def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
         color = BLUE if both_obs else ORANGE
         draw = _line if both_obs else _line_dashed
         draw(out, pa[0], pa[1], pb[0], pb[1], color)
+        color = (BLUE if skel.get(a).state == OBSERVED
+                 and skel.get(b).state == OBSERVED else ORANGE)
+        _line(out, pa[0], pa[1], pb[0], pb[1], color)
+        color = (strong if skel.get(a).state == OBSERVED
+                 and skel.get(b).state == OBSERVED else faint)
+        _line(out, pa[0], pa[1], pb[0], pb[1], color)
     for j in skel.joints.values():
         r = max(2, bmp.width // 160)
         if j.state == OBSERVED:
@@ -105,14 +131,20 @@ def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
             _disc(out, j.x * sx, j.y * sy, 1, WHITE)
         else:
             _ring(out, j.x * sx, j.y * sy, r + 1, ORANGE)
+        color = BLUE if j.state == OBSERVED else ORANGE
+        _disc(out, j.x * sx, j.y * sy, max(2, bmp.width // 160), color)
+        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
+        color = strong if j.state == OBSERVED else faint
+        _disc(out, j.x * sx, j.y * sy, max(2, out.width // 160), color)
+        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
 
     # Facing arrow above the head when the estimator saw a side profile.
     facing = skel.orientation.get("facing")
     head = pt("head")
     if facing in ("left", "right") and head:
         sgn = -1 if facing == "left" else 1
-        ay = max(2, head[1] - bmp.height * 0.06)
-        ln = max(6, bmp.width * 0.08)
+        ay = max(2, head[1] - out.height * 0.06)
+        ln = max(6, out.width * 0.08)
         tail_x, tip_x = head[0] - sgn * ln, head[0] + sgn * ln * 0.4
         _line(out, tail_x, ay, tip_x, ay, GREEN)
         head_sz = ln * 0.25
@@ -120,7 +152,34 @@ def overlay(bmp: Bitmap, skel: Skeleton) -> Bitmap:
               GREEN)
         _line(out, tip_x, ay, tip_x - sgn * head_sz, ay + head_sz * 0.6,
               GREEN)
+
+
+# per-person hues for overlay_multi — far apart on the wheel so two
+# neighbours never read as the same figure
+PEOPLE_TINTS = (
+    (30, 120, 255, 255),   # blue
+    (220, 40, 110, 255),   # magenta
+    (0, 170, 110, 255),    # green
+    (230, 150, 0, 255),    # amber
+    (140, 60, 220, 255),   # violet
+)
+
+
+def overlay_multi(bmp: Bitmap, skels) -> Bitmap:
+    """Draw every detected person on one image, each in its own hue.
+
+    Person identity is colour; the observed/predicted contract is
+    intensity (bright = observed, washed-out = predicted) — readable
+    even where the hues would clash.
+    """
+    out = Bitmap(bmp.width, bmp.height, bytearray(bmp.data))
+    for i, skel in enumerate(skels):
+        _draw(out, skel, PEOPLE_TINTS[i % len(PEOPLE_TINTS)])
     return out
+
+
+def overlay_multi_png(bmp: Bitmap, skels) -> bytes:
+    return encode_png(overlay_multi(bmp, skels))
 
 
 def overlay_png(bmp: Bitmap, skel: Skeleton) -> bytes:

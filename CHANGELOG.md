@@ -2,18 +2,14 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - `docs/SMPL.md` 新設 — Slice関節→SMPL/SMPL-X対応表
   （17関節マッピング、未対応関節明示、座標系差異、
   lift→rig→gltf→bvhの既存パイプライン位置づけ、
   β/θ/メッシュ残作業、AUDIT P3-18対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

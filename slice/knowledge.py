@@ -119,8 +119,11 @@ class KnowledgeStore:
         if errors:
             raise ValueError("invalid knowledge: " + "; ".join(errors))
         path = os.path.join(self.root, doc["id"] + ".json")
-        with open(path, "w", encoding="utf-8") as f:
+        # atomic write: a crash mid-save must never leave a torn JSON
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(doc, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
         self._index_add(doc)
         return doc["id"]
 

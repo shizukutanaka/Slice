@@ -44,6 +44,18 @@ class TestBandedBackground(unittest.TestCase):
         skel = EST.estimate(synthetic_person())
         self.assertEqual(len(skel.joints), 19)
 
+    def test_transparent_border_samples_ignored(self):
+        # transparent black on top/bottom/left must not become the band
+        # bg colour (keeps the alpha-aware _background fix in effect)
+        from slice.bitmap import Bitmap
+        bmp = Bitmap.new(60, 60, (200, 200, 200, 255))
+        for i in range(60):
+            bmp.set(i, 0, (0, 0, 0, 0))
+            bmp.set(i, 59, (0, 0, 0, 0))
+            bmp.set(0, i, (0, 0, 0, 0))
+        for band in EST._background_bands(bmp):
+            self.assertGreater(band[0], 100)
+
 
 if __name__ == "__main__":
     unittest.main()

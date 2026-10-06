@@ -95,14 +95,18 @@ class HeuristicPoseEstimator(PoseEstimator):
             counts: dict = {}
             for y in range(y0, y1, 4):
                 for x in (0, w - 1):
-                    r, g, bl, _a = bmp.get(x, y)
+                    r, g, bl, a = bmp.get(x, y)
+                    if a < 128:
+                        continue
                     key = (r // 32, g // 32, bl // 32)
                     counts[key] = counts.get(key, 0) + 1
             # the outer bands also see the top/bottom edge
             edge_y = y0 if b == 0 else (y1 - 1 if b == n - 1 else None)
             if edge_y is not None:
                 for x in range(0, w, 4):
-                    r, g, bl, _a = bmp.get(x, edge_y)
+                    r, g, bl, a = bmp.get(x, edge_y)
+                    if a < 128:
+                        continue
                     key = (r // 32, g // 32, bl // 32)
                     counts[key] = counts.get(key, 0) + 1
             if counts:

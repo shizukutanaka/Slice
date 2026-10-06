@@ -60,6 +60,17 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_save_is_atomic_no_tmp_leftover(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            leftovers = [f for f in os.listdir(d) if f.endswith(".tmp")]
+            self.assertEqual(leftovers, [])
+            with open(os.path.join(d, kid + ".json"),
+                      encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["id"], doc["id"])
+
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))
         doc = pipeline.strip_runtime(analyze_synth())

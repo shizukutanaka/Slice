@@ -67,6 +67,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.framepos` 新設 — 構図解析。関節クラウドbboxで
+  headroom/footroom/side_gap/center_offset/body_fraction/三分割
+  ゾーンをフレーム比で計測、framing=tight|portrait|wide
+||||||| 7a75385
 - `slice.describe` 新設 — 骨格＋姿勢/向きラベルを人間可読な
   説明文に変換する NLG 層（"standing; facing the camera; left arm
   not directly observed; 19 of 19 joints observed"）。observed と

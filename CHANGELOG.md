@@ -54,6 +54,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.rom` 新設 — 可動域監査。肘10–180°/膝15–180°/足首30–175°
+  /肩20–175°の解剖学的限界を超えた角度をoverextended（observed）
+  またはimplausible（predicted混入）として報告、境界±8°は
+  hypermobile。violations()で違反のみ抽出
+||||||| 7a75385
 - `slice.bvh` 新設 — 骨格をBVH（Biovision Hierarchy）テキスト出力。
   pelvisルート・OFFSETは親相対・CHANNELSはroot6+各関節3、
   1フレームモーション（回転は未観測ゆえ全0 — 誠実なゼロ埋め）。

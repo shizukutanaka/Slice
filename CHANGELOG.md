@@ -2,18 +2,14 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 - `slice.track` 新設 — フレーム列の骨格に安定track_idを付与
   （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
   空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を
   assumptionに明記、AUDIT P3-19対応）
-||||||| d0d9419
-=======
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに
   明記、AUDIT P0-1本体対応）
->>>>>>> origin/main
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

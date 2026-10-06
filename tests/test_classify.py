@@ -43,6 +43,14 @@ class TestClassify(unittest.TestCase):
                ankle_l=(60, 340), ankle_r=(140, 340))
         self.assertEqual(classify.analyze(s)["pose"], "crouch")
 
+    def test_bend_tilted_torso(self):
+        # upright legs, torso leaning forward (お辞儀)
+        s = sk(head=(205, 30), neck=(165, 60), chest=(130, 120),
+               pelvis=(100, 180), hip_l=(85, 185), hip_r=(115, 185),
+               knee_l=(85, 270), knee_r=(115, 270),
+               ankle_l=(85, 355), ankle_r=(115, 355))
+        self.assertEqual(classify.analyze(s)["pose"], "bend")
+
     def test_walk_ankles_apart(self):
         s = sk(head=(100, 30), neck=(100, 80), chest=(100, 160),
                pelvis=(100, 200), hip_l=(85, 205), hip_r=(115, 205),

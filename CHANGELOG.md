@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.verdict` 新設 — 全監査層のverdict語彙を統一重大度へ
+  正規化するアグリゲータ（adequate/stable/broken/consistent等→
+  ok/advisory/problem/unmeasured、worst-layer-wins総合判定、
+  未登録語彙はunmappedに列挙して静黙評価を防止）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

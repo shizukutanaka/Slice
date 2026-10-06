@@ -85,6 +85,11 @@
   unsupported()で列挙。`fit`の全体整合に対し関節粒度の監査）
 
 
+- `slice.repro` 新設 — 再現性検証（記録済み骨格を入力画像から再推定し
+  position_drift/state_flip/missing/addedを関節別に列挙→
+  reproducible/drifted/changed。フレーム解像度差はリスケールで吸収）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

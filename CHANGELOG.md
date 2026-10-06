@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.basis` 新設 — 関節provenance文字列の語彙レジストリ
+  （既存basisを観測/ミラー/補間/プライア/変換/不明の6カテゴリに
+  分類、新規は接頭辞規約、audit()で骨格の証拠内訳を集計、
+  既存文字列は改名せず保存ドキュメントを保護、AUDIT P4-22対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

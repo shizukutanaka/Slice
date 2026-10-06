@@ -48,13 +48,15 @@ class HeuristicPoseEstimator(PoseEstimator):
     version = "0.1.0"
 
     def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
-                 adaptive: bool = False):
+                 adaptive: bool = False, reject_shadow: bool = False):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
         self.adaptive = adaptive
+        self.reject_shadow = reject_shadow
         # (value, "otsu"|"fixed") from the last _mask call —
         # diagnostic surface, not part of the skeleton contract
         self.last_threshold = None
+        self.last_shadow_removed = None
 
     # -- segmentation ----------------------------------------------------
 
@@ -124,10 +126,18 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     def _mask(self, bmp: Bitmap) -> List[bytearray]:
         if self.adaptive:
-            return self._mask_adaptive(bmp, self._background(bmp))
-        thr = self.bg_threshold
-        self.last_threshold = (thr, "fixed")
-        return self._mask_fixed(bmp, self._background_bands(bmp), thr)
+            mask = self._mask_adaptive(bmp, self._background(bmp))
+        else:
+            thr = self.bg_threshold
+            self.last_threshold = (thr, "fixed")
+            mask = self._mask_fixed(bmp, self._background_bands(bmp), thr)
+        if self.reject_shadow:
+            from . import shadow
+            shadow_m = shadow.shadow_pixels(bmp, self._background(bmp),
+                                            mask)
+            mask, self.last_shadow_removed = shadow.remove(
+                mask, shadow_m)
+        return mask
 
     @staticmethod
     def _mask_fixed(bmp: Bitmap, bg_rgb,

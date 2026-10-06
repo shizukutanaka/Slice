@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.shadow` 新設＋`reject_shadow` オプション — 背景を
+  一様減色した落ち影画素を前景から除去（色だけでは暗色服と
+  区別できないため扁平形状ゲート併用、<0.35倍の極暗色は
+  影と断定せず残す誠実設計、除去数をlast_shadow_removedで開示）
+
 - `slice.adapt` 新設＋`HeuristicPoseEstimator(adaptive=True)`
   — Otsuクラス間分散で前景閾値を画像ごとに自動決定
   （二峰性なしなら固定閾値へフォールバック、methodを

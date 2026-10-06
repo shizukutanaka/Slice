@@ -19,6 +19,8 @@ from .anatomy import BODY_MODELS
 def _cmd_analyze(a) -> int:
     with open(a.image, "rb") as f:
         raw = f.read()
+    if a.multi:
+        return _cmd_analyze_multi(a, raw)
     try:
         doc = pipeline.analyze(raw, model=a.model, source_name=a.image)
     except bitmap.UnsupportedFormat as e:
@@ -53,6 +55,34 @@ def _cmd_analyze(a) -> int:
     return 0
 
 
+def _cmd_analyze_multi(a, raw) -> int:
+    try:
+        docs = pipeline.analyze_multi(raw, model=a.model,
+                                      source_name=a.image)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    outs = []
+    for d in docs:
+        out = pipeline.strip_runtime(d)
+        if a.store:
+            kid = knowledge.KnowledgeStore(a.store).save(out)
+            print(f"saved: {kid}", file=sys.stderr)
+        outs.append(out)
+    text = json.dumps(outs, ensure_ascii=False, indent=2)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        print(text)
+    if a.overlay:
+        print("multi: --overlay skipped (per-person overlay not written)",
+              file=sys.stderr)
+    print(f"people: {len(outs)}", file=sys.stderr)
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store)
     return 0
@@ -76,6 +106,8 @@ def main(argv=None) -> int:
                    help="body model to force (default: estimator's own pick)")
     a.add_argument("--overlay")
     a.add_argument("--store")
+    a.add_argument("--multi", action="store_true",
+                   help="detect every foreground person (JSON array out)")
     a.set_defaults(fn=_cmd_analyze)
 
     s = sub.add_parser("serve", help="run the REST viewer server")

@@ -80,6 +80,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.motion` 新設 — フレーム間モーション解析。`vectors()` で
+  関節ごとの移動ベクトル、`summarize()` で平均速度・並進量・
+  最速関節・部位別最大移動を集計。連続画像の歩行・ジェスチャ・
+  アニメーションリターゲット検証の土台
+||||||| 7a75385
 - `slice.heatmap` 新設 — 関節をガウシアン分布としてグレースケール
   描画する OpenPose系 confidence map 出力。輝度=confidence で
   observedは明るく・predictedは gain 0.3 で薄く — 「どこに自信を

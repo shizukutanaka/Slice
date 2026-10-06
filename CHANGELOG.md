@@ -63,6 +63,10 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.mass` 新設 — 体重推定。シルエット面積×身長プライア換算
+  ×奥行係数0.28×軟組織密度1.04 → kg（仮定チェーン全開示: depth_cm/
+  height_cm/volume_l、全出力estimated明記）＋BMI
+||||||| 7a75385
 - `slice.limbs` 新設 — 四肢長プロファイル。腕（肩→手首）/脚
   （股関→足）のチェーン合計をpx＋身長比＋partial（一部predicted
   含む）＋左右差deltaで計測 — 人体測定レポート層

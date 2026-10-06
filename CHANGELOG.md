@@ -63,6 +63,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.describe` 新設 — 骨格＋姿勢/向きラベルを人間可読な
+  説明文に変換する NLG 層（"standing; facing the camera; left arm
+  not directly observed; 19 of 19 joints observed"）。observed と
+  predicted を文面で厳密に区別し、データが言っていないことは言わない
+||||||| 7a75385
 - `slice.symmetry` 新設 — 左右対称性スコア。左骨方向を垂直軸で
   ミラーして右骨と内積（0–1、欠側ペアはmissing報告）。T字/直立
   の高対称 vs 片腕上げの非対称を定量化、`asymmetric_side` で

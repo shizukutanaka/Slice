@@ -17,6 +17,21 @@ class TestRatio(unittest.TestCase):
             self.assertIsNotNone(r[k], k)
         self.assertIsNotNone(r["center_of_mass"])
         self.assertTrue(0 < r["center_of_mass"]["y_ratio"] < 1)
+        self.assertIsNotNone(r["arm_span"])
+        self.assertIsNotNone(r["leg_to_torso"])
+        self.assertGreater(r["leg_to_torso"], 0.5)
+
+    def test_arm_span_distinguishes_pose(self):
+        # arms spread wide -> span approaches/exceeds a dangling-arms span
+        bmp = synthetic_person()
+        sk = HeuristicPoseEstimator().estimate(bmp)
+        base = ratio.analyze(sk)["arm_span"]
+        # manually spread the wrists wider
+        from slice.skeleton import Joint
+        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9)
+        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9)
+        wide = ratio.analyze(sk)["arm_span"]
+        self.assertGreater(wide, base)
 
     def test_empty_skeleton(self):
         from slice.skeleton import Skeleton

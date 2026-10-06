@@ -63,6 +63,12 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.oks` 新設 — OKS（Object Keypoint Similarity）評価指標。
+  関節ごと exp(-d²/2(sk)²)：s=参照骨格bbox面積の平方根（スケール
+  正規化）、k=関節別許容度（股関節は厳格・手首は寛容）。
+  参照に存在しない関節は評価対象外、推定側欠損は0点。
+  COCO公式評価メトリクス実装
+||||||| 7a75385
 - Landmarks: 運動学ツリー追加 — pelvisルートの `PARENT` マップと
   `chain()` ヘルパ（SMPL系と同じルート規約。補完・正規化・将来の
   3D化で共有する関節語彙）

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `examples/demo_3d.py` 新設 — Phase 3 パイプラインの
+  エンドツーエンド実演（estimate→lift→rig→retarget→bvh/gltfを
+  1コマンドで、各段がprovenanceを保持することを示す、
+  AUDIT P3-20対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

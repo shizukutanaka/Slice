@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `docs/SMPL.md` 新設 — Slice関節→SMPL/SMPL-X対応表
+  （17関節マッピング、未対応関節明示、座標系差異、
+  lift→rig→gltf→bvhの既存パイプライン位置づけ、
+  β/θ/メッシュ残作業、AUDIT P3-18対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

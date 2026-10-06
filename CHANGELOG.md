@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.mask` 新設 — 推定器の前景マスクを公開（foreground/
+  coverage/to_bitmap可視化/cutout背景透過）。downscale座標系の
+  注意書き付き
+||||||| 7a75385
 - `slice.sheet` 新設 — 複数骨格レンダを1枚のグリッド画像に並べる
   コンタクトシート（アスペクト比保持レターボックス、歪めず
   データセット丸ごと目視QA）

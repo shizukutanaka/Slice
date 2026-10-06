@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `docs/PHASES.md` 新設 — Phase完了基準の定量化（各条件を
+  モジュール/テスト/コマンドで検証可能に、充足率ベースの
+  完成度計算＋主要ギャップを第一原理順に列挙、AUDIT P4-24対応）
 - `slice.bench` 新設 — 推定ベンチマーク＋回帰ゲート
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝

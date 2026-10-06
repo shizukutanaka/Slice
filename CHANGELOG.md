@@ -45,6 +45,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.gait` 新設 — 歩行位相キュー。脚ごとに stance/swing/unknown
+  （膝屈曲角150°+股関直下=支持脚、膝屈曲or軸外=遊脚）＋step_width
+  ＋double_support。静止画で「歩行中に見える」位相推測、欠損脚は
+  unknown
+||||||| 7a75385
 - `slice.balance` 新設 — 静的バランス評価。Winter人体計測質量プライア
   で重心を推定し足の支持多角形に投影（inside/marginal/outside、
   証拠不足はunknown推測せず）。バイオメカニクス的「立っていられるか」

@@ -129,12 +129,14 @@ class KnowledgeStore:
                     with open(os.path.join(self.root, fn),
                               encoding="utf-8") as f:
                         d = json.load(f)
-                    out.append({"id": d.get("id"),
-                                "created_at": d.get("created_at"),
-                                "body_model": (d.get("skeleton") or {})
-                                .get("body_model", {}).get("name")})
                 except (OSError, json.JSONDecodeError):
                     continue
+                if not isinstance(d, dict):
+                    continue
+                out.append({"id": d.get("id"),
+                            "created_at": d.get("created_at"),
+                            "body_model": (d.get("skeleton") or {})
+                            .get("body_model", {}).get("name")})
         return out
 
 

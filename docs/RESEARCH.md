@@ -32,9 +32,45 @@
 
 - **頭身比**: 成人 ≈7.5頭身、子供 ≈5.5、デフォルメ 2.5〜3.5。
   anatomy.py の priors に直写し。SMPL/SMPL-X は Phase 3 の等価モデル候補。
+- **ウィトルウィウス比例**: 両腕の水平伸展 ≈ 身長、脚長/胴長は
+  成長曲線で変化。ratio.py の `arm_span`・`leg_to_torso` の根拠。
+  Cañon/Vitruvius 系の身体比例はイラスト解剖書の共通基準。
+
+## ヒートマップ型推定（Phase 2 候補）
+
+現在のシルエット走査の次段は位置ごとの関節存在確率マップ。
+
+- **Stacked Hourglass** (Newell et al., ECCV 2016) — 中間監督で
+  ヒートマップを段階的に洗練。Slice の confidence 概念と親和。
+- **PAF (Part Affinity Fields)** (OpenPose, CVPR 2017) —
+  関節点だけでなく「骨方向のベクトル場」を推定し、接続の曖昧さを
+  二分マッチングで解く。Slice の BONES グラフと直交する設計。
+- **BlazePose** (MediaPipe) — 33関節・ビデオ向けトラッキング前提。
+  Slice は静止画・説明可能性優先で別路線だが、関節語彙の
+  交換フォーマットとして参照価値あり。
+
+## 3D化（Phase 3 候補）
+
+- **SMPL ファミリー** — pelvisルートの運動学木＋形状パラメータ。
+  landmarks.py の `PARENT` は同じルート規約で揃え済み。
+- **HMR / SPIN / ROMP** — 画像→SMPL回帰。Slice 経路は
+  2D関節→リフティングの方が説明可能性を保てる（Videopose3D系）。
+- **GLTF/BVH エクスポート** — normalized 座標 → ボーン階層への
+  変換で Unity/Blender 連携の土台。
 
 ## 不確実性の扱い
 
 単一画像から服の下・遮蔽部は確定不能（SRS P0リスク）。
 Slice は確率的断定を避け、observed/predicted 分離 + confidence +
 `basis`（根拠文字列）で監査可能性を確保する設計を採用。
+
+## 実装済み設計との対応（v1.1時点）
+
+| 先行技術 | Slice 実装 |
+|---|---|
+| 対称性補完・プライア補完 | predict.py（ミラー・中間関節線形補間・チェーン継続） |
+| 頭身比モデル選択 | anatomy.py `select_model`（マージン反映 confidence） |
+| 規則ベース姿勢分類 | classify.py（立つ/座る/歩く/走る/寝る/しゃがむ/前傾） |
+| 画像統計スタイル検出 | style.py（real/anime/illustration + 肌色シグナル） |
+| 解像度非依存ポーズ比較 | compare.py（pelvis原点・胴長=1） |
+| 評価ハーネス | evaluate.py（検出率・位置誤差） |

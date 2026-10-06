@@ -43,7 +43,13 @@ def _cmd_analyze(a) -> int:
     j = doc["skeleton"]["joints"]
     obs = sum(1 for v in j.values() if v["state"] == "observed")
     pred = sum(1 for v in j.values() if v["state"] == "predicted")
+    pose_l = (doc.get("pose") or {}).get("label", "?")
+    style_l = (doc.get("style") or {}).get("label", "?")
+    bm = doc["skeleton"].get("body_model") or {}
     print(f"joints: {obs} observed / {pred} predicted", file=sys.stderr)
+    print(f"pose: {pose_l} | style: {style_l} | model: "
+          f"{bm.get('label', '?')} ({bm.get('state', '?')})",
+          file=sys.stderr)
     return 0
 
 
@@ -66,7 +72,8 @@ def main(argv=None) -> int:
     a = sub.add_parser("analyze", help="analyze one image")
     a.add_argument("image")
     a.add_argument("-o", "--output")
-    a.add_argument("--model", choices=sorted(BODY_MODELS), default="adult")
+    a.add_argument("--model", choices=sorted(BODY_MODELS), default=None,
+                   help="body model to force (default: estimator's own pick)")
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.set_defaults(fn=_cmd_analyze)

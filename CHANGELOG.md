@@ -63,6 +63,11 @@
   画像変換に骨格座標を追従、フレーム外に出た関節は消さず
   `state:"out_of_frame"`＋basisに"lost to transform"を記録 —
   測れなくなったことを知識として残す
+- `slice.retarget` 新設 — ポーズ・リターゲット。src骨格の骨方向
+  ×dst骨格の骨長でpelvisから運動学ツリーを下りて座標再構成 —
+  同じポーズを別体格へ転写。出力は全て state=predicted
+  basis=retargeted（合成幾何は観測証拠ではない）
+||||||| 7a75385
 - `slice.lift` 新設 — 2D骨格の擬似3Dリフト。向き推定の奥行き
   手がかりからz座標を割当（front/unknown=全z0「奥行き証拠なし
   =平坦を正直に」、side=遠側肢に+z肩幅半分）。全zにbasis

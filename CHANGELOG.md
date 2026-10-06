@@ -6,6 +6,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.people` 新設 — 前景連結成分の人物候補列挙（top-K
+  成分のbbox/面積/辺接触、単一成分前提の最初の一歩、
+  成分≠人物をnoteに明記、AUDIT P0-1対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

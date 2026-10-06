@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.pad` 新設 — Bitmapレターボックス（中央配置＋オフセット
+  返却で座標系を保全、縮小は拒否してcropへ誘導、
+  to_aspect/to_square）
+||||||| 7a75385
 - `slice.crop` 新設 — Bitmap矩形切り出し（autocropのcrop提案を
   適用する実行側、枠外はclamp・重なり無しはValueError）
 ||||||| 7a75385

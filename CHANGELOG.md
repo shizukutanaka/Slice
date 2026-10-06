@@ -182,6 +182,9 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Viewer: 関節行に `basis`（配置根拠）をツールチップ表示、Ratiosに
+  arm_l/arm_r/arm_span/leg_to_torso を追加
+||||||| 7a75385
 - Overlay: facing が left/right のとき頭上に向き矢印を描画（緑、
   状態色と区別）
 ||||||| 7a75385

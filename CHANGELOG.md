@@ -36,6 +36,10 @@
   距離変換watershed分割（頭バンド複数コアを証拠に発動、分割由来
   の関節はbasisに "split region" 記録。AUDIT P0-1の接触ケース）
 
+- 複数人API接続 — REST `POST /analyze?multi=1`（`{people,count}`
+  + save時は各docにoverlay_url）とCLI `slice analyze --multi`
+  （JSON配列出力）。`analyze` 単一経路は不変
+
 - `pipeline.analyze_multi` 追加 — 1画像から複数人のKnowledge
   ドキュメント配列を生成（各docに `people:{index,count,state,
   basis}` ブロック、接触シルエットは1成分のまま推測しない）

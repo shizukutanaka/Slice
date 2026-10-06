@@ -6,6 +6,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.diag` 新設 — 空Skeletonの理由診断（no_foreground/
+  too_small/too_short/foreground_at_edge/low_contrast の
+  理由コード＋coverage計測、AUDIT P0-5対応）
 - `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
   レンダリング（render.pyのPNGと対）。observed=青実線・
   predicted=橙破線（stroke-dasharray）、全関節に

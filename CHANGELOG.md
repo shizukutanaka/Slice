@@ -80,6 +80,11 @@
   保存可否判定。理由コードは各レイヤの語彙をそのまま通過）
 
 
+- `slice.evid` 新設 — 関節ごとの証拠ローカライゼーション（chamfer距離変換で
+  各関節を interior/on_boundary/off_mask に分類、マスク外のobserved関節は
+  unsupported()で列挙。`fit`の全体整合に対し関節粒度の監査）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

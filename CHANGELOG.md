@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.stability` 新設 — 摂動下の関節安定度（bg_threshold±10で再推定し
+  関節ごとの最大変位を計測→stable/sensitive/unstable、1runのみ観測は
+  single_runで不明扱い。calibの精度計測と対になる感度計測）
+
+
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
   Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
   接触した人物は1成分=1骨格のまま推測しないことをdocstringに

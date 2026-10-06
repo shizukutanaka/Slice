@@ -5,6 +5,15 @@
 - `slice.pad` 新設 — Bitmapレターボックス（中央配置＋オフセット
   返却で座標系を保全、縮小は拒否してcropへ誘導、
   to_aspect/to_square）
+||||||| 7a75385
+- `slice.crop` 新設 — Bitmap矩形切り出し（autocropのcrop提案を
+  適用する実行側、枠外はclamp・重なり無しはValueError）
+||||||| 7a75385
+- dataset+knowledge: Devin Review 3件修正 — ストア内の非object
+  JSON（`[]`等）で `list()` が AttributeError で全エクスポート
+  中止 → スキップ、`from_store` がスキーマ不正docを通す →
+  `validate()` で除外、`to_jsonl([])` が `"\n"` の幽霊レコード
+  を返す → `""` に
 - `slice.dataset` 新設 — Knowledge Store の一括エクスポート
   （ドキュメント要約CSV／関節ロングフォーマットCSV／JSONL）。
   欠損関節は行を出さず state/basis を保持 — Phase 2 の
@@ -23,6 +32,10 @@
 - Anatomy Engine: `select_model` の confidence に第2候補との
   マージンを反映 — 測定値が2モデルの境界近くにあるとき自信を下げ、
   誠実な曖昧さを表明（境界では ~0.5 に減衰）
+- Pose Engine: 股下の腕追跡を修正 — 脚の識別を「最広2ラン」から
+  「足（最下行ラン）のx区間上に中心があるラン」へ変更。脚より幅広い
+  手が脚と誤除外され残った脚が手首と誤観測される問題を解消。
+  腕バンドも受容ランで拡張し、外側へ流れる腕の追跡が切れないように
 - Prediction Engine: 中間関節の線形補間 — 肘/膝が欠損でもチェーン末端
   （手首/足首）が既知なら、親子間を四肢比率で内分して配置。
   盲目的な真下へのプライア配置を解消（confidence 0.3、basis記録）

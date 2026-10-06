@@ -54,7 +54,7 @@ def _cmd_analyze(a) -> int:
 
 
 def _cmd_serve(a) -> int:
-    rest.serve(port=a.port, store_dir=a.store)
+    rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
 
 
@@ -81,6 +81,9 @@ def main(argv=None) -> int:
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)
     s.add_argument("--store", default="knowledge")
+    s.add_argument("--token", default=None,
+                   help="require 'Authorization: Bearer TOKEN' on API "
+                        "routes (default: SLICE_TOKEN env, else open)")
     s.set_defaults(fn=_cmd_serve)
 
     l = sub.add_parser("list", help="list stored knowledge")

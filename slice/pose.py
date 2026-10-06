@@ -173,11 +173,14 @@ class HeuristicPoseEstimator(PoseEstimator):
         """First row below the torso band whose mask splits into two runs."""
         for y in range(max(0, y0), min(y1, len(mask) - 1)):
             runs = _row_runs(mask, y, w)
-            if len(runs) >= 2:
-                gap = runs[-1][0] - runs[0][1]
-                torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
-                if gap >= max(2, torso_w * 0.08):
-                    return y
+            torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
+            # A split is a gap between *adjacent* runs; comparing the
+            # first and last run spans everything in between and calls
+            # "arm | torso | arm" a crotch at chest height.
+            if any(runs[i + 1][0] - runs[i][1]
+                   >= max(2, torso_w * 0.08)
+                   for i in range(len(runs) - 1)):
+                return y
         return None
 
     # -- main ---------------------------------------------------------------
@@ -328,8 +331,6 @@ class HeuristicPoseEstimator(PoseEstimator):
 
         # Arms: silhouette protrusions beside the torso column, tracked
         # down past the hips so dangling hands are still found.
-        arm_len = body_h * (prior["upper_arm_ratio"]
-                            + prior["forearm_ratio"])
         crotch_y = crotch
         # Feet anchor the legs: any run below the torso that x-overlaps a
         # bottom-row run is leg, regardless of its width or how far out
@@ -374,11 +375,20 @@ class HeuristicPoseEstimator(PoseEstimator):
                 far = max(cand,
                           key=lambda p: (p[0] - shoulder.x) ** 2
                           + (p[1] - shoulder.y) ** 2)
+                # Elbow rides at the upper-arm fraction of the
+                # *measured* shoulder→wrist extent. Using the prior
+                # arm_len here placed elbows ~30px too high whenever
+                # the silhouette arm ran longer than the ratio says.
+                reach = ((far[0] - shoulder.x) ** 2
+                         + (far[1] - shoulder.y) ** 2) ** 0.5
+                frac = prior["upper_arm_ratio"] / (
+                    prior["upper_arm_ratio"]
+                    + prior["forearm_ratio"])
                 elbow = max(
                     cand,
                     key=lambda p: -abs(((p[0] - shoulder.x) ** 2
                                        + (p[1] - shoulder.y) ** 2) ** 0.5
-                                     - arm_len * 0.55))
+                                     - reach * frac))
                 conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
                 put(f"wrist_{side}", far[0], far[1], conf,
                     "arm blob extremity")

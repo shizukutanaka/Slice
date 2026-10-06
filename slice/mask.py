@@ -53,10 +53,14 @@ def cutout(bmp: Bitmap,
            est: HeuristicPoseEstimator = None) -> Bitmap:
     """Same-size bitmap with background alpha-zeroed."""
     mask = foreground(bmp, est)
-    out = Bitmap.new(bmp.width, bmp.height, _BG)
+    # Copy original RGB everywhere; zero only background alpha.
+    # Transparent pixels keep their colour so a later
+    # `_background` estimate still reads the true background.
+    out = Bitmap(bmp.width, bmp.height, bytearray(bmp.data))
     for y in range(bmp.height):
         row = mask[y]
         for x in range(bmp.width):
-            if row[x]:
-                out.set(x, y, bmp.get(x, y))
+            if not row[x]:
+                i = (y * bmp.width + x) * 4
+                out.data[i + 3] = 0
     return out

@@ -48,11 +48,13 @@ class HeuristicPoseEstimator(PoseEstimator):
     version = "0.1.0"
 
     def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
-                 adaptive: bool = False, reject_shadow: bool = False):
+                 adaptive: bool = False, reject_shadow: bool = False,
+                 clean: bool = False):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
         self.adaptive = adaptive
         self.reject_shadow = reject_shadow
+        self.clean = clean
         # (value, "otsu"|"fixed") from the last _mask call —
         # diagnostic surface, not part of the skeleton contract
         self.last_threshold = None
@@ -90,6 +92,9 @@ class HeuristicPoseEstimator(PoseEstimator):
             shadow_m = shadow.shadow_pixels(bmp, (br, bg, bb), mask)
             mask, self.last_shadow_removed = shadow.remove(
                 mask, shadow_m)
+        if self.clean:
+            from . import morph
+            mask = morph.clean(mask)
         return mask
 
     @staticmethod

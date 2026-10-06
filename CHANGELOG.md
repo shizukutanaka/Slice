@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.svg` 新設 — 骨格をSVGベクタードキュメントとして
+  レンダリング（render.pyのPNGと対）。observed=青実線・
+  predicted=橙破線（stroke-dasharray）、全関節に
+  state/confidence/basis の `<title>` ツールチップ
+||||||| 7a75385
 - `slice.ascii` 新設 — 骨格のターミナル文字描画（観測=`@`/#、
   予測=`o`/: の誠実性グリフ、行数はフレーム縦横比×文字セル補正）。
   CLI/ログでの第3描画バックエンド

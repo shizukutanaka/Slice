@@ -95,14 +95,17 @@ def consensus(bmp: Bitmap,
         spread = max(math.hypot(x - mx, y - my) for x, y, _ in obs)
         base_j = base.get(name)
         conf = _median([p[2] for p in obs]) * len(obs) / n_runs
-        if len(obs) < DISPUTE_MIN_RUNS or spread > DISPUTE_SPREAD_PX:
+        majority = len(obs) >= needed
+        if (not majority or len(obs) < DISPUTE_MIN_RUNS
+                or spread > DISPUTE_SPREAD_PX):
             disputed.append({"joint": name,
                              "runs": len(obs),
                              "spread_px": round(spread, 2)})
         j = Joint(name, round(mx, 2), round(my, 2), round(conf, 3),
-                  OBSERVED,
-                  "consensus %d/%d runs, spread %.1fpx"
-                  % (len(obs), n_runs, spread))
+                  OBSERVED if majority else PREDICTED,
+                  "consensus %d/%d runs, spread %.1fpx%s"
+                  % (len(obs), n_runs, spread,
+                     "" if majority else "; no majority"))
         sk.set(j)
         spreads.append(spread)
 

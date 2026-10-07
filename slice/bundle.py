@@ -52,6 +52,13 @@ def pack(store, path: str) -> dict:
         if bad:
             skipped += 1
             continue
+        # validate does not type-check body_model — a malformed one
+        # would ship and crash downstream consumers
+        skel = doc.get("skeleton")
+        bm = skel.get("body_model") if isinstance(skel, dict) else None
+        if bm is not None and not isinstance(bm, dict):
+            skipped += 1
+            continue
         docs.append(doc)
     manifest = {
         "schema": SCHEMA,

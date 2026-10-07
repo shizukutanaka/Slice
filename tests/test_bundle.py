@@ -101,12 +101,14 @@ class TestBundle(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)
             store.save(_doc())
-            # body_model:5 crashed _list_entry before pack could
-            # validate — listing must tolerate it and skip the doc
-            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
+            # a schema-valid doc whose body_model is not a dict must
+            # be refused at pack — validate does not type-check it,
+            # and _list_entry must still tolerate listing it
+            doc = _doc()
+            doc["skeleton"]["body_model"] = 5
+            with open(os.path.join(tmp, doc["id"] + ".json"),
                       "w") as f:
-                json.dump({"id": "k_aaaaaaaaaaaa",
-                           "skeleton": {"body_model": 5}}, f)
+                json.dump(doc, f)
             m = pack(store, os.path.join(tmp, "out.zip"))
             self.assertEqual(m["count"], 1)
             self.assertEqual(m["skipped"], 1)

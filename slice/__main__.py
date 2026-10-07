@@ -19,9 +19,8 @@ import os
 import os
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               mirror, selfcheck)
-               limbcov, selfcheck)
+from . import (__version__, bitmap, knowledge, limbcov, mirror, pipeline,
+               render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 

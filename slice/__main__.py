@@ -8,6 +8,8 @@
         — run every quality layer over one image and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
+    python -m slice priorchk
+        — audit the BODY_MODELS prior tables
 """
 
 from __future__ import annotations
@@ -16,8 +18,8 @@ import argparse
 import json
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bitmap, knowledge, pipeline, priorchk,
+               render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +145,13 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_priorchk(a) -> int:
+    """Structural audit of the BODY_MODELS prior tables."""
+    res = priorchk.audit()
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "sane" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +198,10 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    pc = sub.add_parser(
+        "priorchk", help="BODY_MODELS structural audit")
+    pc.set_defaults(fn=_cmd_priorchk)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

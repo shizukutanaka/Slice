@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.track` 新設 — フレーム列の骨格に安定track_idを付与
+  （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
+  空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を
+  assumptionに明記、AUDIT P3-19対応）
 - `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
   （レイヤ名→自由形式dict、v1との相互後方互換、v1での
   analysis付け足しはvalidate拒否、build(analysis=...)で

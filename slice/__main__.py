@@ -16,8 +16,8 @@ import argparse
 import json
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bitmap, diag, knowledge, pipeline, render,
+               rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +143,21 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_diag(a) -> int:
+    """Why did detection fail — replay the estimator's gates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = diag.diagnose(bmp, est)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("ok") else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +204,13 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    dg = sub.add_parser(
+        "diag", help="diagnose detection (reason codes)")
+    dg.add_argument("image")
+    dg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    dg.set_defaults(fn=_cmd_diag)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

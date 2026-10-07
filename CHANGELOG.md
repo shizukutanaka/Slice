@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice migrate --store DIR [--write]` — migrate層のCLI接続。ストア内旧ドキュメントを現行スキーマへ正規化。デフォルトはドライラン（変更点のみ報告）、`--write`で原子的に書き込み。全修復をchanges列挙＋修復不能docは書き込まない誠実設計。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

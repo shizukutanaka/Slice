@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               migrate, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,38 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_migrate(a) -> int:
+    """Upgrade stored docs to the current schema (dry-run default)."""
+    st = knowledge.KnowledgeStore(a.store)
+    results, changed, repaired = [], 0, 0
+    for entry in st.list():
+        kid = entry.get("id")
+        if not isinstance(kid, str):
+            continue
+        try:
+            doc = st.get(kid)
+        except (KeyError, OSError, json.JSONDecodeError):
+            results.append({"id": kid, "error": "unreadable"})
+            continue
+        res = migrate.upgrade(doc)
+        n = len(res["changes"])
+        if n:
+            changed += 1
+            if a.write and not res["valid_after"]:
+                st.save(res["document"])
+                repaired += 1
+        results.append({"id": kid, "changes": res["changes"],
+                        "valid_before": not res["valid_before"],
+                        "valid_after": not res["valid_after"],
+                        "written": bool(a.write and n
+                                        and not res["valid_after"])})
+    out = {"store": a.store, "docs": len(results), "changed": changed,
+           "written": repaired if a.write else 0,
+           "dry_run": not a.write, "results": results}
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +222,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    mg = sub.add_parser(
+        "migrate",
+        help="upgrade stored docs to the current schema")
+    mg.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore directory")
+    mg.add_argument("--write", action="store_true",
+                    help="actually rewrite docs (default: dry-run)")
+    mg.set_defaults(fn=_cmd_migrate)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

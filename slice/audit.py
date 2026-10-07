@@ -28,9 +28,28 @@ _SEMANTIC_MIN = 0.4
 
 
 def audit(doc: dict) -> dict:
-    errors = validate(doc)
+    if not isinstance(doc, dict):
+        errors = ["document is not an object"]
+    else:
+        try:
+            errors = validate(doc)
+        except Exception as e:
+            # validate raises on malformed internals; a lint must
+            # report that, not die with it
+            errors = ["document not processable: %s" % e]
     warnings = []
-    joints = (doc.get("skeleton") or {}).get("joints") or {}
+    sk = doc.get("skeleton") if isinstance(doc, dict) else None
+    raw_joints = sk.get("joints") if isinstance(sk, dict) else None
+    joints = {n: j for n, j in (raw_joints or {}).items()
+              if isinstance(j, dict)} if isinstance(
+                  raw_joints, dict) else {}
+    if raw_joints and len(joints) != len(raw_joints):
+        warnings.append({
+            "code": "malformed_joints",
+            "detail": "%d joint entries are not objects" % (
+                len(raw_joints) - len(joints)),
+            "joints": sorted(n for n in raw_joints
+                             if n not in joints)})
 
     present = [n for n in JOINTS if n in joints]
     observed = [n for n in present
@@ -61,19 +80,23 @@ def audit(doc: dict) -> dict:
             "detail": "implausibly confident joints",
             "joints": sorted(suspect)})
 
-    pred = doc.get("prediction") or {}
+    pred = (doc.get("prediction") or {}) if isinstance(doc, dict) \
+        else {}
+    if not isinstance(pred, dict):
+        pred = {}
     if set(pred.get("observed") or []) != set(observed):
         warnings.append({
             "code": "prediction_mismatch",
             "detail": "prediction.observed list disagrees with "
                       "joint states"})
 
-    if (doc.get("pose") or {}).get("label") \
-            and obs_frac < _SEMANTIC_MIN:
+    pose = (doc.get("pose") or {}) if isinstance(doc, dict) else {}
+    if (isinstance(pose, dict) and pose.get("label")
+            and obs_frac < _SEMANTIC_MIN):
         warnings.append({
             "code": "semantics_on_prediction",
             "detail": "pose label '%s' asserted on %.0f%% evidence"
-                      % (doc["pose"]["label"], obs_frac * 100)})
+                      % (pose["label"], obs_frac * 100)})
 
     score = 1.0 - 0.15 * len(warnings) - (0.5 if errors else 0)
     return {

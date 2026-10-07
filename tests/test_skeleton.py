@@ -4,7 +4,7 @@ from tests import synthetic_person
 
 from slice import predict
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, Skeleton, body_span
 
 
 class TestNormalized(unittest.TestCase):
@@ -46,6 +46,27 @@ class TestNormalized(unittest.TestCase):
         predict.complete(skel)
         self.assertIsNone(skel.normalized())
         self.assertNotIn("normalized", skel.to_dict())
+
+
+class TestBodySpan(unittest.TestCase):
+    def test_upright_head_to_lowest(self):
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        s = body_span(skel)
+        lo = max(j.y for j in skel.joints.values())
+        self.assertAlmostEqual(s, lo - skel.point("head")[1])
+
+    def test_inverted_falls_back_to_torso(self):
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        for j in skel.joints.values():
+            j.y = skel.image_height - j.y
+        n, p = skel.point("neck"), skel.point("pelvis")
+        torso = ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
+        self.assertAlmostEqual(body_span(skel), torso)
+
+    def test_degenerate_zero(self):
+        skel = Skeleton(100, 100)
+        skel.set(Joint("head", 50, 90, 0.5))
+        self.assertEqual(body_span(skel), 0.0)
 
 
 if __name__ == "__main__":

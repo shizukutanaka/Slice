@@ -4,6 +4,11 @@
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

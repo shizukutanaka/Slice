@@ -4,6 +4,10 @@
 
 - `slice smooth <dir> [-o dir]` — smooth層のCLI接続。フレーム列の関節軌跡を移動平均し、関節別ジッタ改善量をJSON報告。`-o`で平滑化済み骨格JSONを書き出し。欠損フレームの位置を捏造しない誠実設計を継承。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice.trust` 新設 — 関節信頼度の合成グレード（calib精度/stability感度/
+  evid証拠位置の既計算結果を任意サブセットで統合→high/medium/low＋
+  downgrade要因をfactorsに開示。入力なし時はheuristicと明示）
+- `slice.priorchk` 新設 — 解剖学プライア自体の監査（keyset/bounds/
+  limb_order[thigh≥shin, upper_arm≥forearm]/stack合計/head_order
+  [deformed>child>adult]の5チェック、発火時はモデル・コード・生値を開示）
 - `slice.track` 新設 — フレーム列の骨格に安定track_idを付与
   （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
   空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を

@@ -4,6 +4,11 @@
 
 - `slice consensus <image> [-o sk.json]` — consensus層のCLI接続。閾値±25%・解像度±25%の5変体で中央値投票骨格＋disputed関節列挙を報告。confidenceは観測率割引、`-o`で合意骨格JSON書き出し。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

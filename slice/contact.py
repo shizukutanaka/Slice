@@ -32,12 +32,8 @@ _RULES: Tuple[Tuple[str, str, str, float], ...] = (
 
 
 def _body_h(skel: Skeleton) -> float:
-    top = skel.point("head")
-    feet = [p for p in (skel.point("ankle_l"), skel.point("ankle_r")) if p]
-    if top and feet:
-        lo = max(p[1] for p in feet)
-        return max(lo - top[1], 1.0)
-    return 200.0
+    from .skeleton import body_span
+    return body_span(skel) or 200.0
 
 
 def detect(skel: Skeleton) -> List[dict]:

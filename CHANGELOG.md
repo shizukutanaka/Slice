@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で
+  移した位置が「top blob centroid」等の単フレーム計測由来を
+  そのまま名乗っていた欠陥を解消（位置・confidence・stateは
+  不変、由来の開示のみ）。
+
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

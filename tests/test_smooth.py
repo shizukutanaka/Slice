@@ -28,6 +28,15 @@ class TestSmooth(unittest.TestCase):
         sm = smooth.smooth(series, radius=1)
         self.assertLess(smooth.jitter(sm), smooth.jitter(series))
 
+    def test_basis_discloses_smoothing(self):
+        # a smoothed position is a temporal average — the basis must not
+        # keep claiming the single-frame measurement verbatim
+        series = [_copy_with(self.skel) for _ in range(3)]
+        sm = smooth.smooth(series)
+        for name, j in sm[1].joints.items():
+            self.assertTrue(j.basis.endswith("; smoothed"),
+                            f"{name}: {j.basis}")
+
     def test_missing_frames_keep_missing(self):
         series = [_copy_with(self.skel) for _ in range(3)]
         series[1].joints.pop("wrist_l")

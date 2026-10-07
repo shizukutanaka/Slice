@@ -339,15 +339,21 @@ class HeuristicPoseEstimator(PoseEstimator):
         w, h = small.width, small.height
         mask = self._mask(small)
         comp, size = self._largest_component(mask, w, h)
+        return self._estimate_oriented(small, comp, size, w, h, model)
+
+    def _estimate_oriented(self, small, comp, size, w, h,
+                           model: str) -> Skeleton:
+        """Estimate one component with the orientation retry.
+
+        The upright scan silently mismeasures a lying or inverted
+        figure — sometimes even passing the consistency audit with
+        fabricated joints. Estimate all four orientations and keep
+        the most consistent skeleton with the strongest head-band
+        evidence; joints map back to image space and record the
+        rotation in their basis."""
         sk = self._estimate_component(small, comp, size, w, h, model)
         if not sk.joints:
             return sk
-        # Orientation retry: the upright scan silently mismeasures a
-        # lying or inverted figure — sometimes even passing the
-        # consistency audit with fabricated joints. Estimate all four
-        # orientations and keep the most consistent skeleton with the
-        # strongest head-band evidence; joints map back to image space
-        # and record the rotation in their basis.
         from . import consistency
         base_issues = len(consistency.audit(sk, model))
         base_headw = _head_band_width(comp, w, h)
@@ -380,7 +386,8 @@ class HeuristicPoseEstimator(PoseEstimator):
             j.x, j.y = _unrotate((j.x, j.y), best_deg, w, h)
             j.basis = (j.basis + "; " if j.basis else "") \
                 + f"estimated on {best_deg}deg-rotated mask"
-        best.centroid = _unrotate(best.centroid, best_deg, w, h)
+        if best.centroid is not None:
+            best.centroid = _unrotate(best.centroid, best_deg, w, h)
         best.image_width, best.image_height = w, h
         return best
 
@@ -406,8 +413,8 @@ class HeuristicPoseEstimator(PoseEstimator):
             if sizes[lab] < w * h * min_fraction:
                 break
             comp = self._component_mask(labels, lab, w, h)
-            sk = self._estimate_component(small, comp, sizes[lab],
-                                          w, h, model)
+            sk = self._estimate_oriented(small, comp, sizes[lab],
+                                         w, h, model)
             if sk.joints:
                 out.append(sk)
         return out

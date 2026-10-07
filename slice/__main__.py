@@ -6,6 +6,8 @@
     python -m slice batch <dir> --store DIR [--model M] [-r]
     python -m slice audit <image> [--model M] [--robust] [-o audit.json]
         — run every quality layer over one image and print a verdict
+    python -m slice calib
+        — confidence calibration vs ground-truth fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -17,8 +19,8 @@ import json
 import os
 import sys
 
-from . import (__version__, bitmap, consensus, knowledge, limbcov, pipeline,
-               render, rest, selfcheck)
+from . import (__version__, bitmap, calib, consensus, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -192,6 +194,17 @@ def _cmd_limbcov(a) -> int:
     return 0 if res["verdict"] == "covered" else 1
 
 
+def _cmd_calib(a) -> int:
+    """Confidence calibration: measured hit rate per reported bin."""
+    pairs = [evaluate.draw_case(),
+             evaluate.draw_case(width=240, height=320)]
+    rep = calib.report(pairs)
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    # overconfidence is the dangerous direction: reporting 0.9 when the
+    # empirical hit rate is 0.5. Underconfidence is merely conservative.
+    return 1 if rep["overconfident_bins"] else 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -259,6 +272,10 @@ def main(argv=None) -> int:
     lc.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     lc.set_defaults(fn=_cmd_limbcov)
+
+    cb = sub.add_parser(
+        "calib", help="confidence calibration vs ground truth")
+    cb.set_defaults(fn=_cmd_calib)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

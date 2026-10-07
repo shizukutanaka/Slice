@@ -7,6 +7,9 @@
   `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
   exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

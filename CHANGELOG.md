@@ -4,6 +4,10 @@
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

@@ -43,6 +43,48 @@ def _row_runs(mask: List[bytearray], y: int, w: int) -> List[Tuple[int, int]]:
     return runs
 
 
+def _oriented_masks(mask: List[bytearray], w: int, h: int):
+    """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
+
+    A lying figure is upright in exactly one of the first two; an
+    inverted (headstand) figure in the third."""
+    cw = [bytearray(h) for _ in range(w)]
+    ccw = [bytearray(h) for _ in range(w)]
+    r180 = [bytearray(w) for _ in range(h)]
+    for y in range(h):
+        row = mask[y]
+        for x in range(w):
+            if row[x]:
+                cw[x][h - 1 - y] = 1
+                ccw[w - 1 - x][y] = 1
+                r180[h - 1 - y][w - 1 - x] = 1
+    yield 90, cw, h, w
+    yield -90, ccw, h, w
+    yield 180, r180, w, h
+
+
+def _unrotate(pt: Tuple[float, float], deg: int,
+              w: int, h: int) -> Tuple[float, float]:
+    """Map a joint found on a rotated mask back to image coords."""
+    x, y = pt
+    if deg == 90:
+        return y, h - 1 - x
+    if deg == -90:
+        return w - 1 - y, x
+    return w - 1 - x, h - 1 - y
+
+
+def _head_band_width(mask: List[bytearray], w: int, h: int) -> int:
+    """Widest single run in the top head band — the head blob is the
+    densest wide structure at the figure's upright end; thin legs or
+    a horizontal torso score far lower."""
+    best = 0
+    for y in range(min(h, max(1, int(h * 0.2)))):
+        for r in _row_runs(mask, y, w):
+            best = max(best, r[1] - r[0] + 1)
+    return best
+
+
 class HeuristicPoseEstimator(PoseEstimator):
     name = "heuristic-silhouette"
     version = "0.1.0"
@@ -297,7 +339,48 @@ class HeuristicPoseEstimator(PoseEstimator):
         w, h = small.width, small.height
         mask = self._mask(small)
         comp, size = self._largest_component(mask, w, h)
-        return self._estimate_component(small, comp, size, w, h, model)
+        sk = self._estimate_component(small, comp, size, w, h, model)
+        if not sk.joints:
+            return sk
+        # Orientation retry: the upright scan silently mismeasures a
+        # lying or inverted figure — sometimes even passing the
+        # consistency audit with fabricated joints. Estimate all four
+        # orientations and keep the most consistent skeleton with the
+        # strongest head-band evidence; joints map back to image space
+        # and record the rotation in their basis.
+        from . import consistency
+        base_issues = len(consistency.audit(sk, model))
+        base_headw = _head_band_width(comp, w, h)
+        best, best_deg = sk, 0
+        best_key = None
+        for deg, comp_r, rw, rh in _oriented_masks(comp, w, h):
+            cand = self._estimate_component(small, comp_r, size,
+                                            rw, rh, model)
+            if not cand.joints:
+                continue
+            issues = len(consistency.audit(cand, model))
+            headw = _head_band_width(comp_r, rw, rh)
+            # Rotate only on strict evidence: fewer audit issues or a
+            # decisively stronger head band — a sideways blob (wide
+            # hand, dress hem) only looks head-sized and must not flip
+            # an upright figure.
+            qualifies = (issues < base_issues
+                         or (issues == base_issues
+                             and headw > base_headw * 1.3))
+            if not qualifies:
+                continue
+            key = (issues, -len(cand.joints), -headw)
+            if best_key is None or key < best_key:
+                best_key, best, best_deg = key, cand, deg
+        if not best_deg:
+            return sk
+        for j in best.joints.values():
+            j.x, j.y = _unrotate((j.x, j.y), best_deg, w, h)
+            j.basis = (j.basis + "; " if j.basis else "") \
+                + f"estimated on {best_deg}deg-rotated mask"
+        best.centroid = _unrotate(best.centroid, best_deg, w, h)
+        best.image_width, best.image_height = w, h
+        return best
 
     def estimate_multi(self, bmp: Bitmap, model: str = DEFAULT_MODEL,
                        top_k: int = 4,

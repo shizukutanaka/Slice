@@ -4,6 +4,9 @@
 
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

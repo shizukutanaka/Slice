@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- extjoints: 推測アンカー由来の派生関節を basis で開示。
+  `derive` の中点・指先・つま先・踵は「アンカーがpredictedでも
+  basisが区別する」契約だったが、実際には `interpolated A-B` /
+  `prior off X` がアンカーの推測性を隠していた。predicted
+  アンカー混在時に `(predicted anchor)` を付記（predict.complete
+  と同じ開示タグ）。観測アンカーのみのbasisは不変。
+
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

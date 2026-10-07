@@ -51,6 +51,17 @@ class TestExtjoints(unittest.TestCase):
         self.assertNotIn("mid_shin_l", ext)
         self.assertIn("mid_thigh_r", ext)
 
+    def test_predicted_anchor_disclosed(self):
+        s = _full_skel()
+        s.joints["hip_l"] = Joint("hip_l", 85, 160, 0.9,
+                                PREDICTED, "prior")
+        ext = extjoints.derive(s)
+        self.assertIn("(predicted anchor)", ext["mid_hip"].basis)
+        self.assertIn("(predicted anchor)", ext["mid_thigh_l"].basis)
+        # untouched chains keep a clean basis
+        self.assertNotIn("predicted anchor", ext["mid_thigh_r"].basis)
+        self.assertNotIn("predicted anchor", ext["waist"].basis)
+
     def test_vocabulary_claims(self):
         v = extjoints.vocabulary()
         self.assertIn("nose", v["reserved"])

@@ -31,7 +31,7 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional, Tuple
 
-from .skeleton import Joint, PREDICTED, Skeleton
+from .skeleton import Joint, OBSERVED, PREDICTED, Skeleton
 
 DERIVED: List[str] = [
     "mid_hip", "waist", "mid_shoulder",
@@ -68,6 +68,12 @@ def derive(skel: Skeleton,
     """
     out: Dict[str, Joint] = {}
 
+    def anchor_tag(*names):
+        # a guess on top of a guess is weaker evidence than one on
+        # measured joints — the basis must say which (#320 same tag)
+        return (" (predicted anchor)" if any(
+            skel.joints[n].state != OBSERVED for n in names) else "")
+
     def mid(name, a, b, conf_scale=0.8):
         ja, jb = skel.joints.get(a), skel.joints.get(b)
         if not ja or not jb:
@@ -76,7 +82,7 @@ def derive(skel: Skeleton,
             return
         conf = min(ja.confidence, jb.confidence) * conf_scale
         _put(out, name, _mid((ja.x, ja.y), (jb.x, jb.y)),
-             conf, f"interpolated {a}-{b}")
+             conf, f"interpolated {a}-{b}" + anchor_tag(a, b))
 
     mid("mid_hip", "hip_l", "hip_r")
     mid("waist", "chest", "pelvis")
@@ -96,7 +102,8 @@ def derive(skel: Skeleton,
                     HAND_LEN_RATIO
                 _put(out, f"fingertip_{side}", (w.x + hx, w.y + hy),
                      min(e.confidence, w.confidence) * 0.5,
-                     f"prior off wrist_{side} (forearm direction)")
+                     f"prior off wrist_{side} (forearm direction)"
+                     + anchor_tag(f"elbow_{side}", f"wrist_{side}"))
 
         # toe: foot pushed along ankle->foot; heel mirrored the other way
         a, f = skel.joints.get(f"ankle_{side}"), skel.joints.get(
@@ -114,12 +121,14 @@ def derive(skel: Skeleton,
                      (f.x + ux * seg * TOE_LEN_RATIO,
                       f.y + uy * seg * TOE_LEN_RATIO),
                      min(a.confidence, f.confidence) * 0.5,
-                     f"prior off foot_{side} (foot direction)")
+                     f"prior off foot_{side} (foot direction)"
+                     + anchor_tag(f"ankle_{side}", f"foot_{side}"))
                 _put(out, f"heel_{side}",
                      (a.x - ux * seg * TOE_LEN_RATIO,
                       a.y - uy * seg * TOE_LEN_RATIO),
                      min(a.confidence, f.confidence) * 0.4,
-                     f"prior off ankle_{side} (mirrored toe axis)")
+                     f"prior off ankle_{side} (mirrored toe axis)"
+                     + anchor_tag(f"ankle_{side}", f"foot_{side}"))
     return out
 
 

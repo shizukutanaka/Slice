@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- motion: 異フレーム骨格の変位をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（解像度違いの生px差を運動と誤認していた欠陥）
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

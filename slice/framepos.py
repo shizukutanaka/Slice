@@ -1,6 +1,7 @@
 """Frame position — where the figure sits in the image.
 
-Composition is knowledge too: headroom above the head says whether
+Composition is knowledge too: headroom above the figure's topmost
+point says whether
 the framing is portrait-tight or environment-wide; horizontal
 offset says centered subject or candid edge framing; body fraction
 of frame says how much scene is included. All derived from the
@@ -41,7 +42,6 @@ def analyze(skel: Skeleton, frame_w: int, frame_h: int) -> Optional[dict]:
     bw = b["x1"] - b["x0"]
     bh = b["y1"] - b["y0"] or 1.0
 
-    head_y = head[1] if head else b["y0"]
     cx = (b["x0"] + b["x1"]) / 2.0
     cy = (b["y0"] + b["y1"]) / 2.0
 
@@ -49,7 +49,7 @@ def analyze(skel: Skeleton, frame_w: int, frame_h: int) -> Optional[dict]:
     col = "l" if cx < third_w else ("r" if cx > 2 * third_w else "c")
     row = "t" if cy < third_h else ("b" if cy > 2 * third_h else "m")
 
-    return {"headroom": round(head_y / frame_h, 3),
+    return {"headroom": round(b["y0"] / frame_h, 3),
             "footroom": round((frame_h - b["y1"]) / frame_h, 3),
             "side_gap": round(min(b["x0"], frame_w - b["x1"]) / frame_w, 3),
             "center_offset": round((cx - frame_w / 2.0) / frame_w, 3),

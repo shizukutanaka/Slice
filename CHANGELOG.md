@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- repro: 手置き不正docで落ちない — 非dict関節・非数値座標・
+  非dict skeleton/doc・非数値frameを耐性化し、除外関節を
+  malformedとして列挙。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

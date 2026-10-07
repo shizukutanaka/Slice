@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- REST認証オプション — `serve(token=)` / `--token` / `SLICE_TOKEN`
+  でAPIルートに `Authorization: Bearer` を要求（hmac比較、
+  `/`と`/health`はviewer/プローブ用に開放、未設定時は従来の
+  オープン動作、AUDIT P2-17対応）
 - `examples/demo_3d.py` 新設 — Phase 3 パイプラインの
   エンドツーエンド実演（estimate→lift→rig→retarget→bvh/gltfを
   1コマンドで、各段がprovenanceを保持することを示す、

@@ -7,6 +7,10 @@
   測るだけ（一致ならdup誤判定、ずれなら虚偽の差分）。両ドキュメント
   でobservedの関節のみ比較、predictedは欠損扱いで除外。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

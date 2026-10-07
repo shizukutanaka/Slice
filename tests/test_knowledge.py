@@ -59,6 +59,21 @@ class TestKnowledge(unittest.TestCase):
             errors = knowledge.validate(doc)
             self.assertTrue(any(pred[0] in e for e in errors))
 
+    def test_validate_catches_stale_normalized(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        norm = doc["skeleton"].get("normalized")
+        if norm is None:
+            self.skipTest("no normalized block")
+        norm["joints"]["neck"] = {"x": 0.0, "y": -2.0}
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("neck" in e for e in errors))
+
+    def test_validate_catches_bad_frame(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["skeleton"]["frame"]["width"] = 0
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("frame" in e for e in errors))
+
     def test_validate_catches_export_flat_mismatch(self):
         doc = pipeline.strip_runtime(analyze_synth())
         doc["export"]["keypoints_2d"] = doc["export"]["keypoints_2d"][:6]

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- gesture: ルールの参照点（head/pelvis/hip/shoulder）を観測関節
+  限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
+  ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
+  とhands_on_hipsの参照が推測で構成されなくなった）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

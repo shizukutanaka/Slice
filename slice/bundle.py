@@ -46,7 +46,7 @@ def pack(store, path: str) -> dict:
         # validate raises on malformed internals — an unprocessable
         # doc counts as skipped, it must not kill the pack
         try:
-            bad = isinstance(doc, dict) and bool(validate(doc))
+            bad = not isinstance(doc, dict) or bool(validate(doc))
         except Exception:
             bad = True
         if bad:

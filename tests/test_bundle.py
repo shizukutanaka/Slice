@@ -97,6 +97,32 @@ class TestBundle(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manifest(zpath)
 
+    def test_pack_survives_non_dict_body_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            store.save(_doc())
+            # body_model:5 crashed _list_entry before pack could
+            # validate — listing must tolerate it and skip the doc
+            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
+                      "w") as f:
+                json.dump({"id": "k_aaaaaaaaaaaa",
+                           "skeleton": {"body_model": 5}}, f)
+            m = pack(store, os.path.join(tmp, "out.zip"))
+            self.assertEqual(m["count"], 1)
+            self.assertEqual(m["skipped"], 1)
+
+    def test_pack_skips_non_dict_doc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            store.save(_doc())
+            # a store file replaced with a JSON array is dropped at
+            # list() — pack must not index it as a document
+            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
+                      "w") as f:
+                json.dump([1, 2], f)
+            m = pack(store, os.path.join(tmp, "out.zip"))
+            self.assertEqual(m["count"], 1)
+
     def test_pack_survives_unprocessable_doc(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)

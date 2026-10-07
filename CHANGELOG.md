@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

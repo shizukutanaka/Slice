@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

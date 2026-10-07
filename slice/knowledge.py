@@ -110,13 +110,21 @@ def validate(doc: dict) -> list:
     export = doc.get("export") or {}
     order = export.get("keypoint_order")
     if order is not None:
-        flat = export.get("keypoints_2d")
-        if not isinstance(flat, list) \
-                or len(flat) != 3 * len(order):
-            errors.append(
-                "export.keypoints_2d must be 3*len(keypoint_order)")
+        # validate must report malformed fields as errors, not raise —
+        # callers (bundle.unpack, dataset.from_store) skip documents
+        # only on a nonempty error list
+        if not isinstance(order, list):
+            errors.append("export.keypoint_order must be a list")
+        else:
+            flat = export.get("keypoints_2d")
+            if not isinstance(flat, list) \
+                    or len(flat) != 3 * len(order):
+                errors.append(
+                    "export.keypoints_2d must be 3*len(keypoint_order)")
         states = export.get("keypoints_state")
-        if states is not None:
+        if states is not None and not isinstance(states, list):
+            errors.append("export.keypoints_state must be a list")
+        elif states is not None and isinstance(order, list):
             # a flat-export state array that contradicts skeleton.joints
             # would let fill masquerade as evidence downstream
             if len(states) != len(order):

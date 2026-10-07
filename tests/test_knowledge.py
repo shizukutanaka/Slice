@@ -64,6 +64,16 @@ class TestKnowledge(unittest.TestCase):
         errors = knowledge.validate(doc)
         self.assertTrue(any("export state" in e for e in errors))
 
+    def test_validate_malformed_export_no_raise(self):
+        # numeric/garbage export fields must produce errors, not a
+        # TypeError — callers only skip docs via the error list
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["export"]["keypoint_order"] = 5
+        doc["export"]["keypoints_state"] = "observed"
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("keypoint_order" in e for e in errors))
+        self.assertTrue(any("keypoints_state" in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

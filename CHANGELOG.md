@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` がexportフィールドの型を先に検査。
+  `keypoint_order`/`keypoints_state` が数値等の時にlen()で
+  TypeErrorを送出し、bundle.unpack/dataset.from_storeが
+  docをスキップできず中断していた（#254レビュー指摘）。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

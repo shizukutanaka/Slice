@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- analysisブロックに `consistency` 追加 — 骨格健全性監査のissuesを
+  全analyzeドキュメントに同梱（CLI/REST/Storeの全経路で可視）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

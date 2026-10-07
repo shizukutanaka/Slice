@@ -4,6 +4,10 @@
 
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

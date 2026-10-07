@@ -25,6 +25,19 @@ class TestSignature(unittest.TestCase):
         self.assertIsNotNone(d)
         self.assertLess(d, 0.15)
 
+    def test_predicted_bones_not_evidence(self):
+        # a guessed arm must not fingerprint like a measured one:
+        # predicted endpoints drop out of the vector like missing ones
+        from slice import predict
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            other.set(Joint(n, j.x, j.y, j.confidence, state=j.state))
+        del other.joints["elbow_r"]
+        del other.joints["wrist_r"]
+        predict.complete(other)
+        d = sig.distance(self.s, sig.signature(other))
+        self.assertGreater(d, 0.05)
+
     def test_missing_feet_stay_torso_normalised(self):
         # without feet the scalars must not become raw pixels
         other = Skeleton(self.skel.image_width, self.skel.image_height)

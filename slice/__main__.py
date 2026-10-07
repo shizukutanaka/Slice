@@ -17,11 +17,9 @@ import json
 import os
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck, axis, plumb, limbs, rom, contact,
-               dominance, handpos, framefit, ground, reach,
-               horizon, mass, extjoints)
-               limbcov, selfcheck)
+from . import (__version__, axis, bitmap, contact, dominance, extjoints,
+               framefit, ground, handpos, horizon, knowledge, limbcov, limbs,
+               mass, pipeline, plumb, reach, render, rest, rom, selfcheck)
 from .anatomy import BODY_MODELS
 
 

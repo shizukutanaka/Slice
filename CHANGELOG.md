@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `pipeline.analyze` に `analysis` ブロック追加 — Knowledge
+  ドキュメントが angles/symmetry/balance/spine/gesture/dynamics/
+  occlusion/frame の8解析レイヤを同梱（これまでstyleのみ統合、
+  空入力でも全レイヤ安全にdegrade、AUDIT P1-9対応）
 - `slice.extjoints` 新設 — v2拡張関節語彙（v1の17関節を不変のまま、
   mid_hip/waist/mid_thigh等の補間関節＋fingertip/toe/heelを
   predictedとして導出、nose/eye/earは証拠なし=reservedで

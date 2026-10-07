@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, style
+from . import (__version__, angles, balance, bitmap, classify, dynamics,
+               framepos, gesture, knowledge, occlusion, pose, predict,
+               ratio, spine, style, symmetry)
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -36,6 +38,19 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
+    analysis = {
+        "angles": angles.analyze(skel),
+        "symmetry": symmetry.score(skel),
+        "balance": balance.assess(skel),
+        "spine": spine.classify(skel),
+        "gesture": gesture.summarize(skel),
+        "dynamics": dynamics.score(skel),
+        "occlusion": occlusion.audit(skel),
+        "frame": framepos.analyze(skel, skel.image_width,
+                                  skel.image_height),
+    }
+    # every layer must be a dict (knowledge.validate); omit empty ones
+    doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}
     doc["warnings"] = _warnings(skel)
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only

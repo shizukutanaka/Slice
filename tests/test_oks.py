@@ -38,6 +38,20 @@ class TestOks(unittest.TestCase):
         pj = oks.per_joint(self.gt, est2)
         self.assertEqual(pj["wrist_l"], 0.0)
 
+    def test_predicted_reference_joint_not_scored(self):
+        # a predicted joint in the reference is a guess, not truth:
+        # it must not count in the metric
+        gt2 = _shifted(self.gt, 0, 0)
+        gt2.joints["wrist_l"].state = "predicted"
+        pj = oks.per_joint(gt2, self.gt)
+        self.assertNotIn("wrist_l", pj)
+
+    def test_all_predicted_reference_none(self):
+        gt2 = _shifted(self.gt, 0, 0)
+        for j in gt2.joints.values():
+            j.state = "predicted"
+        self.assertIsNone(oks.oks(gt2, self.gt))
+
     def test_empty_reference_none(self):
         self.assertIsNone(oks.oks(Skeleton(10, 10), self.gt))
 

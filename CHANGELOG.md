@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- oks: 参照側のpredicted関節を採点しない（推測位置への
+  一致を精度として計測する循環を防止。scaleもobserved
+  関節のみから算出。全predictedの参照はNone）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 from typing import Dict, Optional
 
-from .skeleton import Skeleton
+from .skeleton import OBSERVED, Skeleton
 
 # per-joint tolerance (k). Looser where pose varies, tighter at the
 # body's stable landmarks. Values follow COCO's spirit, rescaled to
@@ -33,7 +33,11 @@ _DEFAULT_K = 0.08
 
 
 def _scale(skel: Skeleton) -> Optional[float]:
-    pts = [p for p in (skel.point(n) for n in skel.joints) if p]
+    # object scale must come from measured joints too: a predicted
+    # joint's position is a guess, not body evidence
+    pts = [p for n in skel.joints
+           if skel.joints[n].state == OBSERVED
+           for p in (skel.point(n),) if p]
     if not pts:
         return None
     xs = [p[0] for p in pts]
@@ -44,12 +48,20 @@ def _scale(skel: Skeleton) -> Optional[float]:
 
 
 def per_joint(gt: Skeleton, est: Skeleton) -> Dict[str, float]:
-    """{joint: similarity 0..1} for joints present in `gt`."""
+    """{joint: similarity 0..1} for joints *observed* in `gt`.
+
+    A joint that is only `predicted` in the reference has no real
+    truth coordinate — scoring against it measures agreement with a
+    guess (often the same priors the estimate used), not accuracy.
+    Like an absent joint, it simply doesn't count.
+    """
     s = _scale(gt)
     if not s or s < 1e-6:
         return {}
     out: Dict[str, float] = {}
     for name, jg in gt.joints.items():
+        if jg.state != OBSERVED:
+            continue
         je = est.joints.get(name)
         if je is None:
             out[name] = 0.0

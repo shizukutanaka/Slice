@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- reach: predicted腕でも `measured: True` を返していた欠陥を修正。
+  プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
+  — observed関節のみ計測、predictedは欠損扱いでプライア
+  フォールバック（`measured: False`）、predicted肩は None。
+
 - pose: 向きリトライ（±90°/180°）— 横たわり・逆立ちの人物に対し
   直立スキャンがゴミ骨格をobservedとして出力し、逆立ちでは監査
   をすり抜ける完全な嘘骨格すら生成していた誠実性の穴を修正。

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dominance: pelvis offset/脱荷脚キューをobserved関節のみに
+  修正。predicted膝が `unloaded` キュー（利き脚を反転させる
+  虚偽証拠）を、predicted足首が `pelvis_centered` の均衡証拠を
+  捏造していた → predictedは欠損扱いでキュー不発。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

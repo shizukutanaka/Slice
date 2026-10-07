@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- selfcheck: `consistency` 層を統合。ワンショット監査が骨格健全性
+  監査（肢長プライア違反・左右非対称・フレーム外・逆転検出）を
+  実行していなかった欠落を解消。issuesはadvisory重大度
+  （実在する人体はプライア範囲を正当に外れうるためfailはしない）
+  ＋`consistency:<issue>`理由コードを列挙。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -4,6 +4,66 @@
 
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
 
+- dynamics: cues/spanをobserved関節のみに修正。docstringが
+  "all on observed joints"と謳いながらpredicted関節を含めて
+  いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
+  wide_stepが発火し得た。predictedは欠損扱い。
+
+- selfcheck: `consistency` 層を統合。ワンショット監査が骨格健全性
+  監査（肢長プライア違反・左右非対称・フレーム外・逆転検出）を
+  実行していなかった欠落を解消。issuesはadvisory重大度
+  （実在する人体はプライア範囲を正当に外れうるためfailはしない）
+  ＋`consistency:<issue>`理由コードを列挙。
+
+- smooth: observed関節の平滑位置が近傍フレームのpredicted座標に
+  引きずられる誠実性の欠陥を修正（実測: 手首が真値49px→69pxに
+  20px偏移）。observed中心はobservedサンプルのみで平均し、
+  predicted中心は従来どおり全サンプル平均（証拠は集める側）。
+
+- axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
+  幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
+  誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。
+
+- calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
+  5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
+  `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
+  exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
+
+- reach: predicted腕でも `measured: True` を返していた欠陥を修正。
+  プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
+  — observed関節のみ計測、predictedは欠損扱いでプライア
+  フォールバック（`measured: False`）、predicted肩は None。
+
+- pose: 向きリトライ（±90°/180°）— 横たわり・逆立ちの人物に対し
+  直立スキャンがゴミ骨格をobservedとして出力し、逆立ちでは監査
+  をすり抜ける完全な嘘骨格すら生成していた誠実性の穴を修正。
+  全4向きを推定し「issues減 or 頭帯幅1.3倍超」の厳格条件でのみ
+  回転を採用、座標を画像空間へ逆写像しbasisにrotated明記。
+  実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
+  腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
+
+- dominance: 双側膝屈曲（スクワット）の捏造利き脚を修正。
+  unloaded_l+unloaded_r が同時発火して同票決 max() が "l" を
+  返していた（実測 conf 0.37）。双側屈曲は相殺し
+  both_legs_flexed（even）キューに変換 → even/conf 1.0。
+
+- skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
+  時は胴体長、非計測時0）。contact/dynamics/ground/reach の
+  身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ
+  接触を見逃し、dynamics は wide_step が常時発火、ground は
+  uneven_support が常時発火、reach は半径0の偽ワークスペースを
+  返していた。
+
+- classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
+  骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
+  のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。
+  下端を全関節のmaxに変更し、全足が頭より上なら `invert`
+  （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
+
+- describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
+  _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
+  `crouch`（crouching）＋将来の `invert`（upside down）を追加。
+
 - signature: body_h正規化の欠陥修正。足関節が無い骨格では
   スカラー4要素が生px値で出力され、同じポーズ同士のsignature
   距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- ratio: predicted関節を含む比率を「計測値」として出力していた
+  欠陥を修正。ミラー/プライア配置の肢は構造的にプライア比率を
+  再現するため、arm_l/limb_symmetry/arm_span等が捏造計測値に
+  （ミラー肢のlimb_symmetryは構造的1.0）。全端点observedのみ
+  計測、predictedはNoneで報告。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

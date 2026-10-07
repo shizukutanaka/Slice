@@ -33,6 +33,19 @@ class TestRatio(unittest.TestCase):
         wide = ratio.analyze(sk)["arm_span"]
         self.assertGreater(wide, base)
 
+    def test_predicted_limb_not_measured(self):
+        # a mirrored/prior limb reports prior geometry as a ratio —
+        # treat predicted endpoints as unmeasured instead
+        from slice import predict
+        sk = HeuristicPoseEstimator().estimate(synthetic_person())
+        del sk.joints["wrist_r"]
+        predict.complete(sk)
+        self.assertEqual(sk.joints["wrist_r"].state, "predicted")
+        r = ratio.analyze(sk)
+        self.assertIsNone(r["arm_r"])
+        self.assertIsNone(r["arm_span"])
+        self.assertIsNotNone(r["arm_l"])  # observed side still measured
+
     def test_empty_skeleton(self):
         from slice.skeleton import Skeleton
         self.assertIn("error", ratio.analyze(Skeleton(10, 10)))

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.diag` 新設 — 空Skeletonの理由診断（no_foreground/
+  too_small/too_short/foreground_at_edge/low_contrast の
+  理由コード＋coverage計測、AUDIT P0-5対応）
 - `slice.modelchk` 新設 — 選択モデルの整合性監査（頭身比だけで
   選ばれたBODY_MODELを、肩/腰/胴/腕/脚の実測比率5次元で再検証、
   2+次元乖離または総誤差超過でmismatch、better_modelは助言のみ）

@@ -37,9 +37,6 @@ def line(skel: Skeleton) -> Optional[dict]:
     if not head or not neck:
         return None
     ref_x = (head[0] + neck[0]) / 2.0
-    lo = max((j.y for j in skel.joints.values()
-              if j.state == "observed"), default=0.0)
-    body_h = max(lo - head[1], 1.0)
     body_h = _span(skel) or 1.0
 
     offsets: Dict[str, dict] = {}
@@ -76,18 +73,15 @@ def forward_head(skel: Skeleton) -> Optional[dict]:
 
 
 def _span(skel: Skeleton) -> float:
+    """Head-to-lowest span, torso-length fallback, 0 when neither
+    is measurable."""
     top = _obs(skel, "head")
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
-    return (lo - top[1]) if top else 200.0
-    """Head-to-lowest span, torso-length fallback, 0 when neither
-    is measurable."""
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
     s = (lo - top[1]) if top else 0.0
     if s > 0:
         return s
-    n, p = skel.point("neck"), skel.point("pelvis")
+    n, p = _obs(skel, "neck"), _obs(skel, "pelvis")
     return math.hypot(n[0] - p[0], n[1] - p[1]) if n and p else 0.0
 
 

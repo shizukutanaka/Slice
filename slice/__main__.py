@@ -16,8 +16,8 @@ import argparse
 import json
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bench, bitmap, knowledge, pipeline, render,
+               rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +143,24 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_bench(a) -> int:
+    """Accuracy/latency gate over ground-truth fixtures."""
+    rep = bench.run(repeats=a.repeats)
+    ok, fails = bench.gate(rep)
+    if a.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"estimate: {rep['ms_per_estimate']}ms/image "
+              f"({rep['cases']} cases x{rep['repeats']})")
+        print(f"detection={rep['detection_rate']} "
+              f"observed={rep['observed_rate']} "
+              f"err={rep['mean_error_px']}px "
+              f"oks={rep['mean_oks']}")
+    for f in fails:
+        print(f"FAIL {f}", file=sys.stderr)
+    return 0 if ok else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +207,14 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    be = sub.add_parser(
+        "bench", help="accuracy/latency gate on fixtures")
+    be.add_argument("--repeats", type=int, default=1,
+                    help="latency repeats per case")
+    be.add_argument("--json", action="store_true",
+                    help="print the raw report JSON")
+    be.set_defaults(fn=_cmd_bench)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -90,7 +90,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             doc = pipeline.analyze(raw, model=model,
                                    source_name=self.headers.get(
-                                       "X-Image-Name", ""))
+                                       "X-Image-Name", ""),
+                                   robust=bool(qs.get("robust")))
         except bitmap.UnsupportedFormat as e:
             return self._error(415, str(e))
         except Exception as e:  # noqa: BLE001 - API must not 500-blank
@@ -108,7 +109,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             docs = pipeline.analyze_multi(
                 raw, model=model,
-                source_name=self.headers.get("X-Image-Name", ""))
+                source_name=self.headers.get("X-Image-Name", ""),
+                robust=bool(qs.get("robust")))
         except bitmap.UnsupportedFormat as e:
             return self._error(415, str(e))
         except Exception as e:  # noqa: BLE001

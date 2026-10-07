@@ -7,6 +7,12 @@
   閾値が負値で常時発火していた。胴体長フォールバック＋スケール
   不在時は posture=unknown に。
 
+- limbs: チェーン中間関節欠損を partial として報告。肘が無い
+  腕で肩→手首の弦長を「全計測」扱いしていた誠実性の欠陥を修正
+  （欠損関節で弦化したチェーンは過小計測）。併せて body_h≤0
+  の退化時は of_body_h=None に。
+
+- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

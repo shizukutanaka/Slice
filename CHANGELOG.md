@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- balance: 重心・支持多角形・com_spanをobserved関節のみに
+  修正。"foot below ankle"プライアのpredicted足が支持多角形
+  （projected:inside）を、predicted四肢が質量カバレッジを
+  捏造していた → predictedは欠損扱い（足が全predictedなら
+  unknown/no_feet）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

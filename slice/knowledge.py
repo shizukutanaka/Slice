@@ -20,6 +20,8 @@ from typing import Optional
 from .landmarks import BONES, JOINTS
 from .skeleton import OBSERVED, PREDICTED, Skeleton
 
+_FACINGS = ("front", "left", "right", "side", "three-quarter")
+
 SCHEMA = "slice.knowledge/v1"
 SCHEMA_V11 = "slice.knowledge/v1.1"
 SCHEMAS = (SCHEMA, SCHEMA_V11)
@@ -107,6 +109,24 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    skel = doc.get("skeleton") or {}
+    ori = skel.get("orientation")
+    if isinstance(ori, dict):
+        f = ori.get("facing")
+        if f is not None and f not in _FACINGS:
+            errors.append(f"bad facing {f!r}")
+        oc = ori.get("confidence")
+        if oc is not None and (
+                not isinstance(oc, (int, float))
+                or not 0 <= oc <= 1):
+            errors.append(f"bad orientation confidence {oc}")
+    bm = skel.get("body_model")
+    if isinstance(bm, dict):
+        n = bm.get("name")
+        if n is not None:
+            from .anatomy import BODY_MODELS
+            if n not in BODY_MODELS:
+                errors.append(f"unknown body_model {n!r}")
     return errors
 
 

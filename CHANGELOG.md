@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` がorientation/body_modelを検査する
+  ように。facing語彙（front/left/right/side/three-quarter）・
+  confidence範囲・BODY_MODELS登録名の外挿値を拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

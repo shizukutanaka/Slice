@@ -46,6 +46,20 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_validate_catches_bad_orientation(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["skeleton"]["orientation"] = {
+            "facing": "diagonal", "confidence": 9.9}
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("facing" in e for e in errors))
+        self.assertTrue(any("confidence" in e for e in errors))
+
+    def test_validate_catches_unknown_body_model(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["skeleton"]["body_model"]["name"] = "nonexistent_model"
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("body_model" in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

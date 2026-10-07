@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
+from .landmarks import JOINTS
 from .skeleton import Skeleton
 
 
@@ -54,10 +55,15 @@ def reason(skel: Skeleton, name: str, mask=None, w: int = 0,
 
 
 def audit(skel: Skeleton, mask=None, w: int = 0, h: int = 0) -> dict:
-    """Per-joint reasons + counts by reason."""
+    """Per-joint reasons + counts by reason.
+
+    Iterates the whole joint vocabulary, not only the skeleton's
+    entries: a joint that is not even predicted must still surface
+    as "absent" — omitting it would read as "nothing to report".
+    """
     reasons: Dict[str, str] = {}
     counts: Dict[str, int] = {}
-    for name in skel.joints:
+    for name in sorted(set(JOINTS) | set(skel.joints)):
         r = reason(skel, name, mask, w, h)
         reasons[name] = r["reason"]
         counts[r["reason"]] = counts.get(r["reason"], 0) + 1

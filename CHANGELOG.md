@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- occlusion: audit()が語彙全体を走査（骨格に無い関節も
+  "absent"として報告 — 従来はskel.jointsのみで、
+  空骨格が{reasons:{}}＝「報告無し」と読めた）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

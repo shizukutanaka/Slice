@@ -41,6 +41,20 @@ class TestOcclusion(unittest.TestCase):
         self.assertEqual(sum(r["counts"].values()), len(self.skel.joints))
         self.assertIn("observed", r["counts"])
 
+    def test_audit_reports_absent_joints(self):
+        # a joint that is not even predicted must still surface
+        # as "absent" — it must not read as "nothing to report"
+        del self.skel.joints["wrist_l"]
+        r = occlusion.audit(self.skel)
+        self.assertEqual(r["reasons"]["wrist_l"], "absent")
+        self.assertEqual(r["counts"].get("absent"), 1)
+
+    def test_audit_empty_skeleton_all_absent(self):
+        from slice.skeleton import Skeleton
+        r = occlusion.audit(Skeleton(image_width=10, image_height=10))
+        self.assertTrue(r["reasons"])
+        self.assertEqual(r["counts"].get("absent"), len(r["reasons"]))
+
 
 if __name__ == "__main__":
     unittest.main()

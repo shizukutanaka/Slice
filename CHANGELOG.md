@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- dataset: 手置き不正docでsummary_rows/joint_rowsが落ちない —
+  非dict関節を除外し、非dictブロック(source/frame等)は空欄。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -41,6 +41,7 @@ def to_coco(skel: Skeleton, image_id: int = 0,
     flat: List[float] = []
     n_labeled = 0
     confs: List[float] = []
+    obs_confs: List[float] = []
     for _coco_name, ours in COCO_JOINTS:
         j = skel.joints.get(ours) if ours else None
         if j is None:
@@ -50,6 +51,8 @@ def to_coco(skel: Skeleton, image_id: int = 0,
         flat += [round(j.x, 1), round(j.y, 1), v]
         n_labeled += 1
         confs.append(j.confidence)
+        if v == 2:
+            obs_confs.append(j.confidence)
     unmapped = [n for n in _SLICE_ONLY if n in skel.joints]
     return {
         "id": annotation_id,
@@ -57,7 +60,13 @@ def to_coco(skel: Skeleton, image_id: int = 0,
         "category_id": category_id,
         "keypoints": flat,
         "num_keypoints": n_labeled,
+        # hybrid mean over labeled joints (v>0) for COCO compat;
+        # score_observed restricts to v==2 — predicted confidence is
+        # prior strength, not detection evidence, so the two classes
+        # are disclosed separately rather than blended.
         "score": round(sum(confs) / len(confs), 3) if confs else 0.0,
+        "score_observed": (round(sum(obs_confs) / len(obs_confs), 3)
+                           if obs_confs else 0.0),
         "unmapped_joints": unmapped,
     }
 

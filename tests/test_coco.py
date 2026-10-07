@@ -35,6 +35,31 @@ class TestCoco(unittest.TestCase):
         self.assertIn("pelvis", self.ann["unmapped_joints"])
         self.assertIn("neck", self.ann["unmapped_joints"])
 
+    def test_score_observed(self):
+        j = self.skel.joints["wrist_l"]
+        j.state = "predicted"
+        j.confidence = 0.99
+        ann = coco.to_coco(self.skel)
+        # hybrid score includes the predicted joint; score_observed
+        # must only average v==2 detection evidence.
+        obs = [self.skel.joints[n].confidence
+               for n in ("head", "shoulder_l", "shoulder_r",
+                          "elbow_l", "elbow_r", "wrist_r",
+                          "hip_l", "hip_r", "knee_l", "knee_r",
+                          "ankle_l", "ankle_r")
+               if self.skel.joints.get(n) is not None
+               and self.skel.joints[n].state == "observed"]
+        self.assertAlmostEqual(
+            ann["score_observed"],
+            round(sum(obs) / len(obs), 3), places=3)
+        self.assertNotAlmostEqual(
+            ann["score"], ann["score_observed"], places=3)
+
+    def test_score_observed_empty(self):
+        for j in self.skel.joints.values():
+            j.state = "predicted"
+        self.assertEqual(coco.to_coco(self.skel)["score_observed"], 0.0)
+
     def test_categories_block(self):
         cats = coco.categories()
         self.assertEqual(cats[0]["name"], "person")

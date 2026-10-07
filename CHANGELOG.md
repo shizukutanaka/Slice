@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- coco: `to_coco` のアノテーションに `score_observed` を追加。
+  COCO `score`（全ラベル関節のconfidence平均）は観測(v=2)と
+  推測(v=1)を混ぜた混成値で、推測関節のプライア強度が検出
+  信頼度を偽っていた。観測証拠のみの平均を併記して分離
+  （混成 `score` はCOCO互換のため据え置き）。
+
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

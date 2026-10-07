@@ -195,7 +195,12 @@ class KnowledgeStore:
         if not os.path.isfile(path):
             raise KeyError(kid)
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            doc = json.load(f)
+        # a file named <kid>.json must be the document <kid> — a
+        # mismatched internal id means corruption, not the doc asked for
+        if not isinstance(doc, dict) or doc.get("id") != kid:
+            raise KeyError(kid)
+        return doc
 
     def _index_path(self) -> str:
         return os.path.join(self.root, INDEX_NAME)

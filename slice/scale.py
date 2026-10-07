@@ -31,10 +31,14 @@ _BONES_CM = [
 
 
 def _head_px(skel: Skeleton, prior: dict) -> Optional[float]:
-    """Head length in px: crown (≈2×head radius above neck) to neck."""
+    """Head length in px from head centroid to neck.
+
+    The neck joint sits at the clavicle (shoulder line), which is
+    about one head-length below the head centroid: chin→clavicle is
+    ~half a head and the centroid is ~half a head above the chin."""
     head, neck = skel.point("head"), skel.point("neck")
     if head and neck:
-        return (neck[1] - head[1]) * 2.0
+        return (neck[1] - head[1]) * 1.0
     return None
 
 

@@ -8,6 +8,8 @@
         — run every quality layer over one image and print a verdict
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
+    python -m slice bias
+        — per-joint systematic vs random error on fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -19,8 +21,8 @@ import json
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck)
+from . import (__version__, bias, bitmap, calib, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -180,6 +182,20 @@ def _cmd_calib(a) -> int:
     return 1 if rep["overconfident_bins"] else 0
 
 
+def _cmd_bias(a) -> int:
+    """Per-joint systematic-error profile over ground-truth fixtures."""
+    est = pipeline.ESTIMATOR
+    pairs = []
+    for bmp, truth in (evaluate.draw_case(),
+                       evaluate.draw_case(width=240, height=320)):
+        pairs.append((est.estimate(bmp).joints, truth))
+    rep = bias.profile(pairs)
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    # a worst joint beyond the bench gate is a real estimator defect
+    worst = rep.get("worst_joint") or {}
+    return 1 if (worst.get("mean_error_px") or 0) > 10.0 else 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -239,6 +255,10 @@ def main(argv=None) -> int:
     cb = sub.add_parser(
         "calib", help="confidence calibration vs ground truth")
     cb.set_defaults(fn=_cmd_calib)
+
+    bi = sub.add_parser(
+        "bias", help="per-joint systematic vs random error profile")
+    bi.set_defaults(fn=_cmd_bias)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

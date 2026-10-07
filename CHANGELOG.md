@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
+  関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
+  worst関節がベンチゲート(10px)超なら exit 1。
+- pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
+  検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

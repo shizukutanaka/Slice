@@ -46,6 +46,21 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_validate_catches_stale_normalized(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        norm = doc["skeleton"].get("normalized")
+        if norm is None:
+            self.skipTest("no normalized block")
+        norm["joints"]["neck"] = {"x": 0.0, "y": -2.0}
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("neck" in e for e in errors))
+
+    def test_validate_catches_bad_frame(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["skeleton"]["frame"]["width"] = 0
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("frame" in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

@@ -74,6 +74,20 @@ class TestBundle(unittest.TestCase):
             docs = unpack(zpath)
             self.assertEqual([d["id"] for d in docs], [doc["id"]])
 
+    def test_pack_survives_unprocessable_doc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            store.save(_doc())
+            # validate raises inside on malformed internals — pack
+            # must skip that doc, not die
+            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
+                      "w") as f:
+                json.dump({"id": "k_aaaaaaaaaaaa",
+                           "skeleton": {"joints": {"head": 5}}}, f)
+            m = pack(store, os.path.join(tmp, "out.zip"))
+            self.assertEqual(m["count"], 1)
+            self.assertEqual(m["skipped"], 1)
+
     def test_empty_store(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)

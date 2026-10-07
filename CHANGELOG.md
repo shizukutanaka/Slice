@@ -6,6 +6,9 @@
   _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
   `crouch`（crouching）＋将来の `invert`（upside down）を追加。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

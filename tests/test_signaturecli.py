@@ -7,7 +7,7 @@ from contextlib import redirect_stdout
 
 from slice import bitmap
 from slice.__main__ import main
-from tests import synthetic_person
+from tests import synthetic_person, wide_hand_person
 
 
 def _png(bmp):
@@ -20,7 +20,7 @@ def _png(bmp):
 class TestSignatureCli(unittest.TestCase):
     def setUp(self):
         self.p = _png(synthetic_person())
-        self.q = _png(synthetic_person(arms_down=False))
+        self.q = _png(wide_hand_person())
         self.addCleanup(lambda: os.path.exists(self.p)
                         and os.unlink(self.p))
         self.addCleanup(lambda: os.path.exists(self.q)

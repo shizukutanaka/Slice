@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               selfcheck, sheet as _sheet)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,35 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_sheet(a) -> int:
+    """Contact sheet of skeleton overlays for a directory of images."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for f in sorted(os.listdir(a.dir)):
+        path = os.path.join(a.dir, f)
+        if not os.path.isfile(path) or not f.endswith(
+                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
+            continue
+        try:
+            with open(path, "rb") as fh:
+                skel = est.estimate(
+                    bitmap.decode(fh.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError):
+            continue
+        if skel.joints:
+            skels.append(skel)
+    if not skels:
+        print("no person detected in any frame", file=sys.stderr)
+        return 1
+    img = _sheet.sheet(skels, cols=a.cols, cell=a.cell)
+    out = a.output or "sheet.png"
+    with open(out, "wb") as f:
+        f.write(bitmap.encode_png(img))
+    print(f"wrote {out} ({len(skels)} tiles)", file=sys.stderr)
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +219,18 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    sh = sub.add_parser(
+        "sheet", help="contact sheet of skeleton overlays")
+    sh.add_argument("dir", help="directory of frame images")
+    sh.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sh.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sh.add_argument("--cols", type=int, default=None)
+    sh.add_argument("--cell", type=int, default=128)
+    sh.add_argument("-o", "--output", help="output PNG path")
+    sh.set_defaults(fn=_cmd_sheet)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

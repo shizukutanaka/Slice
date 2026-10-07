@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice sheet <dir> [-o out.png]` — sheet層のCLI接続。ディレクトリ内画像を推定→骨格オーバーレイのコンタクトシート（アスペクト保持レターボックス）。データセットレビューが1PNGに集約。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

@@ -9,6 +9,9 @@
   uneven_support が常時発火、reach は半径0の偽ワークスペースを
   返していた。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

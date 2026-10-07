@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dynamics: cues/spanをobserved関節のみに修正。docstringが
+  "all on observed joints"と謳いながらpredicted関節を含めて
+  いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
+  wide_stepが発火し得た。predictedは欠損扱い。
+
 - selfcheck: `consistency` 層を統合。ワンショット監査が骨格健全性
   監査（肢長プライア違反・左右非対称・フレーム外・逆転検出）を
   実行していなかった欠落を解消。issuesはadvisory重大度

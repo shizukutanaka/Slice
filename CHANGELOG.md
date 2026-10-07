@@ -4,6 +4,9 @@
 
 - `slice retarget <src> <dst> [-o sk.json]` — retarget層のCLI接続。src骨方向×dst骨長で体格間ポーズ転写。出力関節は全てpredicted（合成幾何であり観測証拠ではない）誠実設計を継承。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

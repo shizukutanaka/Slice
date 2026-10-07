@@ -59,6 +59,21 @@ class TestBundle(unittest.TestCase):
             self.assertEqual(m["skipped"], 1)
             self.assertEqual(len(unpack(zpath)), 1)
 
+    def test_unpack_skips_corrupt_members(self):
+        # one bad member must not abort the whole archive
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            doc = _doc()
+            store.save(doc)
+            zpath = os.path.join(tmp, "out.zip")
+            pack(store, zpath)
+            with zipfile.ZipFile(zpath, "a") as z:
+                z.writestr("docs/corrupt.json", "{not json")
+                z.writestr("docs/nondict.json", "[1, 2]")
+            docs = unpack(zpath)
+            self.assertEqual([d["id"] for d in docs], [doc["id"]])
+
     def test_empty_store(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)

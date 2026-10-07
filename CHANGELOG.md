@@ -8,6 +8,11 @@
 - pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
   検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
 
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

@@ -58,6 +58,25 @@ class TestCalib(unittest.TestCase):
         self.assertEqual(len(t), calib.BINS)
         self.assertTrue(all(b["n"] == 0 for b in t))
 
+    def test_boundary_confidence_bins_match_lookup(self):
+        # 0.6 / 0.1 is 5.999... in floats — the table must index the
+        # same bin as lookup (which multiplies) or they disagree.
+        from slice.skeleton import Joint, Skeleton
+
+        class _Est:
+            def estimate(self, bmp):
+                s = Skeleton(image_width=bmp.width,
+                             image_height=bmp.height)
+                s.set(Joint("nose", 80.0, 50.0, 0.6))
+                return s
+
+        bmp, _ = evaluate.draw_case()
+        t = calib.reliability_table([(bmp, {"nose": (80.0, 50.0)})],
+                                    estimator=_Est())
+        filled = [i for i, b in enumerate(t) if b["n"]]
+        self.assertEqual(filled, [6])
+        self.assertEqual(calib.lookup(0.6, t), t[6]["accuracy"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
+  5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
+  `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
+  exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

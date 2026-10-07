@@ -51,7 +51,9 @@ def reliability_table(pairs, estimator: Optional[HeuristicPoseEstimator] = None,
             j = skel.get(name)
             if j is None or j.state != OBSERVED:
                 continue
-            i = min(bins - 1, int(j.confidence / width))
+            # multiply like `lookup` does — `conf / 0.1` loses boundary
+            # scores to float error (0.6 / 0.1 == 5.999...)
+            i = min(bins - 1, int(j.confidence * bins))
             cells[i].append(j.confidence)
             errs[i].append(math.hypot(j.x - tx, j.y - ty))
     table = []

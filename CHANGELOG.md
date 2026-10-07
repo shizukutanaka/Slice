@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice fit <image>` — fit層の単体CLI接続。前景画素が骨/関節のcover_radius内に占める割合（explained fraction）＋未説明領域重心。空マスクはunmeasurable（0証拠≠100%一致）。good以外は exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

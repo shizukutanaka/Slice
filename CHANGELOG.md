@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
+  _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
+  `crouch`（crouching）＋将来の `invert`（upside down）を追加。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

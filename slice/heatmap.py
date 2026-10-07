@@ -25,6 +25,11 @@ def render(skel: Skeleton, width: Optional[int] = None,
     h = height or skel.image_height
     out = Bitmap.new(w, h, (0, 0, 0, 255))
     for j in skel.joints.values():
+        # an out_of_frame joint is unmeasurable — its confidence is
+        # stale evidence from before the transform; drawing it at
+        # all would burn a full-strength blob onto the frame edge
+        if j.state == "out_of_frame":
+            continue
         gain = 1.0 if j.state != PREDICTED else predicted_gain
         peak = j.confidence * gain
         if peak <= 0:

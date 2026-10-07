@@ -25,6 +25,16 @@ class TestHeatmap(unittest.TestCase):
         v = heatmap.max_at(hm, int(j.x), int(j.y))
         self.assertLess(v, 60)
 
+    def test_out_of_frame_joint_not_rendered(self):
+        # a joint that the transform pushed out of the frame must
+        # not burn a full-strength blob onto the frame edge
+        j = self.skel.joints["wrist_l"]
+        j.state, j.confidence = "out_of_frame", 1.0
+        j.x, j.y = -2.0, 60.0
+        hm = heatmap.render(self.skel, sigma=4)
+        v = heatmap.max_at(hm, 0, 60, radius=4)
+        self.assertEqual(v, 0)
+
     def test_heatmap_dimensions(self):
         self.assertEqual((self.hm.width, self.hm.height),
                          (self.skel.image_width, self.skel.image_height))

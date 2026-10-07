@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- heatmap: `out_of_frame`関節をレンダリング対象外に。
+  変換でフレーム外に出た関節が gain 1.0 のフル強度ガウスを
+  フレーム端に焼き付け、変換前の古い証拠が新鮮な観測を装っていた。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

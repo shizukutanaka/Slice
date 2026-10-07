@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 - selfcheck: 無効なmodel名を`model:unknown_body_model`理由コードで開示（analyze経路と同型のサイレントフォールバックがaudit経路に残留していた欠陥を解消）
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
+
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- motion: predicted関節のフレーム間変位を出力しない欠陥を修正。
+  推測関節の「移動」はプライアの動きであり人の動きではない —
+  両フレームでobservedの関節のみ報告、predictedは欠損扱いで除外。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

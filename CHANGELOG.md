@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

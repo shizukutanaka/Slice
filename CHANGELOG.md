@@ -8,6 +8,9 @@
   下端を全関節のmaxに変更し、全足が頭より上なら `invert`
   （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

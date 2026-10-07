@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- migrate: `upgrade` が不正JSONでraiseしない。非dict doc・
+  非dict skeleton/joints・非dict個別joint・非文字列basisを
+  全てchangesレポートに転換（非dict containerは置換、
+  非dict jointはjoint_dropped）。旧docしか通らない経路
+  ゆえvalidateより多くの壊れた形に遭遇する。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

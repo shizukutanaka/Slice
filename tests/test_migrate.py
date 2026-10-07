@@ -60,6 +60,35 @@ class TestMigrate(unittest.TestCase):
         r = migrate.upgrade(doc)
         self.assertEqual(r["document"]["created_at"], "")
 
+    def test_upgrade_never_raises_on_malformed(self):
+        # every malformed shape a store could hold must come back
+        # as a report, not an exception — falsify by malforming each
+        # container and asserting upgrade() still returns a dict
+        r = migrate.upgrade(None)
+        self.assertEqual(r["valid_before"], ["document must be a dict"])
+        for bad in (None, 5, "x", [1]):
+            with self.subTest(bad=bad):
+                self.assertIsInstance(migrate.upgrade(bad), dict)
+        doc = _doc()
+        doc["skeleton"] = 5
+        r = migrate.upgrade(doc)
+        self.assertIsInstance(r["document"]["skeleton"], dict)
+        doc = _doc()
+        doc["skeleton"]["joints"] = [1, 2]
+        r = migrate.upgrade(doc)
+        self.assertIsInstance(
+            r["document"]["skeleton"]["joints"], dict)
+        doc = _doc()
+        doc["skeleton"]["joints"]["head"] = 3
+        r = migrate.upgrade(doc)
+        self.assertNotIn(
+            "head", r["document"]["skeleton"]["joints"])
+        doc = _doc()
+        # export present but non-dict: upgrade leaves it, validate
+        # reports — neither may raise
+        doc["export"] = 5
+        self.assertIsInstance(migrate.upgrade(doc), dict)
+
 
 if __name__ == "__main__":
     unittest.main()

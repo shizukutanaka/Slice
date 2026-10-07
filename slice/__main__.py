@@ -21,9 +21,9 @@ import json
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               mask, mask_mod, pipeline, render, rest, segment, selfcheck, 
-               storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
+               pipeline, render, rest, segment, selfcheck, storechk)
+from . import mask as mask_mod
 from .anatomy import BODY_MODELS
 
 

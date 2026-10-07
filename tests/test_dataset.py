@@ -117,6 +117,24 @@ class TestDataset(unittest.TestCase):
             docs = from_store(store)
             self.assertEqual([x["id"] for x in docs], [d["id"]])
 
+    def test_rows_survive_malformed_docs(self):
+        from slice.dataset import summary_rows, joint_rows, to_csv
+        d = _doc()
+        docs = [
+            d,
+            {"id": "m", "skeleton": {"joints": {"head": 5}},
+             "source": 5},
+            {"skeleton": 5},
+            [1, 2],
+        ]
+        rows = summary_rows(docs)
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[1]["id"], "m")
+        self.assertEqual(rows[1]["n_joints"], 0)
+        jrows = joint_rows(docs)
+        self.assertFalse(any(r["id"] == "m" for r in jrows))
+        self.assertIn("id", to_csv(docs).splitlines()[0])
+
 
 if __name__ == "__main__":
     unittest.main()

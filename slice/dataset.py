@@ -55,22 +55,40 @@ def from_store(store) -> List[dict]:
     return docs
 
 
+def _joint_map(d: dict) -> dict:
+    """Dict-shaped joints with dict entries; anything else is skipped —
+    a hand-placed store doc must not kill an export."""
+    sk = d.get("skeleton") if isinstance(d, dict) else None
+    raw = sk.get("joints") if isinstance(sk, dict) else None
+    return {n: j for n, j in (raw or {}).items()
+            if isinstance(j, dict)} if isinstance(raw, dict) else {}
+
+
+def _block(d: dict, *keys) -> dict:
+    cur = d if isinstance(d, dict) else {}
+    for k in keys:
+        cur = cur.get(k) if isinstance(cur, dict) else None
+    return cur if isinstance(cur, dict) else {}
+
+
 def summary_rows(docs: Iterable[dict]) -> List[dict]:
     """One row per document."""
     rows = []
     for d in docs:
-        joints = ((d.get("skeleton") or {}).get("joints")) or {}
+        joints = _joint_map(d)
         n_obs = sum(1 for j in joints.values()
                     if j.get("state") == "observed")
-        confs = [j.get("confidence", 0.0) for j in joints.values()]
-        frame = (d.get("skeleton") or {}).get("frame") or {}
+        confs = [j.get("confidence", 0.0) for j in joints.values()
+                 if isinstance(j.get("confidence", 0.0), (int, float))]
+        frame = _block(d, "skeleton", "frame")
         rows.append({
-            "id": d.get("id", ""),
-            "created_at": d.get("created_at", ""),
-            "body_model": ((d.get("skeleton") or {})
-                           .get("body_model") or {}).get("name", ""),
-            "source_name": (d.get("source") or {}).get("name", ""),
-            "source_sha256": (d.get("source") or {}).get("sha256", ""),
+            "id": d.get("id", "") if isinstance(d, dict) else "",
+            "created_at": d.get("created_at", "")
+            if isinstance(d, dict) else "",
+            "body_model": _block(d, "skeleton", "body_model")
+            .get("name", ""),
+            "source_name": _block(d, "source").get("name", ""),
+            "source_sha256": _block(d, "source").get("sha256", ""),
             "frame_w": frame.get("width", ""),
             "frame_h": frame.get("height", ""),
             "n_joints": len(joints),
@@ -92,10 +110,10 @@ def joint_rows(docs: Iterable[dict]) -> List[dict]:
     """
     rows = []
     for d in docs:
-        joints = ((d.get("skeleton") or {}).get("joints")) or {}
+        joints = _joint_map(d)
         for name, j in joints.items():
             rows.append({
-                "id": d.get("id", ""),
+                "id": d.get("id", "") if isinstance(d, dict) else "",
                 "joint": name,
                 "x": j.get("x", ""),
                 "y": j.get("y", ""),

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

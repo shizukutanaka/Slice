@@ -4,6 +4,11 @@
 
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

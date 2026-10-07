@@ -4,6 +4,22 @@
 
 - `slice track <dir>` CLI — track層の接続。フレーム列（ディレクトリ、名前順）を一括推定→安定`track_id`付与。フレーム別に`new_track`/`linked`/`reacquired`/`empty`を表示、`--max-jump`（トルソ単位の追跡閾値）・`--robust`・`-o`で全リンク＋集計JSON（n_tracks/n_empty/n_reacquired/skipped）を出力。trackがライブラリ専用だったP3-19をCLIで実用化。
 
+- track: アンカー/胴体長正規化をobserved関節のみに修正。
+  predictedのpelvisがリンク距離・jump計測の根拠になっていた
+  （推測位置での"linked"判定）。predicted pelvisはcentroidに
+  フォールバック。
+
+- mass: 身長スパンをobserved関節のみに修正。predicted足
+  （"foot below ankle"プライア）がスパンを~3%伸ばしてcm_per_px
+  を狂わせ、predicted頭でも推定値を返していた → 推測頭なら
+  測定不能として None を返す。
+
+- signature: predicted骨の方向ベクトルが指紋に混入していた欠陥を
+  修正。推測肢が観測とほぼ同一の指紋を生成し（距離0.0039）、
+  dedup/queryが「測定された一致」として誤認していた。predicted
+  端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
+  スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
+
 - spine: predictedトルソで「measured」脊柱カーブを報告していた
   欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
   predictedだとカーブは構造的に「直線」に — 測定の捏造。

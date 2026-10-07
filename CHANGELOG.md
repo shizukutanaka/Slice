@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
+  骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
+  のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。
+  下端を全関節のmaxに変更し、全足が頭より上なら `invert`
+  （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
+  幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
+  誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

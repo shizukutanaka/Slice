@@ -4,6 +4,11 @@
 
 - `slice diag <image>` — diag層のCLI接続。推定ゲートをリプレイし no_foreground/too_small/foreground_at_edge/low_contrast/too_short の理由コードを出力。失敗時 exit 1。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -48,6 +48,11 @@ def check(skel: Skeleton) -> Dict[str, dict]:
         pa, pb, pc = skel.point(a), skel.point(b), skel.point(c)
         if not (pa and pb and pc):
             continue
+        # A ~1px segment can't define a direction (foot placed one
+        # pixel below the ankle tip); flagging an angle measured
+        # off pixel noise would be fabricating a finding.
+        if math.hypot(pc[0] - pb[0], pc[1] - pb[1]) < 3.0:
+            continue
         ang = _angle(pa, pb, pc)
         if ang is None:
             continue

@@ -9,6 +9,7 @@ measure where pose classification only says "standing".
 
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Optional
 
 from .skeleton import Skeleton
@@ -39,6 +40,7 @@ def line(skel: Skeleton) -> Optional[dict]:
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
     body_h = max(lo - head[1], 1.0)
+    body_h = _span(skel) or 1.0
 
     offsets: Dict[str, dict] = {}
     for name in _CHAIN:
@@ -64,8 +66,13 @@ def forward_head(skel: Skeleton) -> Optional[dict]:
     if not r or "head" not in r["offsets"] or "chest" not in r["offsets"]:
         return None
     d = r["offsets"]["head"]["dx"] - r["offsets"]["chest"]["dx"]
+    span = _span(skel)
+    if span <= 0:
+        # no usable body scale — a px threshold would be noise
+        return {"dx": round(d, 1), "posture": "unknown"}
     return {"dx": round(d, 1),
-            "posture": "forward_head" if abs(d) > 0.08 * _span(skel) else "neutral"}
+            "posture": "forward_head" if abs(d) > 0.08 * span
+            else "neutral"}
 
 
 def _span(skel: Skeleton) -> float:
@@ -73,6 +80,15 @@ def _span(skel: Skeleton) -> float:
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
     return (lo - top[1]) if top else 200.0
+    """Head-to-lowest span, torso-length fallback, 0 when neither
+    is measurable."""
+    top = skel.point("head")
+    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    s = (lo - top[1]) if top else 0.0
+    if s > 0:
+        return s
+    n, p = skel.point("neck"), skel.point("pelvis")
+    return math.hypot(n[0] - p[0], n[1] - p[1]) if n and p else 0.0
 
 
 def assess(skel: Skeleton) -> dict:

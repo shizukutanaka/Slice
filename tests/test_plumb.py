@@ -26,6 +26,17 @@ class TestPlumb(unittest.TestCase):
         fh = plumb.forward_head(self.skel)
         self.assertEqual(fh["posture"], "neutral")
 
+    def test_inverted_skeleton_no_px_leak(self):
+        # head below feet: body_h must not collapse to 1.0 and leak
+        # raw px as body-height fractions
+        h = self.skel.image_height
+        for j in self.skel.joints.values():
+            j.y = h - j.y
+        r = plumb.line(self.skel)
+        for v in r["offsets"].values():
+            self.assertLess(abs(v["of_body_h"]), 0.2)
+        self.assertIsNotNone(plumb.forward_head(self.skel))
+
     def test_no_head_none(self):
         for n in ("head", "neck"):
             del self.skel.joints[n]

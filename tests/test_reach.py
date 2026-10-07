@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import reach
+from slice import predict, reach
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -34,6 +34,21 @@ class TestReach(unittest.TestCase):
         env = reach.arm_reach(self.skel, "l")
         self.assertIsNotNone(env)
         self.assertFalse(env["measured"])
+
+    def test_predicted_arm_is_not_measured(self):
+        # a straight-arm prior must not claim "measured" — the
+        # radius falls back to the body-height prior instead
+        for n in ("elbow_r", "wrist_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        env = reach.arm_reach(self.skel, "r")
+        self.assertIsNotNone(env)
+        self.assertFalse(env["measured"])
+
+    def test_predicted_shoulder_is_none(self):
+        del self.skel.joints["shoulder_l"]
+        predict.complete(self.skel)
+        self.assertIsNone(reach.arm_reach(self.skel, "l"))
 
     def test_no_shoulder_none(self):
         del self.skel.joints["shoulder_r"]

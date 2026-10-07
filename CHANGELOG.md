@@ -8,6 +8,10 @@
   下端を全関節のmaxに変更し、全足が頭より上なら `invert`
   （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

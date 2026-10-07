@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               rig, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,36 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_rig(a) -> int:
+    """Animation rig: bone hierarchy, lengths, directions."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    bones = rig.build(skel)
+    res = {"bones": bones,
+           "hierarchy": rig.hierarchy(bones),
+           "total_bone_length": rig.total_bone_length(bones),
+           "frame": {"width": skel.image_width,
+                     "height": skel.image_height},
+           "basis": "bone endpoints observed/predicted as given; "
+                    "no lengths inferred"}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +220,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    rg = sub.add_parser(
+        "rig", help="animation rig export (bones + hierarchy)")
+    rg.add_argument("image")
+    rg.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    rg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rg.add_argument("-o", "--output",
+                    help="write the rig JSON here")
+    rg.set_defaults(fn=_cmd_rig)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

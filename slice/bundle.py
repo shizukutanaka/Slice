@@ -21,6 +21,12 @@ from .knowledge import validate
 SCHEMA = "slice.bundle/v1"
 
 
+def _body_model_name(d: dict):
+    sk = d.get("skeleton")
+    bm = sk.get("body_model") if isinstance(sk, dict) else None
+    return bm.get("name") if isinstance(bm, dict) else None
+
+
 def pack(store, path: str) -> dict:
     """Write every valid doc in `store` to a zip at `path`.
 
@@ -37,7 +43,13 @@ def pack(store, path: str) -> dict:
         except (KeyError, OSError, json.JSONDecodeError):
             skipped += 1
             continue
-        if not isinstance(doc, dict) or validate(doc):
+        # validate raises on malformed internals — an unprocessable
+        # doc counts as skipped, it must not kill the pack
+        try:
+            bad = isinstance(doc, dict) and bool(validate(doc))
+        except Exception:
+            bad = True
+        if bad:
             skipped += 1
             continue
         docs.append(doc)
@@ -48,8 +60,7 @@ def pack(store, path: str) -> dict:
         "documents": [
             {"id": d["id"],
              "created_at": d.get("created_at"),
-             "body_model": (d.get("skeleton") or {})
-             .get("body_model", {}).get("name")}
+             "body_model": _body_model_name(d)}
             for d in docs
         ],
     }

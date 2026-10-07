@@ -4,6 +4,12 @@
 
 - `slice trust <image>` — trust層のCLI接続。evid（証拠位置）＋stability（摂動感度）を実行し関節ごとの high/medium/low グレード＋格下げ要因を報告。calib正解データ非依存で動作。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

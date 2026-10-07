@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice consensus <image> [-o sk.json]` — consensus層のCLI接続。閾値±25%・解像度±25%の5変体で中央値投票骨格＋disputed関節列挙を報告。confidenceは観測率割引、`-o`で合意骨格JSON書き出し。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

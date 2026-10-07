@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               consensus, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,31 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_consensus(a) -> int:
+    """Median-vote consensus skeleton over a parameter panel."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = consensus.consensus(bmp, est, a.model or "adult")
+    sk = res.pop("skeleton")
+    out = dict(res)
+    out["joints"] = len(sk.joints)
+    out["n_observed"] = sum(
+        1 for j in sk.joints.values() if j.state == "observed")
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(sk.to_dict(), f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if sk.joints else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +215,18 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    co = sub.add_parser(
+        "consensus",
+        help="median-vote skeleton over a parameter panel")
+    co.add_argument("image")
+    co.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    co.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    co.add_argument("-o", "--output",
+                    help="write the consensus skeleton JSON")
+    co.set_defaults(fn=_cmd_consensus)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice batch <dir>` CLI 追加 — ディレクトリ内画像を一括解析し
+  KnowledgeStoreへ投入（png/bmp/jpg/webp、-r再帰、デコード不能は
+  理由付きでskip＋exit1、ファイル毎にid+observed数を出力、
+  AUDIT P2-16対応）
 - `pipeline.analyze` に `analysis` ブロック追加 — Knowledge
   ドキュメントが angles/symmetry/balance/spine/gesture/dynamics/
   occlusion/frame の8解析レイヤを同梱（これまでstyleのみ統合、

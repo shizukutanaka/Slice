@@ -38,6 +38,21 @@ class TestPipeline(unittest.TestCase):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertIn("few_observed_joints", doc["warnings"])
+        self.assertIn("no_observed_torso", doc["warnings"])
+
+    def test_warnings_when_torso_predicted(self):
+        # limbs observed but the kinematic root fabricated — the
+        # document must flag that its anchor is unmeasured
+        from slice.skeleton import Joint, PREDICTED, Skeleton
+        skel = Skeleton(100, 200)
+        for n in ("pelvis", "chest", "neck", "head"):
+            skel.set(Joint(n, 50, 60, 0.5, PREDICTED, "prior"))
+        for i, n in enumerate(("shoulder_l", "elbow_l", "wrist_l",
+                               "shoulder_r", "elbow_r", "wrist_r",
+                               "hip_l", "knee_l", "ankle_l")):
+            skel.set(Joint(n, 30 + i * 5, 80, 0.9))
+        self.assertIn("no_observed_torso",
+                      pipeline._warnings(skel))
 
     def test_strip_runtime_drops_internals(self):
         doc = pipeline.analyze(bitmap.encode_png(synthetic_person()))

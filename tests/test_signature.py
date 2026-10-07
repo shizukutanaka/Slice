@@ -38,6 +38,19 @@ class TestSignature(unittest.TestCase):
         d = sig.distance(self.s, sig.signature(other))
         self.assertGreater(d, 0.05)
 
+    def test_missing_feet_stay_torso_normalised(self):
+        # without feet the scalars must not become raw pixels
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            if n.startswith("foot"):
+                continue
+            other.set(Joint(n, j.x, j.y, j.confidence, state=j.state))
+        v = sig.signature(other)
+        self.assertTrue(all(abs(s) < 2.0 for s in v[-4:]),
+                        "scalars leaked raw-pixel magnitudes")
+        d = sig.distance(self.s, v)
+        self.assertLess(d, 0.5)
+
     def test_bent_arm_changes_signature(self):
         other = Skeleton(self.skel.image_width, self.skel.image_height)
         for n, j in self.skel.joints.items():

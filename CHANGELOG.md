@@ -4,6 +4,12 @@
 
 - `slice diag <image>` — diag層のCLI接続。推定ゲートをリプレイし no_foreground/too_small/foreground_at_edge/low_contrast/too_short の理由コードを出力。失敗時 exit 1。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

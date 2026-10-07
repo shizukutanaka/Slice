@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- pose: 横長シルエット（横たわり人物）を±90°回転で再推定 — 直立
+  スキャンは横配置を誤計測してゴミ関節をobservedとして出していた。
+  両回転を試しconsistency.auditのissues最少の向きを採用し座標を
+  逆写像（basisにrotatedを明記）。実測 issues 6→4、頭/骨盤/膝/足首
+  が正しい位置に復帰。縦長は従来経路のまま無回帰。
+  `tests.lying_person`で回帰ガード。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

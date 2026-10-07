@@ -1,6 +1,6 @@
 import unittest
 
-from tests import synthetic_person, wide_hand_person
+from tests import lying_person, synthetic_person, wide_hand_person
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -66,6 +66,20 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(j["wrist_l"].state, OBSERVED)
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
+
+    def test_lying_person_rotated_retry(self):
+        """A landscape silhouette retried on ±90° rotations yields a
+        mostly-consistent skeleton mapped back to image space —
+        instead of garbage joints on the upright scan."""
+        skel = HeuristicPoseEstimator().estimate(lying_person())
+        j = skel.joints
+        self.assertEqual(j["head"].state, OBSERVED)
+        self.assertLess(j["head"].x, 90)          # head at the left end
+        self.assertEqual(j["pelvis"].state, OBSERVED)
+        self.assertGreater(j["pelvis"].x, 150)    # pelvis past the torso
+        rotated = any(jt.basis and "rotated" in jt.basis
+                      for jt in j.values())
+        self.assertTrue(rotated)
 
     def test_confidence_range(self):
         for j in self.skel.joints.values():

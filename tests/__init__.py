@@ -51,6 +51,36 @@ def synthetic_person(width=160, height=300, *, arms_down=True,
     return bmp
 
 
+def lying_person(width=300, height=160,
+                 skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
+    """Lying figure: head left, body horizontal — exercises the
+    landscape retry that rotates the silhouette 90° before estimating."""
+    from slice.bitmap import Bitmap
+
+    bmp = Bitmap.new(width, height, bg)
+    cy = height // 2
+
+    def rect(x0, y0, x1, y1):
+        for y in range(int(y0), int(y1)):
+            for x in range(int(x0), int(x1)):
+                if 0 <= x < width and 0 <= y < height:
+                    bmp.set(x, y, skin)
+
+    def disc(ccx, ccy, r):
+        for y in range(int(ccy - r), int(ccy + r) + 1):
+            for x in range(int(ccx - r), int(ccx + r) + 1):
+                if (x - ccx) ** 2 + (y - ccy) ** 2 <= r * r:
+                    bmp.set(x, y, skin)
+
+    disc(40, cy, width * 0.11)                  # head
+    rect(55, cy - 3, 75, cy + 3)                # neck
+    rect(75, cy - 20, 81, cy + 20)              # shoulder bar
+    rect(75, cy - 18, 180, cy + 18)             # torso
+    rect(180, cy - 18, 260, cy - 6)             # legs split
+    rect(180, cy + 6, 260, cy + 18)
+    return bmp
+
+
 def wide_hand_person(width=160, height=300,
                      skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
     """Like synthetic_person, but the left hand below the hip is a wide

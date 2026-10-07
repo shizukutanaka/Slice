@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

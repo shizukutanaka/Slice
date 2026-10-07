@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               selfcheck, stability)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,25 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_stability(a) -> int:
+    """Perturbation probe: joint displacement at threshold +-delta."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = stability.probe(bmp, est, a.model or "adult",
+                          delta=a.delta)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    if res["state"] == "unmeasurable":
+        return 1
+    bad = stability.unstable(res)
+    return 0 if not bad else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +209,18 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    st = sub.add_parser(
+        "stability",
+        help="joint stability under threshold perturbation")
+    st.add_argument("image")
+    st.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    st.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    st.add_argument("--delta", type=int, default=10,
+                    help="threshold perturbation (default 10)")
+    st.set_defaults(fn=_cmd_stability)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

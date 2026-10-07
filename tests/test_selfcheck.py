@@ -39,6 +39,39 @@ class TestSelfCheck(unittest.TestCase):
         r = selfcheck.run(raw)
         self.assertNotIn("model:unknown_body_model", r["reasons"])
 
+    def test_large_image_compared_at_estimator_resolution(self):
+        # skeleton coords are downscaled; a full-res mask would flag
+        # every joint as off-mask — regression for >max_dim inputs
+        raw = bitmap.encode_png(synthetic_person(640, 1200))
+        r = selfcheck.run(raw)
+        self.assertFalse(
+            [x for x in r["reasons"] if x.startswith("evid:off_mask")],
+            r["reasons"])
+        # same-resolution comparison: bones explain real silhouette
+        # mass — a full-res mask comparison yields exactly 0.0
+        self.assertGreater(
+            r["layers"]["fit"]["fraction"], 0.3)
+
+    def test_human_scores_detected_component_not_frame(self):
+        # a detached object must not drag the person into
+        # not_person_like — the audited shape is the estimated one
+        bmp = synthetic_person(300, 300)
+        for y in range(50, 230):
+            for x in range(5, 55):
+                bmp.set(x, y, (60, 60, 60, 255))
+        r = selfcheck.run(bitmap.encode_png(bmp))
+        self.assertNotIn("human:not_person_like", r["reasons"])
+
+    def test_robust_stability_uses_robust_variants(self):
+        # faint figure: only the robust profile finds it; probing
+        # with default variants would report unmeasurable
+        raw = bitmap.encode_png(synthetic_person(
+            skin=(210, 210, 210, 255)))
+        r = selfcheck.run(raw, robust=True)
+        head = r["layers"]["stability"]["joints"]["head"]
+        self.assertNotEqual(head["verdict"], "single_run")
+        self.assertGreaterEqual(head["runs"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()

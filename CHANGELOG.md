@@ -4,6 +4,11 @@
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

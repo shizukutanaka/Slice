@@ -4,6 +4,10 @@
 
 - `slice scale <image>` — scale層のCLI接続。頭長プライアでpx→cm換算し身長・胴・四肢の実寸推定を報告。頭が測れない場合は較正不可を正直に報告。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

@@ -60,6 +60,25 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_schema_v11_analysis_slot(self):
+        doc = analyze_synth()
+        self.assertEqual(doc["schema"], "slice.knowledge/v1")
+        # analysis upgrades the document to v1.1
+        doc11 = dict(doc)
+        doc11["schema"] = "slice.knowledge/v1.1"
+        doc11["analysis"] = {"angles": {"elbow_l_flex": 170.0},
+                             "gesture": {"count": 0}}
+        self.assertFalse(knowledge.validate(doc11))
+        # v1 doc carrying analysis is tolerated (read compatibility
+        # for documents written before the version bump)
+        legacy = dict(doc)
+        legacy["analysis"] = doc11["analysis"]
+        self.assertFalse(knowledge.validate(legacy))
+        # analysis layers must be dicts
+        bad2 = dict(doc11)
+        bad2["analysis"] = {"angles": [1, 2]}
+        self.assertTrue(knowledge.validate(bad2))
+
     def test_save_is_atomic_no_tmp_leftover(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

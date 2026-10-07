@@ -150,6 +150,32 @@ class TestKnowledge(unittest.TestCase):
         doc["skeleton"]["joints"]["head"]["confidence"] = 2
         self.assertTrue(knowledge.validate(doc))
 
+    def test_store_list_skips_malformed_docs(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            # hand-placed docs a save() would reject still must not
+            # crash list()
+            bad_docs = {
+                "k_aaaaaaaaaaaa": {"id": "k_aaaaaaaaaaaa",
+                                   "skeleton": 5},
+                "k_bbbbbbbbbbbb": {"id": "k_bbbbbbbbbbbb",
+                                   "skeleton": {"body_model": 5}},
+            }
+            for bad_id, bad_doc in bad_docs.items():
+                with open(os.path.join(d, bad_id + ".json"),
+                          "w") as f:
+                    json.dump(bad_doc, f)
+            with open(os.path.join(d, "k_cccccccccccc.json"),
+                      "w") as f:
+                f.write("[1, 2]")
+            ids = {i["id"] for i in store.list()}
+            self.assertIn(kid, ids)
+            self.assertIn("k_aaaaaaaaaaaa", ids)
+            self.assertIn("k_bbbbbbbbbbbb", ids)
+            self.assertNotIn("k_cccccccccccc", ids)
+
 
 if __name__ == "__main__":
     unittest.main()

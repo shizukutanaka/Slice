@@ -161,10 +161,12 @@ INDEX_NAME = "_index.json"
 
 
 def _list_entry(doc: dict) -> dict:
+    skel = doc.get("skeleton")
+    bm = skel.get("body_model") if isinstance(skel, dict) else None
     return {"id": doc.get("id"),
             "created_at": doc.get("created_at"),
-            "body_model": (doc.get("skeleton") or {})
-            .get("body_model", {}).get("name")}
+            "body_model": bm.get("name") if isinstance(bm, dict)
+            else None}
 
 
 class KnowledgeStore:
@@ -243,10 +245,14 @@ class KnowledgeStore:
                     continue
                 if not isinstance(d, dict):
                     continue
-                ent = _list_entry(d)
+                try:
+                    ent = _list_entry(d)
+                except (AttributeError, TypeError):
+                    continue
             out.append(ent)
         if healed or entries:  # index was missing/stale -> rewrite it
-            known = {e.get("id"): e for e in out if e.get("id")}
+            known = {e.get("id"): e for e in out
+                     if isinstance(e, dict) and e.get("id")}
             try:
                 with open(self._index_path(), "w", encoding="utf-8") as f:
                     json.dump({"schema": "slice.index/v1",

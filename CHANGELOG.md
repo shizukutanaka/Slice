@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- gait: predicted関節を含む脚の位相キューをunknownに修正。
+  プライア直線脚が「stance/knee_angle ~170」として報告されて
+  いた。observed関節のみで判定、predictedは欠損扱い（step_width
+  も両足observedのみ）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -14,6 +14,7 @@ class TestPipeline(unittest.TestCase):
                     "prediction", "warnings", "analysis"):
             self.assertIn(key, out, key)
         self.assertIsInstance(out["warnings"], list)
+        self.assertNotIn("no_observed_head", out["warnings"])
 
     def test_analysis_block_integrates_layers(self):
         doc = pipeline.analyze(
@@ -38,6 +39,7 @@ class TestPipeline(unittest.TestCase):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertIn("few_observed_joints", doc["warnings"])
+        self.assertIn("no_observed_head", doc["warnings"])
 
     def test_strip_runtime_drops_internals(self):
         doc = pipeline.analyze(bitmap.encode_png(synthetic_person()))

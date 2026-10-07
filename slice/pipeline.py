@@ -103,6 +103,8 @@ def _warnings(skel) -> list:
         w.append("no_observed_wrists")
     if not any(n.startswith("ankle") or n.startswith("foot") for n in obs):
         w.append("no_observed_feet")
+    if "head" not in obs:
+        w.append("no_observed_head")
     return w
 
 

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- pipeline: warningsに`no_observed_head`追加 — 頭関節がpredicted
+  のdocは、スケールアンカーとなる最重要ランドマークを未測定の
+  まま下流層（headroom/ゾーン/実寸/比率）がプライア位置に依存する
+  ことを開示（wrists/feetと同じ証拠の薄さコード、KNOWLEDGE_JSON
+  の語彙表も同期）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

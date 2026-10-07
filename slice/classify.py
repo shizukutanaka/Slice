@@ -37,12 +37,17 @@ def _observed_ratio(skel: Skeleton) -> float:
 
 
 def analyze(skel: Skeleton) -> dict:
-    """Return {pose, label, confidence, signals} for the skeleton."""
-    J = {n: (j.x, j.y, j.state) for n, j in skel.joints.items()}
+    """Return {pose, label, confidence, signals} for the skeleton.
+
+    Only observed joints drive the rules — a predicted joint is a
+    prior placement, not evidence; letting it fire a class would
+    label a pose that was never seen.
+    """
+    J = {n: (j.x, j.y) for n, j in skel.joints.items()
+         if j.state == OBSERVED}
 
     def pt(name):
-        v = J.get(name)
-        return (v[0], v[1]) if v else None
+        return J.get(name)
 
     head, ankle_l, ankle_r = pt("head"), pt("ankle_l"), pt("ankle_r")
     hip_l, hip_r = pt("hip_l"), pt("hip_r")
@@ -52,11 +57,11 @@ def analyze(skel: Skeleton) -> dict:
         return {"pose": "unknown", "label": LABELS["unknown"],
                 "confidence": 0.0, "signals": {"reason": "insufficient joints"}}
 
-    top_y = min(j.y for j in skel.joints.values())
+    obs = [j for j in skel.joints.values() if j.state == OBSERVED]
+    top_y = min(j.y for j in obs)
     bot_y = max(p[1] for p in feet)
     span_y = bot_y - top_y
-    span_x = max(j.x for j in skel.joints.values()) \
-        - min(j.x for j in skel.joints.values())
+    span_x = max(j.x for j in obs) - min(j.x for j in obs)
 
     thigh_l = _d(hip_l, knee_l)
     thigh_r = _d(hip_r, knee_r)

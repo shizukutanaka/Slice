@@ -22,6 +22,13 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(r["label"], "立つ")
         self.assertGreater(r["confidence"], 0.3)
 
+    def test_predicted_geometry_no_label(self):
+        # predicted legs are priors, not evidence — no pose claim
+        s = sk(head=(100, 30))
+        s.set(Joint("ankle_l", 90, 300, 0.3, state="predicted"))
+        s.set(Joint("ankle_r", 110, 300, 0.3, state="predicted"))
+        self.assertEqual(classify.analyze(s)["pose"], "unknown")
+
     def test_lie_horizontal(self):
         s = sk(head=(30, 100), neck=(60, 100), chest=(110, 100),
                pelvis=(170, 100), hip_l=(170, 90), hip_r=(170, 110),

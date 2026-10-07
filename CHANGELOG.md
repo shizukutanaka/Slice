@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- classify: 規則をobserved関節のみに修正（docstringの
+  契約通りに — predictedの頭/足/膝がposeラベル（lie/
+  stand等）を駆動し得た欠陥）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

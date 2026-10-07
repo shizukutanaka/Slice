@@ -7,6 +7,9 @@
   （従来は肩が腕先端に吸収され118px誤差＋肘/手首未検出）。
   `evaluate.draw_case(pose="t")` でポーズ多様性のあるフィクスチャ。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

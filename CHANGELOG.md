@@ -4,6 +4,11 @@
 
 - `slice retarget <src> <dst> [-o sk.json]` — retarget層のCLI接続。src骨方向×dst骨長で体格間ポーズ転写。出力関節は全てpredicted（合成幾何であり観測証拠ではない）誠実設計を継承。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

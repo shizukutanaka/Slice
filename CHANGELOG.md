@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- smooth: observed関節の平滑位置が近傍フレームのpredicted座標に
+  引きずられる誠実性の欠陥を修正（実測: 手首が真値49px→69pxに
+  20px偏移）。observed中心はobservedサンプルのみで平均し、
+  predicted中心は従来どおり全サンプル平均（証拠は集める側）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

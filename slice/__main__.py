@@ -17,8 +17,8 @@ import json
 import os
 import sys
 
-from . import (__version__, _mask_mod, bitmap, knowledge, limbcov,
-               mask as _mask_mod, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, knowledge, limbcov, mask as _mask_mod,
+               pipeline, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 

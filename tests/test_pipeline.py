@@ -39,6 +39,18 @@ class TestPipeline(unittest.TestCase):
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertIn("few_observed_joints", doc["warnings"])
 
+    def test_unknown_model_warns(self):
+        # a bogus model name silently fell back to the adult prior —
+        # the document must flag that the request was not honored
+        doc = pipeline.analyze(
+            bitmap.encode_png(synthetic_person()),
+            model="nonexistent-model")
+        self.assertIn("unknown_body_model", doc["warnings"])
+        # and a real model must not warn
+        doc2 = pipeline.analyze(
+            bitmap.encode_png(synthetic_person()), model="adult")
+        self.assertNotIn("unknown_body_model", doc2["warnings"])
+
     def test_strip_runtime_drops_internals(self):
         doc = pipeline.analyze(bitmap.encode_png(synthetic_person()))
         self.assertIn("_bitmap", doc)

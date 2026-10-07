@@ -4,6 +4,12 @@
 
 - `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
 
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

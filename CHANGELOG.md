@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- pose: 肩上腕（Vポーズ）検出 — 腕プローブの探索開始を肩行から
+  頭帯下端に拡張し、肩より上に上がった腕を捕捉（従来は範囲外で
+  肘/手首が未検出か肩近傍に誤置）。`tests.raised_arms_person`
+  フィクスチャで回帰ガード。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

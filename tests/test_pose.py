@@ -1,6 +1,7 @@
 import unittest
 
-from tests import synthetic_person, wide_hand_person
+from tests import (raised_arms_person, synthetic_person,
+                   wide_hand_person)
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -66,6 +67,22 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(j["wrist_l"].state, OBSERVED)
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
+
+    def test_raised_arms_detected(self):
+        """V-pose: arms above the shoulder line must still surface —
+        the scan starts below the head band, not at the shoulder row."""
+        skel = HeuristicPoseEstimator().estimate(raised_arms_person())
+        j = skel.joints
+        for side in ("l", "r"):
+            self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
+            self.assertEqual(j[f"elbow_{side}"].state, OBSERVED, side)
+            # raised wrist sits above the shoulder row, not dangling
+            self.assertLess(j[f"wrist_{side}"].y,
+                            j[f"shoulder_{side}"].y, side)
+            if side == "l":
+                self.assertLess(j["wrist_l"].x, j["shoulder_l"].x)
+            else:
+                self.assertGreater(j["wrist_r"].x, j["shoulder_r"].x)
 
     def test_confidence_range(self):
         for j in self.skel.joints.values():

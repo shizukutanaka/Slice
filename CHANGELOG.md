@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- handpos: ゾーン参照点（head/chest/pelvis/knee/hip）を観測関節
+  限定に修正 — 観測 wrist が predicted ランドマークのプライア位置に
+  対してゾーン判定され、推測が身体ゾーン境界を捏造していた欠陥
+  を解消（全参照が predicted ならゾーン未判定、#331 gesture と同型）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

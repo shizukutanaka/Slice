@@ -277,11 +277,17 @@ class HeuristicPoseEstimator(PoseEstimator):
         """First row below the torso band whose mask splits into two runs."""
         for y in range(max(0, y0), min(y1, len(mask) - 1)):
             runs = _row_runs(mask, y, w)
-            if len(runs) >= 2:
-                gap = runs[-1][0] - runs[0][1]
-                torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
-                if gap >= max(2, torso_w * 0.08):
-                    return y
+            torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
+            # A split is a gap between *adjacent* runs; comparing the
+            # first and last run spans everything in between and calls
+            # "arm | torso | arm" a crotch at chest height. The gap
+            # threshold scales with torso width but stays ≤4px — a
+            # real leg gap doesn't grow with frame size, and the
+            # estimator's own downscale shrinks it further.
+            if any(runs[i + 1][0] - runs[i][1]
+                   >= max(2, min(4, torso_w * 0.08))
+                   for i in range(len(runs) - 1)):
+                return y
         return None
 
     # -- main ---------------------------------------------------------------
@@ -433,15 +439,21 @@ class HeuristicPoseEstimator(PoseEstimator):
         if crotch is None:
             hip_row = self._widest_row(rows, int(top + body_h * 0.45),
                                        int(top + body_h * 0.65))
-            hr = rows[hip_row] or torso_run
             crotch = hip_row + max(2, int(head_h * 0.4))
             hip_conf = 0.55
             hip_basis = "widest hip-band row"
         else:
-            hr = rows[crotch - 1] or rows[crotch] or torso_run
             hip_row = crotch - 1
             hip_conf = 0.75
             hip_basis = "crotch split row"
+        # Hip width = the torso-column run at the hip row, not the
+        # row's outermost pixels — arms dangling beside the torso
+        # would inflate "hip" to arm-to-arm span.
+        hip_run = next(
+            (r for r in _row_runs(comp, hip_row, w)
+             if r[0] <= cx_spine <= r[1]),
+            rows[hip_row] or torso_run)
+        hr = hip_run
         put("pelvis", (hr[0] + hr[1]) / 2, hip_row, hip_conf, hip_basis)
         put("hip_l", hr[0], hip_row, hip_conf, hip_basis)
         put("hip_r", hr[1], hip_row, hip_conf, hip_basis)
@@ -461,8 +473,13 @@ class HeuristicPoseEstimator(PoseEstimator):
             ar = _row_runs(comp, bottom, w)
             if len(kr) >= 2 and len(ar) >= 2:
                 legs_split = True
-                krun = kr[take]
+                # Anchor each leg to its foot run — picking the
+                # leftmost/rightmost knee-row run grabs a dangling
+                # arm that still reaches below knee height.
                 arun = ar[take] if len(ar) > abs(take) else ar[0]
+                fcx = (arun[0] + arun[1]) / 2
+                krun = next(
+                    (r for r in kr if r[0] <= fcx <= r[1]), kr[take])
                 put(f"knee_{side}", (krun[0] + krun[1]) / 2, knee_y, 0.7,
                     "leg run at knee height")
                 put(f"ankle_{side}", (arun[0] + arun[1]) / 2, bottom - 1,
@@ -484,8 +501,6 @@ class HeuristicPoseEstimator(PoseEstimator):
 
         # Arms: silhouette protrusions beside the torso column, tracked
         # down past the hips so dangling hands are still found.
-        arm_len = body_h * (prior["upper_arm_ratio"]
-                            + prior["forearm_ratio"])
         crotch_y = crotch
         # Feet anchor the legs: any run below the torso that x-overlaps a
         # bottom-row run is leg, regardless of its width or how far out
@@ -530,11 +545,20 @@ class HeuristicPoseEstimator(PoseEstimator):
                 far = max(cand,
                           key=lambda p: (p[0] - shoulder.x) ** 2
                           + (p[1] - shoulder.y) ** 2)
+                # Elbow rides at the upper-arm fraction of the
+                # *measured* shoulder→wrist extent. Using the prior
+                # arm_len here placed elbows ~30px too high whenever
+                # the silhouette arm ran longer than the ratio says.
+                reach = ((far[0] - shoulder.x) ** 2
+                         + (far[1] - shoulder.y) ** 2) ** 0.5
+                frac = prior["upper_arm_ratio"] / (
+                    prior["upper_arm_ratio"]
+                    + prior["forearm_ratio"])
                 elbow = max(
                     cand,
                     key=lambda p: -abs(((p[0] - shoulder.x) ** 2
                                        + (p[1] - shoulder.y) ** 2) ** 0.5
-                                     - arm_len * 0.55))
+                                     - reach * frac))
                 conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
                 put(f"wrist_{side}", far[0], far[1], conf,
                     "arm blob extremity")

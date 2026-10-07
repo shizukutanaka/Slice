@@ -4,6 +4,10 @@
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

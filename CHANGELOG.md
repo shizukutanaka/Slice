@@ -4,6 +4,10 @@
 
 - `slice stats <dir>` — stats層のCLI接続。フレーム列の関節別観測率・平均confidence・fill率＋weakest_joints（死角関節）を集計報告。`--weakest`で上位N件調整。
 
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

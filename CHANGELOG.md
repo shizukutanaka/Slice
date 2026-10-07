@@ -4,6 +4,10 @@
 
 - `slice migrate --store DIR [--write]` — migrate層のCLI接続。ストア内旧ドキュメントを現行スキーマへ正規化。デフォルトはドライラン（変更点のみ報告）、`--write`で原子的に書き込み。全修復をchanges列挙＋修復不能docは書き込まない誠実設計。
 
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

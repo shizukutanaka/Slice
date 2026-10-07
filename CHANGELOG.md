@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

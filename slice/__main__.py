@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               evid, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,27 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_evid(a) -> int:
+    """Per-joint evidence localization: interior/boundary/off_mask."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = evid.locate(skel, m)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if not evid.unsupported(res) else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +211,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ev = sub.add_parser(
+        "evid", help="per-joint evidence localization")
+    ev.add_argument("image")
+    ev.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ev.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ev.set_defaults(fn=_cmd_evid)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

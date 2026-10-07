@@ -112,6 +112,28 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    skel = doc.get("skeleton") or {}
+    frame = skel.get("frame")
+    if isinstance(frame, dict):
+        for k in ("width", "height"):
+            v = frame.get(k)
+            if not isinstance(v, (int, float)) or v <= 0:
+                errors.append(f"skeleton.frame.{k} must be > 0")
+    norm = skel.get("normalized")
+    if isinstance(norm, dict):
+        # invariants of the normalized space: pelvis at the origin,
+        # neck one torso-unit away — a stale/rewritten block breaks
+        # these even when its numbers look plausible
+        nj = norm.get("joints") or {}
+        pv, nk = nj.get("pelvis"), nj.get("neck")
+        if isinstance(pv, dict) and (
+                abs(pv.get("x", 1)) > 0.01
+                or abs(pv.get("y", 1)) > 0.01):
+            errors.append("normalized pelvis not at origin")
+        if isinstance(nk, dict):
+            d = (nk.get("x", 0) ** 2 + nk.get("y", 0) ** 2) ** 0.5
+            if abs(d - 1.0) > 0.01:
+                errors.append("normalized neck not one unit away")
     export = doc.get("export") or {}
     order = export.get("keypoint_order")
     if order is not None:

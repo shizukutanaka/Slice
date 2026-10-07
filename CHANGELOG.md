@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

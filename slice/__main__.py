@@ -144,6 +144,23 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _norm_skel(skel):
+    """Rebuild `skel` in normalized pose space (pelvis origin,
+    torso unit) so cross-resolution comparisons are meaningful."""
+    from .skeleton import Joint, Skeleton
+    norm = skel.normalized()
+    out = Skeleton(1, 1)
+    if not norm:
+        return out
+    out.orientation = dict(skel.orientation)
+    out.body_model = dict(skel.body_model)
+    for name, pos in norm["joints"].items():
+        j = skel.joints[name]
+        out.set(Joint(name, pos["x"], pos["y"], j.confidence,
+                      state=j.state, basis=j.basis))
+    return out
+
+
 def _cmd_oks(a) -> int:
     """OKS similarity of skeleton B against reference A."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -152,8 +169,8 @@ def _cmd_oks(a) -> int:
     for p in (a.a, a.b):
         try:
             with open(p, "rb") as f:
-                skels.append(est.estimate(
-                    bitmap.decode(f.read()), a.model or "adult"))
+                skels.append(_norm_skel(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult")))
         except (bitmap.UnsupportedFormat, OSError) as e:
             print(f"cannot load {p}: {e}", file=sys.stderr)
             return 2
@@ -164,7 +181,8 @@ def _cmd_oks(a) -> int:
     score = oks.oks(skels[0], skels[1])
     res = {"oks": score,
            "per_joint": oks.per_joint(skels[0], skels[1]),
-           "basis": "COCO OKS, scale = reference head height"}
+           "basis": "COCO OKS in normalized pose space "
+                    "(pelvis origin, torso unit)"}
     if score is None:
         print("no comparable joints", file=sys.stderr)
         return 1

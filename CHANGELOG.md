@@ -4,6 +4,11 @@
 
 - `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

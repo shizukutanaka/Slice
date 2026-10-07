@@ -3,6 +3,30 @@
 ## [Unreleased]
 
 - bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
+- dynamics: cues/spanをobserved関節のみに修正。docstringが
+  "all on observed joints"と謳いながらpredicted関節を含めて
+  いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
+  wide_stepが発火し得た。predictedは欠損扱い。
+
+- selfcheck: `consistency` 層を統合。ワンショット監査が骨格健全性
+  監査（肢長プライア違反・左右非対称・フレーム外・逆転検出）を
+  実行していなかった欠落を解消。issuesはadvisory重大度
+  （実在する人体はプライア範囲を正当に外れうるためfailはしない）
+  ＋`consistency:<issue>`理由コードを列挙。
+
+- smooth: observed関節の平滑位置が近傍フレームのpredicted座標に
+  引きずられる誠実性の欠陥を修正（実測: 手首が真値49px→69pxに
+  20px偏移）。observed中心はobservedサンプルのみで平均し、
+  predicted中心は従来どおり全サンプル平均（証拠は集める側）。
+
+- axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
+  幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
+  誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。
+
 - calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
   5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
   `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも

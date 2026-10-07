@@ -36,6 +36,16 @@ class TestFramepos(unittest.TestCase):
         r = framepos.analyze(self.skel, self.W, self.H)
         self.assertLess(r["body_fraction"], 0.2)
 
+    def test_headroom_tracks_topmost_joint(self):
+        # a wrist overhead must shrink headroom, not leave it at the
+        # head's height — the gap is frame-top to figure-top
+        self.skel.joints["wrist_l"].x = self.skel.joints["head"].x
+        self.skel.joints["wrist_l"].y = 2.0
+        r = framepos.analyze(self.skel, self.W, self.H)
+        self.assertLess(r["headroom"], 0.02)
+        self.assertEqual(framepos.framing(self.skel, self.W, self.H),
+                         "tight")
+
     def test_empty_none(self):
         for n in list(self.skel.joints):
             del self.skel.joints[n]

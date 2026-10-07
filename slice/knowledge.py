@@ -130,6 +130,31 @@ def validate(doc: dict) -> list:
                 errors.append(
                     f"prediction.predicted {n} is {j.get('state')}"
                     " in skeleton.joints")
+    export = doc.get("export") or {}
+    order = export.get("keypoint_order")
+    if order is not None:
+        flat = export.get("keypoints_2d")
+        if not isinstance(flat, list) \
+                or len(flat) != 3 * len(order):
+            errors.append(
+                "export.keypoints_2d must be 3*len(keypoint_order)")
+        states = export.get("keypoints_state")
+        if states is not None:
+            # a flat-export state array that contradicts skeleton.joints
+            # would let fill masquerade as evidence downstream
+            if len(states) != len(order):
+                errors.append(
+                    "export.keypoints_state must align with "
+                    "keypoint_order")
+            else:
+                for name, st in zip(order, states):
+                    j = joints.get(name)
+                    expect = j.get("state", "absent") \
+                        if isinstance(j, dict) else "absent"
+                    if st != expect:
+                        errors.append(
+                            f"export state {name}: {st} != "
+                            f"skeleton {expect}")
     return errors
 
 

@@ -59,6 +59,24 @@ class TestKnowledge(unittest.TestCase):
             errors = knowledge.validate(doc)
             self.assertTrue(any(pred[0] in e for e in errors))
 
+    def test_validate_catches_export_flat_mismatch(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["export"]["keypoints_2d"] = doc["export"]["keypoints_2d"][:6]
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("keypoints_2d" in e for e in errors))
+
+    def test_validate_catches_export_state_contradiction(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        ex = doc["export"]
+        # hand-write the flat-export state field (added after this
+        # schema version) — the validator must still cross-check it
+        sk = doc["skeleton"]["joints"]
+        ex["keypoints_state"] = [
+            "predicted" if sk.get(n, {}).get("state") == "observed"
+            else "observed" for n in JOINTS]
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("export state" in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

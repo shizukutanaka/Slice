@@ -43,6 +43,21 @@ class TestStability(unittest.TestCase):
         r = stability.probe(bmp, delta=5)
         self.assertEqual(r["probe_delta"], 5)
 
+    def test_adaptive_offset_moves_mask(self):
+        # shifting bg_threshold does not move an Otsu split — the
+        # perturbation must reach the effective threshold, or the
+        # probe reports stability it never measured
+        from slice import mask as mask_mod
+        from slice.pose import HeuristicPoseEstimator
+        bmp, _ = evaluate.draw_case(160, 300)
+        fg = lambda e: sum(sum(r) for r in mask_mod.foreground(bmp, e))
+        est = HeuristicPoseEstimator(adaptive=True)
+        lo = HeuristicPoseEstimator(adaptive=True, threshold_offset=-20)
+        hi = HeuristicPoseEstimator(adaptive=True, threshold_offset=20)
+        self.assertLess(fg(hi), fg(lo))
+        self.assertGreaterEqual(fg(lo), fg(est))
+        self.assertLessEqual(fg(hi), fg(est))
+
 
 if __name__ == "__main__":
     unittest.main()

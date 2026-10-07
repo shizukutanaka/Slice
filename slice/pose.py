@@ -91,12 +91,16 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     def __init__(self, max_dim: int = 512, bg_threshold: int = 40,
                  adaptive: bool = False, reject_shadow: bool = False,
-                 clean: bool = False):
+                 clean: bool = False, threshold_offset: float = 0):
         self.max_dim = max_dim
         self.bg_threshold = bg_threshold
         self.adaptive = adaptive
         self.reject_shadow = reject_shadow
         self.clean = clean
+        # added to whichever threshold the mask ends up using — the
+        # perturbation knob `stability.probe` needs, since shifting
+        # bg_threshold alone does not move an Otsu split
+        self.threshold_offset = threshold_offset
         # (value, "otsu"|"fixed") from the last _mask call —
         # diagnostic surface, not part of the skeleton contract
         self.last_threshold = None
@@ -172,7 +176,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         if self.adaptive:
             mask = self._mask_adaptive(bmp, self._background(bmp))
         else:
-            thr = self.bg_threshold
+            thr = self.bg_threshold + self.threshold_offset
             self.last_threshold = (thr, "fixed")
             mask = self._mask_fixed(bmp, self._background_bands(bmp), thr)
         if self.reject_shadow:
@@ -218,10 +222,13 @@ class HeuristicPoseEstimator(PoseEstimator):
         from . import adapt
         dist = adapt.distances(bmp, bg_rgb)
         thr, method = adapt.threshold(dist, fallback=self.bg_threshold)
+        if method == "otsu":
+            thr += self.threshold_offset
         self.last_threshold = (thr, method)
         if method != "otsu":
             return self._mask_fixed(bmp, self._background_bands(bmp),
-                                    self.bg_threshold)
+                                    self.bg_threshold +
+                                    self.threshold_offset)
         w, h = bmp.width, bmp.height
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data

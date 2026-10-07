@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- stability/pose: `probe` の摂動が実効閾値に届くよう
+  `threshold_offset` を追加 — adaptive(Otsu) モードでは
+  `bg_threshold` を±10してもOtsu分割が不変で、3ラン同一マスクの
+  「stable」判定を捏造していた欠陥を修正（robust プロファイルで
+  感度が実測されるように）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

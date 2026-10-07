@@ -4,6 +4,9 @@
 
 - `slice segment <image> [-o map.png]` — segment層のCLI接続。部位別ピクセルラベル（DensePose式、証拠画素のみ）の集計＋`-o`で色分けマップPNG。マスク・骨格ともに推定器解像度で処理。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -63,11 +63,20 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
 
 
 def _span(skel: Skeleton) -> float:
-    j = skel.joints.get("head")
-    top = (j.x, j.y) if j and j.state == "observed" else None
+    # observed-only span with the torso-length fallback of
+    # skeleton.body_span: a predicted head/foot is prior fill
+    def obs(name):
+        j = skel.joints.get(name)
+        return (j.x, j.y) if j and j.state == "observed" else None
+    top = obs("head")
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
-    return (lo - top[1]) if top else 200.0
+    if top and lo - top[1] > 0:
+        return lo - top[1]
+    n, p = obs("neck"), obs("pelvis")
+    if n and p:
+        return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5 or 200.0
+    return 200.0
 
 
 def clearance(skel: Skeleton) -> Optional[float]:

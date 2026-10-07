@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `examples/demo_3d.py` 新設 — Phase 3 パイプラインの
+  エンドツーエンド実演（estimate→lift→rig→retarget→bvh/gltfを
+  1コマンドで、各段がprovenanceを保持することを示す、
+  AUDIT P3-20対応）
 - `slice batch <dir>` CLI 追加 — ディレクトリ内画像を一括解析し
   KnowledgeStoreへ投入（png/bmp/jpg/webp、-r再帰、デコード不能は
   理由付きでskip＋exit1、ファイル毎にid+observed数を出力、

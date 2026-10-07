@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               oks, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,34 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_oks(a) -> int:
+    """OKS similarity of skeleton B against reference A."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not all(sk.joints for sk in skels):
+        print("no person in one or both images",
+              file=sys.stderr)
+        return 1
+    score = oks.oks(skels[0], skels[1])
+    res = {"oks": score,
+           "per_joint": oks.per_joint(skels[0], skels[1]),
+           "basis": "COCO OKS, scale = reference head height"}
+    if score is None:
+        print("no comparable joints", file=sys.stderr)
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +218,16 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ok = sub.add_parser(
+        "oks", help="COCO OKS similarity between two images")
+    ok.add_argument("a", help="reference image")
+    ok.add_argument("b", help="candidate image")
+    ok.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ok.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ok.set_defaults(fn=_cmd_oks)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

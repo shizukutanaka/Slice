@@ -6,6 +6,9 @@
   欠陥を修正。プライア配置の骨は測定ではないため、両端点が
   observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

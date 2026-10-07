@@ -8,6 +8,10 @@
   端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
   スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

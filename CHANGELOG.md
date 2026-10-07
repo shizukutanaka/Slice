@@ -4,6 +4,8 @@
 
 - `slice segment <image> [-o map.png]` — segment層のCLI接続。部位別ピクセルラベル（DensePose式、証拠画素のみ）の集計＋`-o`で色分けマップPNG。マスク・骨格ともに推定器解像度で処理。
 
+- `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

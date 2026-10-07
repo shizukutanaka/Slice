@@ -7,6 +7,9 @@
   返していた（実測 conf 0.37）。双側屈曲は相殺し
   both_legs_flexed（even）キューに変換 → even/conf 1.0。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

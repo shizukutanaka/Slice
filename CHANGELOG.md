@@ -4,6 +4,12 @@
 
 - `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

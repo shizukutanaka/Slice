@@ -8,6 +8,8 @@
         — run every quality layer over one image and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
+    python -m slice human <image>
+        — person-likeness score per foreground component
 """
 
 from __future__ import annotations
@@ -16,8 +18,8 @@ import argparse
 import json
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bitmap, human, knowledge, pipeline,
+               render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +145,36 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_human(a) -> int:
+    """Person-likeness score per foreground component."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    w, h = small.width, small.height
+    m = est._mask(small)
+    labels, sizes = est._label_components(m, w, h)
+    comps = []
+    for lab in sorted(sizes, key=sizes.get, reverse=True):
+        if sizes[lab] < a.min_px:
+            continue
+        comp = est._component_mask(labels, lab, w, h)
+        res = human.assess(comp)
+        res["px"] = sizes[lab]
+        res["component"] = lab
+        comps.append(res)
+    out = {"components": comps, "n_components": len(comps)}
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    if not comps:
+        return 1
+    return 0 if any(c["person_like"] for c in comps) else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +221,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    hu = sub.add_parser(
+        "human", help="person-likeness per component")
+    hu.add_argument("image")
+    hu.add_argument("--min-px", type=int, default=100,
+                    help="min component pixels")
+    hu.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    hu.set_defaults(fn=_cmd_human)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

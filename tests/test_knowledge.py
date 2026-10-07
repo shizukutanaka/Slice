@@ -46,6 +46,12 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_validate_catches_phantom_bone(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["skeleton"]["bones"].append(["head", "bogus_joint"])
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("bogus_joint" in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

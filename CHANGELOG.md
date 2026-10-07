@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` がskeleton.bonesの端点を検査するように。
+  不在関節を参照する骨エントリ（下流で虚無への辺を描く）を拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -107,6 +107,16 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    skel = doc.get("skeleton") or {}
+    for b in skel.get("bones") or []:
+        # a bone endpoint must name a real joint — a phantom
+        # endpoint draws an edge to nothing downstream
+        if not isinstance(b, (list, tuple)) or len(b) != 2:
+            errors.append(f"bad bone entry {b!r}")
+            continue
+        for n in b:
+            if n not in joints:
+                errors.append(f"bone references missing joint {n}")
     return errors
 
 

@@ -4,6 +4,11 @@
 
 - `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

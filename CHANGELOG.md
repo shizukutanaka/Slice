@@ -4,6 +4,10 @@
 
 - `slice track <dir>` CLI — track層の接続。フレーム列（ディレクトリ、名前順）を一括推定→安定`track_id`付与。フレーム別に`new_track`/`linked`/`reacquired`/`empty`を表示、`--max-jump`（トルソ単位の追跡閾値）・`--robust`・`-o`で全リンク＋集計JSON（n_tracks/n_empty/n_reacquired/skipped）を出力。trackがライブラリ専用だったP3-19をCLIで実用化。
 
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

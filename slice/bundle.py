@@ -57,13 +57,6 @@ def pack(store, path: str) -> dict:
         skel = doc.get("skeleton")
         bm = skel.get("body_model") if isinstance(skel, dict) else None
         if bm is not None and not isinstance(bm, dict):
-        # validate raises on malformed internals — an unprocessable
-        # doc counts as skipped, it must not kill the pack
-        try:
-            bad = isinstance(doc, dict) and bool(validate(doc))
-        except Exception:
-            bad = True
-        if bad:
             skipped += 1
             continue
         docs.append(doc)

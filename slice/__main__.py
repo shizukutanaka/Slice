@@ -22,9 +22,8 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               mirror, pipeline, render, rest, selfcheck)
-               pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               mirror, pipeline, render, rest, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 

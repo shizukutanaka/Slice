@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- signature: body_h正規化の欠陥修正。足関節が無い骨格では
+  スカラー4要素が生px値で出力され、同じポーズ同士のsignature
+  距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は
+  compare/dedupと同じ胴体長で正規化→距離0.24（骨欠損分のみ）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

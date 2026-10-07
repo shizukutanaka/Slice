@@ -4,6 +4,10 @@
 
 - `slice bundle pack|unpack|manifest <zip> [DIR]` — bundle層のCLI接続。KnowledgeStoreのzip梱包（manifest付き、不正docはskipped記録）／復元／マニフェスト閲覧。ストア配布形式がライブラリ専用だった状態を解消。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

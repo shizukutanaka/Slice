@@ -4,6 +4,11 @@
 
 - REST `GET /export/<id>.<fmt>` — 保存ドキュメントの骨格をbvh/gltf/coco/svg/ascii/paf/heatmapで直接ダウンロード。`skeleton.from_dict`（`to_dict`の逆変換）を新設し、Knowledgeドキュメント→Skeleton復元経路を共通化（エクスポート以外のdoc→Skeleton用途にも利用可能）。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

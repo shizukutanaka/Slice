@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.limbcov` 新設 — 骨レベルのシルエット被覆監査（各骨を
+  ~2px刻みでサンプリし6px超の背景横断をbroken検出、predicted
+  端点の骨は計測のみで断罪しない、evidの点検査を線分へ拡張）
 - `slice.framefit` 新設 — 部分人体/フレーム切り取りの推定
   （骨格端点のフレーム辺距離、上下左右の辺別 possibly_truncated、
   extremity判定で誤検出抑制、state:"estimated"、AUDIT P0-2対応）

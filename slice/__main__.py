@@ -18,7 +18,7 @@ import os
 import sys
 
 from . import (__version__, bitmap, evid, knowledge, limbcov,
-               mask as mask_mod, mask_mod, pipeline, render, rest, selfcheck,
+               mask as mask_mod, pipeline, render, rest, selfcheck,
                stability, trust)
 from .anatomy import BODY_MODELS
 

@@ -385,12 +385,13 @@ class HeuristicPoseEstimator(PoseEstimator):
             # hand, dress hem) only looks head-sized and must not flip
             # an upright figure.
             # a rotated candidate that finds fewer joints than the
-            # upright scan is regression, not reorientation — winning
-            # orientation must not silently amputate observed evidence
+            # upright scan is regression, not reorientation; and
+            # rotating without stronger head-band evidence just
+            # re-labels feet as head — an audit-clean fabrication on
+            # the rotated mask must not flip real upright evidence
             qualifies = (len(cand.joints) >= len(sk.joints)
-                         and (issues < base_issues
-                              or (issues == base_issues
-                                  and headw > base_headw * 1.3)))
+                         and issues <= base_issues
+                         and headw > base_headw * 1.3)
             if not qualifies:
                 continue
             key = (issues, -len(cand.joints), -headw)

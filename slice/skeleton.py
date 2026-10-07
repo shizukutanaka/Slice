@@ -15,6 +15,12 @@ PREDICTED = "predicted"
 
 Point = Tuple[float, float]
 
+# The neck moved from the chin (basis "head height prior", ~half a
+# head below the head centroid) to the clavicle (~one head below).
+# Stored skeletons disagree about which convention their neck uses —
+# only the joint's recorded basis disambiguates.
+NECK_CLAVICLE_BASIS = "clavicle midpoint below shoulder row"
+
 
 @dataclass
 class Joint:
@@ -93,3 +99,17 @@ class Skeleton:
         if norm is not None:
             d["normalized"] = norm
         return d
+
+
+def head_length_px(skel: Skeleton) -> Optional[float]:
+    """Head length in px via the neck joint's recorded convention.
+
+    Clavicle necks sit ~one head length below the head centroid, so
+    the raw distance is the head length; legacy chin necks sit ~half
+    a head below and must be doubled. Returns None when head or neck
+    is missing or inverted."""
+    head, neck = skel.get("head"), skel.get("neck")
+    if not head or not neck or neck.y <= head.y:
+        return None
+    mult = 1.0 if neck.basis == NECK_CLAVICLE_BASIS else 2.0
+    return (neck.y - head.y) * mult

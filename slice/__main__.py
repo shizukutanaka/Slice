@@ -190,10 +190,15 @@ def _cmd_bias(a) -> int:
                        evaluate.draw_case(width=240, height=320)):
         pairs.append((est.estimate(bmp).joints, truth))
     rep = bias.profile(pairs)
+    measured = bool(rep.get("joints"))
+    rep["state"] = "estimated" if measured else "unmeasured"
     print(json.dumps(rep, ensure_ascii=False, indent=2))
-    # a worst joint beyond the bench gate is a real estimator defect
+    # unmeasured must not pass; a worst joint beyond the bench gate is
+    # a real estimator defect
     worst = rep.get("worst_joint") or {}
-    return 1 if (worst.get("mean_error_px") or 0) > 10.0 else 0
+    if not measured or (worst.get("mean_error_px") or 0) > 10.0:
+        return 1
+    return 0
 
 
 def _cmd_serve(a) -> int:

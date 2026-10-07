@@ -16,7 +16,8 @@ from typing import List, Optional, Tuple
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL, select_model
 from .bitmap import Bitmap
-from .skeleton import OBSERVED, Joint, Skeleton
+from .skeleton import (OBSERVED, Joint, Skeleton,
+                       NECK_CLAVICLE_BASIS)
 
 
 class PoseEstimator:
@@ -429,7 +430,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         # systematic bias measured by the bias profile).
         neck_y = sh_row + max(2, int(head_h * 0.15))
         put("neck", (sr[0] + sr[1]) / 2, neck_y, 0.7,
-            "clavicle midpoint below shoulder row")
+            NECK_CLAVICLE_BASIS)
 
         # Pelvis / hips: crotch split, else widest row in the hip band.
         # Torso column = the mask run under the spine at chest height;

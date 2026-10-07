@@ -4,8 +4,10 @@ import io
 import json
 import unittest
 from contextlib import redirect_stdout
+from unittest import mock
 
 from slice.__main__ import main
+from slice.skeleton import Skeleton
 
 
 class BiasCliTest(unittest.TestCase):
@@ -24,6 +26,21 @@ class BiasCliTest(unittest.TestCase):
         # neck bias is fixed: worst joint stays under the bench gate
         self.assertLessEqual(worst["mean_error_px"], 10.0)
         self.assertEqual(rc, 0)
+
+    def test_unmeasured_fails(self):
+        # detection failure on every fixture must not pass the gate:
+        # no measurable joints → unmeasured → exit 1.
+        import slice.__main__ as cli
+        with mock.patch.object(cli.pipeline.ESTIMATOR, "estimate",
+                               return_value=Skeleton(1, 1)):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = main(["bias"])
+        rep = json.loads(buf.getvalue())
+        self.assertEqual(rep["state"], "unmeasured")
+        self.assertFalse(rep["joints"])
+        self.assertIsNone(rep["worst_joint"])
+        self.assertEqual(rc, 1)
 
 
 if __name__ == "__main__":

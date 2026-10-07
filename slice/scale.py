@@ -14,7 +14,7 @@ import math
 from typing import Dict, Optional
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL
-from .skeleton import Skeleton
+from .skeleton import Skeleton, head_length_px
 
 # Mean adult head length (vertex→chin), anthropometric standard.
 HEAD_CM = {"adult": 23.0, "child": 19.0, "deformed": 20.0}
@@ -30,16 +30,9 @@ _BONES_CM = [
 ]
 
 
-def _head_px(skel: Skeleton, prior: dict) -> Optional[float]:
-    """Head length in px from head centroid to neck.
-
-    The neck joint sits at the clavicle (shoulder line), which is
-    about one head-length below the head centroid: chin→clavicle is
-    ~half a head and the centroid is ~half a head above the chin."""
-    head, neck = skel.point("head"), skel.point("neck")
-    if head and neck:
-        return (neck[1] - head[1]) * 1.0
-    return None
+def _head_px(skel: Skeleton) -> Optional[float]:
+    """Head length in px — convention-aware (clavicle vs chin neck)."""
+    return head_length_px(skel)
 
 
 def calibrate(skel: Skeleton, model: Optional[str] = None) -> dict:
@@ -47,7 +40,7 @@ def calibrate(skel: Skeleton, model: Optional[str] = None) -> dict:
     name = model or (skel.body_model or {}).get("name") or DEFAULT_MODEL
     prior = BODY_MODELS.get(name, BODY_MODELS[DEFAULT_MODEL])
     head_cm = HEAD_CM.get(name, HEAD_CM["adult"])
-    head_px = _head_px(skel, prior)
+    head_px = _head_px(skel)
     if not head_px or head_px < 4:
         return {"px_per_cm": None, "basis": "head_prior",
                 "state": "estimated", "head_cm_assumed": head_cm}

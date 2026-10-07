@@ -19,13 +19,22 @@ def _d(a, b) -> float:
     return math.hypot(b[0] - a[0], b[1] - a[1])
 
 
+def _obs(skel: Skeleton, name: str):
+    """Observed-only lookup: a predicted joint is prior fill —
+    a cue fired on prior geometry is a fabricated measurement."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def cues(skel: Skeleton) -> List[dict]:
     """[{cue, weight, detail}] — all on observed joints."""
     out: List[dict] = []
-    pelvis = skel.point("pelvis")
+    pelvis = _obs(skel, "pelvis")
     for side in ("l", "r"):
-        hip = skel.point(f"hip_{side}")
-        ankle = skel.point(f"ankle_{side}")
+        hip = _obs(skel, f"hip_{side}")
+        ankle = _obs(skel, f"ankle_{side}")
         if hip and ankle:
             leg = _d(hip, ankle) or 1.0
             off = abs(ankle[0] - hip[0]) / leg
@@ -33,8 +42,8 @@ def cues(skel: Skeleton) -> List[dict]:
                 out.append({"cue": f"leg_off_axis_{side}",
                             "weight": 0.25,
                             "detail": round(off, 2)})
-        shoulder = skel.point(f"shoulder_{side}")
-        wrist = skel.point(f"wrist_{side}")
+        shoulder = _obs(skel, f"shoulder_{side}")
+        wrist = _obs(skel, f"wrist_{side}")
         if shoulder and wrist and pelvis:
             # wrist far laterally from torso → arm swing
             far = abs(wrist[0] - pelvis[0]) > 0.6 * _d(shoulder, wrist)
@@ -42,7 +51,7 @@ def cues(skel: Skeleton) -> List[dict]:
                 out.append({"cue": f"arm_out_{side}",
                             "weight": 0.15, "detail": None})
 
-    al, ar = skel.point("ankle_l"), skel.point("ankle_r")
+    al, ar = _obs(skel, "ankle_l"), _obs(skel, "ankle_r")
     if pelvis and al and ar:
         mid = (al[0] + ar[0]) / 2.0
         span = abs(ar[0] - al[0]) or 1.0
@@ -56,8 +65,9 @@ def cues(skel: Skeleton) -> List[dict]:
 
 
 def _span(skel: Skeleton) -> float:
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    top = _obs(skel, "head")
+    lo = max((j.y for j in skel.joints.values()
+              if j.state == "observed"), default=0.0)
     return (lo - top[1]) if top else 200.0
 
 

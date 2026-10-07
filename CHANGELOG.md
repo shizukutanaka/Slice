@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dynamics: cues/spanをobserved関節のみに修正。docstringが
+  "all on observed joints"と謳いながらpredicted関節を含めて
+  いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
+  wide_stepが発火し得た。predictedは欠損扱い。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

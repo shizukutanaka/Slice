@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import bitmap, pipeline
+from slice import bitmap, knowledge, pipeline
 
 
 class TestPipeline(unittest.TestCase):
@@ -29,7 +29,9 @@ class TestPipeline(unittest.TestCase):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertEqual(doc["analysis"]["gesture"]["count"], 0)
-        self.assertIsNone(doc["analysis"]["frame"])
+        self.assertNotIn("frame", doc["analysis"])
+        self.assertEqual(
+            knowledge.validate(pipeline.strip_runtime(doc)), [])
 
     def test_warnings_for_sparse_evidence(self):
         # an image with almost no figure should warn

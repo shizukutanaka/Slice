@@ -38,7 +38,7 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
-    doc["analysis"] = {
+    analysis = {
         "angles": angles.analyze(skel),
         "symmetry": symmetry.score(skel),
         "balance": balance.assess(skel),
@@ -49,6 +49,8 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         "frame": framepos.analyze(skel, skel.image_width,
                                   skel.image_height),
     }
+    # every layer must be a dict (knowledge.validate); omit empty ones
+    doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}
     doc["warnings"] = _warnings(skel)
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only

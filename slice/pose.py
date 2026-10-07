@@ -340,18 +340,25 @@ class HeuristicPoseEstimator(PoseEstimator):
         mask = self._mask(small)
         thr = self.last_threshold  # capture this call's decision — a
         comp, size = self._largest_component(mask, w, h)  # later call
-        sk = self._estimate_component(small, comp, size, w, h, model)
+        sk = self._estimate_oriented(small, comp, size, w, h, model)
         # may overwrite the shared attribute, so carry it on the
         # skeleton instead of reading it back
         sk.mask_threshold = thr
+        return sk
+
+    def _estimate_oriented(self, small, comp, size, w, h,
+                           model: str) -> Skeleton:
+        """Estimate one component with the orientation retry.
+
+        The upright scan silently mismeasures a lying or inverted
+        figure — sometimes even passing the consistency audit with
+        fabricated joints. Estimate all four orientations and keep
+        the most consistent skeleton with the strongest head-band
+        evidence; joints map back to image space and record the
+        rotation in their basis."""
+        sk = self._estimate_component(small, comp, size, w, h, model)
         if not sk.joints:
             return sk
-        # Orientation retry: the upright scan silently mismeasures a
-        # lying or inverted figure — sometimes even passing the
-        # consistency audit with fabricated joints. Estimate all four
-        # orientations and keep the most consistent skeleton with the
-        # strongest head-band evidence; joints map back to image space
-        # and record the rotation in their basis.
         from . import consistency
         base_issues = len(consistency.audit(sk, model))
         base_headw = _head_band_width(comp, w, h)
@@ -382,9 +389,9 @@ class HeuristicPoseEstimator(PoseEstimator):
             j.x, j.y = _unrotate((j.x, j.y), best_deg, w, h)
             j.basis = (j.basis + "; " if j.basis else "") \
                 + f"estimated on {best_deg}deg-rotated mask"
-        best.centroid = _unrotate(best.centroid, best_deg, w, h)
+        if best.centroid is not None:
+            best.centroid = _unrotate(best.centroid, best_deg, w, h)
         best.image_width, best.image_height = w, h
-        best.mask_threshold = thr
         return best
 
     def estimate_multi(self, bmp: Bitmap, model: str = DEFAULT_MODEL,
@@ -410,8 +417,8 @@ class HeuristicPoseEstimator(PoseEstimator):
             if sizes[lab] < w * h * min_fraction:
                 break
             comp = self._component_mask(labels, lab, w, h)
-            sk = self._estimate_component(small, comp, sizes[lab],
-                                          w, h, model)
+            sk = self._estimate_oriented(small, comp, sizes[lab],
+                                         w, h, model)
             sk.mask_threshold = thr
             if sk.joints:
                 out.append(sk)

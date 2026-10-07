@@ -4,6 +4,8 @@
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
 
+- `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

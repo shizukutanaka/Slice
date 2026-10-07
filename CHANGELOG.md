@@ -4,6 +4,10 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
+  推定器を走らせ、confidenceビン別の実測命中率（reliability
+  diagram）を報告。overconfidentビンがあれば exit 1。
+
 - `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

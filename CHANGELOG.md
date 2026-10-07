@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

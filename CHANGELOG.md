@@ -4,6 +4,10 @@
 
 - `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。
 
+- `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
+  推定器を走らせ、confidenceビン別の実測命中率（reliability
+  diagram）を報告。overconfidentビンがあれば exit 1。
+
 - `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

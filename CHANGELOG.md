@@ -4,6 +4,11 @@
 
 - `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
 
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

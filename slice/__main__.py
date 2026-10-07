@@ -152,11 +152,13 @@ def _cmd_audit_dir(a) -> int:
     import os
     exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
     paths = sorted(os.path.join(a.image, f) for f in os.listdir(a.image)
-                   if f.lower().endswith(exts))
+                   if f.lower().endswith(exts)
+                   and os.path.isfile(os.path.join(a.image, f)))
     if not paths:
         print(f"no images under {a.image}", file=sys.stderr)
         return 1
     tally = {"pass": 0, "warn": 0, "fail": 0}
+    results = []
     for p in paths:
         try:
             with open(p, "rb") as f:
@@ -164,11 +166,19 @@ def _cmd_audit_dir(a) -> int:
             res = selfcheck.run(raw, model=a.model, source_name=p,
                                 robust=a.robust)
             tally[res["verdict"]] += 1
+            results.append({"image": p, **res})
             print(f"{res['verdict']:>4}  {p}  "
                   f"{','.join(res['reasons'][:3])}")
         except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
             tally["fail"] += 1
+            results.append({"image": p, "verdict": "fail",
+                            "reasons": [str(e)]})
             print(f"fail  {p}  {e}", file=sys.stderr)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"results": results, "tally": tally}, f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
     print(f"audit: {tally['pass']} pass / {tally['warn']} warn / "
           f"{tally['fail']} fail ({len(paths)} images)",
           file=sys.stderr)

@@ -7,6 +7,9 @@
   bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
   （実測 footroom 0.037→0.014）。predictedは欠損扱い。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
                selfcheck, storechk)
+               limbcov, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -167,6 +169,29 @@ def _cmd_audit_store(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_limbcov(a) -> int:
+    """Bone-level silhouette coverage: bones crossing background."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = limbcov.check(skel, m)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    if res["verdict"] == "insufficient":
+        return 1
+    return 0 if res["verdict"] == "covered" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -217,6 +242,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    lc = sub.add_parser(
+        "limbcov", help="bone coverage vs silhouette")
+    lc.add_argument("image")
+    lc.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    lc.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    lc.set_defaults(fn=_cmd_limbcov)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

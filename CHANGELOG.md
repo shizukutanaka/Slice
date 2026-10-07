@@ -7,6 +7,8 @@
 - selfcheck: `human`レイヤを最大成分のみで採点 — フレーム内の無関係な物体がperson-like判定を歪めていた問題を修正（推定器と同じ成分を監査）。
 - stability: probe変体が推定器の`adaptive`/`reject_shadow`/`clean`フラグを引き継ぐ — robust プロファイルのベースラインをdefault変体と比較し「プロファイル差」を「閾値感度」と誤読する問題を修正。
 
+- `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

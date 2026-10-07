@@ -122,6 +122,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.people` 新設 — 前景連結成分の人物候補列挙（top-K
+  成分のbbox/面積/辺接触、単一成分前提の最初の一歩、
+  成分≠人物をnoteに明記、AUDIT P0-1対応）
 - `docs/AUDIT.md` 新設 — 長所50/短所50/改善点の製品監査
   （第一原理＋ソクラテス問答によるP0–P4優先度付け）
 - `mask.cutout` 修正 — 透過黒初期化が暗色被写体を再推定で

@@ -4,6 +4,8 @@
         [--model adult|child|deformed] [--robust] [--overlay out.png]
         [--store DIR]
     python -m slice batch <dir> --store DIR [--model M] [-r]
+    python -m slice audit <image> [--model M] [--robust] [-o audit.json]
+        — run every quality layer over one image and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -14,7 +16,8 @@ import argparse
 import json
 import sys
 
-from . import __version__, bitmap, knowledge, pipeline, render, rest
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -118,6 +121,28 @@ def _cmd_analyze_multi(a, raw) -> int:
     return 0
 
 
+def _cmd_audit(a) -> int:
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        res = selfcheck.run(raw, model=a.model, source_name=a.image,
+                            robust=a.robust)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        print(json.dumps({k: res[k] for k in
+                          ("verdict", "severity", "reasons")},
+                         ensure_ascii=False, indent=2))
+    print(f"verdict: {res['verdict']} "
+          f"({res['n_reasons']} reasons)", file=sys.stderr)
+    return 0 if res["verdict"] != "fail" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -155,6 +180,15 @@ def main(argv=None) -> int:
     b.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     b.add_argument("-r", "--recursive", action="store_true")
     b.set_defaults(fn=_cmd_batch)
+
+    au = sub.add_parser("audit", help="run all quality layers on one image")
+    au.add_argument("image")
+    au.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    au.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    au.add_argument("-o", "--output",
+                    help="write the full audit JSON (all layers + doc)")
+    au.set_defaults(fn=_cmd_audit)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

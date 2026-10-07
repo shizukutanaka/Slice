@@ -1,0 +1,135 @@
+"""One-shot self-audit — every merged quality layer on one image.
+
+The audit stack grew as separate library modules (imgqual, human,
+evid, limbcov, fit, stability, contrad, gate). `run` drives them all
+over a single decode and folds their per-layer verdicts into one
+overall verdict with the reason codes preserved:
+
+    input   imgqual   adequate | marginal | inadequate
+    subject human     person_like (advisory, never a veto)
+    skeleton evid     off_mask observed joints
+            limbcov   covered | gaps | insufficient
+            fit       good | poor | unmeasurable
+            stability stable_fraction over threshold probes
+    layers  contrad   consistent | contradicted
+    doc     gate      pass | warn | fail
+
+Layers that cannot measure (no skeleton, no foreground) report their
+own `unmeasurable`/`insufficient` state and do not move the verdict —
+absence of evidence is not downgraded as if it were bad evidence.
+"""
+
+from __future__ import annotations
+
+from typing import Dict, Optional
+
+from . import (axis, balance, bitmap, classify, contrad, evid, fit,
+               gate, ground, human, imgqual, knowledge, limbcov,
+               mask as mask_mod, pipeline, stability)
+
+_SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
+
+
+def _severity(layer: str, result: Dict) -> str:
+    """Map one layer's own verdict vocabulary onto a common scale."""
+    if layer == "imgqual":
+        return {"adequate": "ok", "marginal": "advisory",
+                "inadequate": "problem"}.get(result["verdict"],
+                                             "unmeasured")
+    if layer == "human":
+        if result["state"] == "unmeasurable":
+            return "unmeasured"
+        return "ok" if result["person_like"] else "advisory"
+    if layer == "evid":
+        if result["state"] == "unmeasurable":
+            return "unmeasured"
+        return "advisory" if result["off_mask"] else "ok"
+    if layer == "limbcov":
+        return {"covered": "ok", "gaps": "advisory"}.get(
+            result["verdict"], "unmeasured")
+    if layer == "fit":
+        return {"good": "ok", "poor": "advisory"}.get(
+            fit.verdict(result), "unmeasured")
+    if layer == "stability":
+        if result["state"] == "unmeasurable":
+            return "unmeasured"
+        return "advisory" if stability.unstable(result) else "ok"
+    if layer == "contrad":
+        return {"consistent": "ok", "contradicted": "problem"}.get(
+            result["verdict"], "unmeasured")
+    if layer == "gate":
+        return {"pass": "ok", "warn": "advisory",
+                "fail": "problem"}.get(result["verdict"], "unmeasured")
+    return "unmeasured"
+
+
+def run(raw: bytes, *, model: Optional[str] = None,
+        source_name: str = "", robust: bool = False) -> Dict:
+    """Audit one image; return {verdict, reasons, layers, doc}.
+
+    `doc` is the ordinary Knowledge document produced alongside the
+    audit — the audit judges it, it is not the product itself.
+    """
+    bmp = bitmap.decode(raw)
+    est = pipeline.ROBUST_ESTIMATOR if robust else pipeline.ESTIMATOR
+    mdl = model or "adult"
+    layers: Dict[str, dict] = {}
+    reasons = []
+
+    layers["imgqual"] = imgqual.assess(bmp)
+    if not imgqual.adequate(layers["imgqual"]):
+        reasons.append("imgqual:" + layers["imgqual"]["verdict"])
+
+    skel = est.estimate(bmp, mdl)
+    mask = mask_mod.foreground(bmp, est)
+
+    if mask_mod.coverage(mask) > 0:
+        layers["human"] = human.assess(mask)
+        if layers["human"]["state"] == "measured" \
+                and not layers["human"]["person_like"]:
+            reasons.append("human:not_person_like")
+
+    if skel.joints:
+        layers["evid"] = evid.locate(skel, mask)
+        reasons += ["evid:off_mask:" + j
+                    for j in evid.unsupported(layers["evid"])]
+        layers["limbcov"] = limbcov.check(skel, mask)
+        reasons += ["limbcov:" + b for b in limbcov.uncovered(
+            layers["limbcov"])]
+        layers["fit"] = fit.fit(skel, mask)
+        if fit.verdict(layers["fit"]) == "poor":
+            reasons.append("fit:poor")
+        layers["stability"] = stability.probe(bmp, est, mdl)
+        reasons += ["stability:unstable:" + j
+                    for j in stability.unstable(layers["stability"])]
+        layers["contrad"] = contrad.check({
+            "classify": classify.analyze(skel),
+            "axis": {"angle_deg": (
+                (axis.principal(skel) or {}).get("angle_deg"))},
+            "ground": ground.estimate(skel, bmp.height),
+            "balance": balance.assess(skel),
+        })
+        reasons += ["contrad:" + c["id"]
+                    for c in layers["contrad"]["contradictions"]]
+
+    doc = pipeline._build_doc(
+        skel, bmp, knowledge.sha256(raw), source_name, mdl,
+        estimator=est, robust=robust)
+    layers["gate"] = gate.check(skel, doc, mdl)
+    reasons += layers["gate"]["reasons"]
+
+    sev = {l: _severity(l, r) for l, r in layers.items()}
+    worst = max((_SEV[s] for s in sev.values()), default=-1)
+    verdict = {2: "fail", 1: "warn"}.get(worst, "pass")
+
+    return {
+        "verdict": verdict,
+        "severity": sev,
+        "reasons": reasons,
+        "n_reasons": len(reasons),
+        "layers": layers,
+        "doc": pipeline.strip_runtime(doc),
+        "state": "derived",
+        "basis": "self-audit over imgqual/human/evid/limbcov/fit/"
+                 "stability/contrad/gate",
+    }

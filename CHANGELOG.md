@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.migrate` 新設 — 旧Knowledgeドキュメントのスキーマ正規化
+  （export/prediction/coverage/bonesを関節から再構築、欠損stateは
+  predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、
+  全変更をchangesに列挙＋valid_before/afterで検証可能）
 - pose: 骨盤幅を胴カラムランで計測（外縁=腕を含みpriorと66%乖離
   していた問題を解消）＋膝を足ランのアンカーで選択（膝行の
   最端ラン=腕を拾う誤りを修正）＋rom: 1px未満セグメントは

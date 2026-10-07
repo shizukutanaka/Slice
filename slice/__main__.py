@@ -4,8 +4,9 @@
         [--model adult|child|deformed] [--robust] [--overlay out.png]
         [--store DIR]
     python -m slice batch <dir> --store DIR [--model M] [-r]
-    python -m slice audit <image> [--model M] [--robust] [-o audit.json]
-        — run every quality layer over one image and print a verdict
+    python -m slice audit <image|dir> [--model M] [--robust] [-o audit.json]
+        — run every quality layer over one image (or a directory)
+          and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -122,6 +123,9 @@ def _cmd_analyze_multi(a, raw) -> int:
 
 
 def _cmd_audit(a) -> int:
+    import os
+    if os.path.isdir(a.image):
+        return _cmd_audit_dir(a)
     with open(a.image, "rb") as f:
         raw = f.read()
     try:
@@ -141,6 +145,34 @@ def _cmd_audit(a) -> int:
     print(f"verdict: {res['verdict']} "
           f"({res['n_reasons']} reasons)", file=sys.stderr)
     return 0 if res["verdict"] != "fail" else 1
+
+
+def _cmd_audit_dir(a) -> int:
+    """Audit every image under a directory; print a verdict per file."""
+    import os
+    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
+    paths = sorted(os.path.join(a.image, f) for f in os.listdir(a.image)
+                   if f.lower().endswith(exts))
+    if not paths:
+        print(f"no images under {a.image}", file=sys.stderr)
+        return 1
+    tally = {"pass": 0, "warn": 0, "fail": 0}
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                raw = f.read()
+            res = selfcheck.run(raw, model=a.model, source_name=p,
+                                robust=a.robust)
+            tally[res["verdict"]] += 1
+            print(f"{res['verdict']:>4}  {p}  "
+                  f"{','.join(res['reasons'][:3])}")
+        except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
+            tally["fail"] += 1
+            print(f"fail  {p}  {e}", file=sys.stderr)
+    print(f"audit: {tally['pass']} pass / {tally['warn']} warn / "
+          f"{tally['fail']} fail ({len(paths)} images)",
+          file=sys.stderr)
+    return 0 if not tally["fail"] else 1
 
 
 def _cmd_serve(a) -> int:
@@ -182,7 +214,7 @@ def main(argv=None) -> int:
     b.set_defaults(fn=_cmd_batch)
 
     au = sub.add_parser("audit", help="run all quality layers on one image")
-    au.add_argument("image")
+    au.add_argument("image", help="image file or directory")
     au.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     au.add_argument("--robust", action="store_true",
                     help="robust estimation profile")

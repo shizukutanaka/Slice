@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
+  全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
+  一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは
+  CIゲート可）
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

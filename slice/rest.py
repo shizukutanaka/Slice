@@ -3,6 +3,7 @@
     GET  /                     viewer UI
     POST /analyze[?model=..&save=1]   raw image body -> Knowledge JSON
     POST /analyze?multi=1           -> {"people": [docs], "count": n}
+    POST /audit[?model=..&robust=1]  raw image body -> self-audit JSON
     GET  /knowledge            list stored knowledge ids
     GET  /knowledge/<id>       one stored document
     GET  /overlay/<id>         PNG overlay (requires ?save=1 at analyze)
@@ -16,7 +17,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from . import __version__, bitmap, knowledge, pipeline, render
+from . import __version__, bitmap, knowledge, pipeline, render, selfcheck
 
 _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
@@ -100,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self._require_auth():
             return
         url = urlparse(self.path)
-        if url.path != "/analyze":
+        if url.path not in ("/analyze", "/audit"):
             return self._error(404, "not found")
         length = int(self.headers.get("Content-Length") or 0)
         if not 0 < length <= 25 * 1024 * 1024:
@@ -108,6 +109,8 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         qs = parse_qs(url.query)
         model = (qs.get("model") or [None])[0]
+        if url.path == "/audit":
+            return self._audit(raw, qs, model)
         if qs.get("multi"):
             return self._analyze_multi(raw, qs, model)
         try:
@@ -127,6 +130,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.overlays[kid] = render.overlay_png(
                     doc["_bitmap"], doc["_skeleton"])
         self._json(out)
+
+    def _audit(self, raw, qs, model):
+        try:
+            res = selfcheck.run(
+                raw, model=model,
+                source_name=self.headers.get("X-Image-Name", ""),
+                robust=bool(qs.get("robust")))
+        except bitmap.UnsupportedFormat as e:
+            return self._error(415, str(e))
+        except Exception as e:  # noqa: BLE001
+            return self._error(422, f"audit failed: {e}")
+        self._json(res)
 
     def _analyze_multi(self, raw, qs, model):
         try:

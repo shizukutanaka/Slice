@@ -1,8 +1,22 @@
+import http.client
+import json
+import tempfile
+import threading
 import unittest
+from http.server import ThreadingHTTPServer
 
 from tests import synthetic_person
 
-from slice import bitmap, selfcheck
+from slice import bitmap, knowledge, rest, selfcheck
+
+
+def _post(port, path, body):
+    c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    c.request("POST", path, body=body)
+    r = c.getresponse()
+    data = r.read()
+    c.close()
+    return r.status, data
 
 
 class TestSelfCheck(unittest.TestCase):
@@ -29,6 +43,30 @@ class TestSelfCheck(unittest.TestCase):
         r = selfcheck.run(raw, robust=True)
         self.assertEqual(r["doc"]["engine"]["profile"], "robust")
         self.assertIn(r["verdict"], ("pass", "warn", "fail"))
+
+
+class TestAuditRest(unittest.TestCase):
+    def test_post_audit_endpoint(self):
+        rest.Handler.store = knowledge.KnowledgeStore(
+            tempfile.mkdtemp())
+        rest.Handler.token = None
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), rest.Handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        port = srv.server_address[1]
+        try:
+            raw = bitmap.encode_png(synthetic_person())
+            status, data = _post(port, "/audit", raw)
+            self.assertEqual(status, 200)
+            body = json.loads(data)
+            self.assertIn(body["verdict"], ("pass", "warn"))
+            self.assertIn("layers", body)
+            self.assertIn("doc", body)
+            status, data = _post(port, "/audit?robust=1", raw)
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(data)["doc"]["engine"]
+                             ["profile"], "robust")
+        finally:
+            srv.shutdown()
 
 
 if __name__ == "__main__":

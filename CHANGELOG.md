@@ -4,6 +4,10 @@
 
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

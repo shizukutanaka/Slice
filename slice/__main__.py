@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               imgqual, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,19 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_imgqual(a) -> int:
+    """Image evidence adequacy before estimation."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = imgqual.assess(bmp)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] != "inadequate" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +203,11 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    iq = sub.add_parser(
+        "imgqual", help="image evidence adequacy")
+    iq.add_argument("image")
+    iq.set_defaults(fn=_cmd_imgqual)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

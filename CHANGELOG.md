@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice imgqual <image>` — imgqual層のCLI接続。推定前段の画像証拠適格性（size/dynamic/blur/contrastの4計測フラグ→adequate/marginal/inadequate）。inadequateは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

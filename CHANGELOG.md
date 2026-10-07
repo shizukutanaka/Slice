@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- cli: `slice analyze` のstderr要約にwarnings行を追加。
+  `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
+  docがCLI上ではクリーンなdocと同一表示になっていた
+  （viewer側と同型の沈黙表示）。警告がある場合のみ
+  `warnings: <code>, ...` を出力。
+
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

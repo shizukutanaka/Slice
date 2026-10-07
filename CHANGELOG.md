@@ -7,6 +7,11 @@
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
   wide_stepが発火し得た。predictedは欠損扱い。
 
+- smooth: observed関節の平滑位置が近傍フレームのpredicted座標に
+  引きずられる誠実性の欠陥を修正（実測: 手首が真値49px→69pxに
+  20px偏移）。observed中心はobservedサンプルのみで平均し、
+  predicted中心は従来どおり全サンプル平均（証拠は集める側）。
+
 - axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
   幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
   誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。

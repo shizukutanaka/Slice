@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- audit: docの`warnings`ブロックを監査対象に追加。関節stateと
+  矛盾する警告コード（例: 観測8件以上なのに
+  `few_observed_joints`）を `stale_warning` として報告。
+  陳腐な警告申告が消費者を誤誘導する経路を遮断。
+  語彙外コードは外部語彙として据え置き（stale扱いしない）。
+
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

@@ -4,6 +4,11 @@
 
 - `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

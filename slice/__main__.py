@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               mutate, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,45 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _parse_rect(s: str):
+    try:
+        x0, y0, x1, y1 = (int(v) for v in s.split(","))
+    except ValueError:
+        raise SystemExit("rect must be x0,y0,x1,y1")
+    return x0, y0, x1, y1
+
+
+def _cmd_mutate(a) -> int:
+    """Deterministic robustness transforms: noise/occlude/crop."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    if a.noise is not None:
+        out = mutate.add_noise(bmp, a.noise, seed=a.seed)
+        op = {"op": "noise", "amount": a.noise, "seed": a.seed}
+    elif a.occlude:
+        x0, y0, x1, y1 = _parse_rect(a.occlude)
+        out = mutate.occlude(bmp, x0, y0, x1, y1)
+        op = {"op": "occlude", "rect": [x0, y0, x1, y1]}
+    elif a.crop:
+        x0, y0, x1, y1 = _parse_rect(a.crop)
+        out = mutate.crop(bmp, x0, y0, x1, y1)
+        op = {"op": "crop", "rect": [x0, y0, x1, y1]}
+    else:
+        print("specify --noise N, --occlude or --crop",
+              file=sys.stderr)
+        return 2
+    with open(a.output, "wb") as f:
+        f.write(bitmap.encode_png(out))
+    print(json.dumps({**op, "output": a.output,
+                      "size": [out.width, out.height]},
+                     ensure_ascii=False))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +229,21 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    mu = sub.add_parser(
+        "mutate", help="robustness transforms (noise/occlude/crop)")
+    mu.add_argument("image")
+    mu.add_argument("--noise", type=int, default=None,
+                    help="uniform noise amplitude (seeded)")
+    mu.add_argument("--occlude", metavar="X0,Y0,X1,Y1",
+                    help="black-box occlusion rect")
+    mu.add_argument("--crop", metavar="X0,Y0,X1,Y1",
+                    help="crop rect")
+    mu.add_argument("--seed", type=int, default=0,
+                    help="noise seed (deterministic)")
+    mu.add_argument("-o", "--output", required=True,
+                    help="output PNG path")
+    mu.set_defaults(fn=_cmd_mutate)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

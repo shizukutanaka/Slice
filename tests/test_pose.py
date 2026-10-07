@@ -77,6 +77,17 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(self.skel.orientation["facing"], "front")
         self.assertIn(self.skel.body_model["name"],
                       ("adult", "child", "deformed"))
+        # the prior actually applied to observed placement is disclosed
+        self.assertIn(self.skel.body_model["prior"],
+                      ("adult", "child", "deformed"))
+
+    def test_prior_discloses_applied_model(self):
+        est = HeuristicPoseEstimator()
+        forced = est.estimate(synthetic_person(), model="child")
+        self.assertEqual(forced.body_model["prior"], "child")
+        # a bogus name falls back to the default table — and says so
+        bogus = est.estimate(synthetic_person(), model="nope")
+        self.assertEqual(bogus.body_model["prior"], "adult")
 
     def test_profile_facing_direction(self):
         est = HeuristicPoseEstimator()

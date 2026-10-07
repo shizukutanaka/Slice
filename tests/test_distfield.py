@@ -15,10 +15,12 @@ class TestDistField(unittest.TestCase):
         self.dist = distfield.distance_transform(self.mask)
 
     def test_torso_thicker_than_arm(self):
-        pelvis = self.skel.point("pelvis")
+        # Chest = torso core; the pelvis point now sits at the crotch
+        # edge, which is honestly the thinnest spot on the body.
+        chest = self.skel.point("chest")
         wrist = self.skel.point("wrist_l")
         t_torso = distfield.thickness_at(self.dist, self.bmp.width,
-                                       *pelvis)
+                                       *chest)
         t_arm = distfield.thickness_at(self.dist, self.bmp.width,
                                        wrist[0], wrist[1] - 8)
         self.assertGreater(t_torso, t_arm)

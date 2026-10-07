@@ -12,6 +12,10 @@ from typing import Dict, List, Optional, Tuple
 
 OBSERVED = "observed"
 PREDICTED = "predicted"
+# a third honesty state: the joint was measured, then a coordinate
+# transform (crop/resize) moved it out of the frame — unmeasurable,
+# not evidence, not fill
+OUT_OF_FRAME = "out_of_frame"
 
 Point = Tuple[float, float]
 
@@ -22,7 +26,7 @@ class Joint:
     x: float
     y: float
     confidence: float
-    state: str = OBSERVED  # OBSERVED | PREDICTED
+    state: str = OBSERVED  # OBSERVED | PREDICTED | OUT_OF_FRAME
     basis: str = ""        # what evidence produced this joint
 
     def to_dict(self) -> dict:

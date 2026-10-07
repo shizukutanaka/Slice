@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- skeleton/knowledge/migrate: `out_of_frame` stateを第3の誠実
+  状態として正式化。norm変換で観測関節がフレーム外に出た際の
+  stateはvalidateの語彙に無く、crop済み骨格がStore保存不可
+  だった → validate受容＋predictionブロックに
+  `out_of_frame`リスト＋coverageにout_of_frameカウントを追加。
+  migrateは該当stateをpredictedへ書き換えず保持。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

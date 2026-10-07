@@ -46,6 +46,23 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_out_of_frame_state_validates(self):
+        from slice import norm
+        from slice.pose import HeuristicPoseEstimator
+        img = synthetic_person()
+        sk = HeuristicPoseEstimator().estimate(img)
+        # crop away half the figure — observed joints leave the frame
+        c = norm.crop(sk, 0, 0, img.width // 2, img.height)
+        doc = knowledge.build(c, {}, source_name="t",
+                              engine={"name": "t", "version": "0"})
+        self.assertEqual(knowledge.validate(doc), [])
+        n_oof = sum(1 for j in c.joints.values()
+                    if j.state == "out_of_frame")
+        self.assertGreater(n_oof, 0)
+        self.assertEqual(len(doc["prediction"]["out_of_frame"]),
+                         n_oof)
+        self.assertEqual(doc["coverage"]["out_of_frame"], n_oof)
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

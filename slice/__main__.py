@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               contour, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,32 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_contour(a) -> int:
+    """Silhouette contour trace + shape descriptors."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = contour.features(m)
+    if a.output:
+        pts = contour.trace(m)
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"contour": pts,
+                       "frame": [small.width, small.height]},
+                      f)
+        print(f"wrote {a.output} ({len(pts)} points)",
+              file=sys.stderr)
+    res["frame"] = [small.width, small.height]
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["area"] else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +216,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ct = sub.add_parser(
+        "contour", help="silhouette contour + descriptors")
+    ct.add_argument("image")
+    ct.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ct.add_argument("-o", "--output",
+                    help="write the traced contour points JSON")
+    ct.set_defaults(fn=_cmd_contour)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

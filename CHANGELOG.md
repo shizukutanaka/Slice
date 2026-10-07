@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

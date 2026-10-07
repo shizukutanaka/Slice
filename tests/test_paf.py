@@ -23,6 +23,17 @@ class TestPaf(unittest.TestCase):
         self.assertGreater(leg["dir"][1], 0.9)
         self.assertTrue(leg["cells"])
 
+    def test_out_of_frame_endpoint_emits_no_field(self):
+        # a bone to an unmeasurable (out_of_frame) joint must not
+        # emit an association field at all — its stale position is
+        # not evidence for a limb edge inside the frame
+        j = self.skel.joints["wrist_l"]
+        j.state = "out_of_frame"
+        j.x, j.y = -30.0, 60.0
+        fields = paf.field(self.skel)
+        bones = {f["bone"] for f in fields}
+        self.assertNotIn(("elbow_l", "wrist_l"), bones)
+
     def test_predicted_bone_weakens(self):
         j = self.skel.joints["wrist_l"]
         j.state = "predicted"

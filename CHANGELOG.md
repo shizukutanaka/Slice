@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- paf: `out_of_frame`端点の骨はフィールドを生成しない。
+  減衰判定が `PREDICTED in (states)` の2値で、フレーム外に出た
+  関節への骨がフル強度の連結フィールドをフレーム内に残していた。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

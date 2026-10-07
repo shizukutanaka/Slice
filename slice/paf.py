@@ -49,6 +49,12 @@ def field(skel: Skeleton, width: float = 6.0,
         pa, pb = skel.point(ja), skel.point(jb)
         if not pa or not pb:
             continue
+        # an out_of_frame endpoint is unmeasurable — its stale
+        # pre-transform position would assert a full-strength
+        # association field for a limb edge that is not in the frame
+        if "out_of_frame" in (skel.joints[ja].state,
+                              skel.joints[jb].state):
+            continue
         dx, dy = pb[0] - pa[0], pb[1] - pa[1]
         L = math.hypot(dx, dy)
         if L < 1e-6:

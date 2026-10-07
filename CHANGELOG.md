@@ -10,6 +10,11 @@
   実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
   腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
 
+- dominance: 双側膝屈曲（スクワット）の捏造利き脚を修正。
+  unloaded_l+unloaded_r が同時発火して同票決 max() が "l" を
+  返していた（実測 conf 0.37）。双側屈曲は相殺し
+  both_legs_flexed（even）キューに変換 → even/conf 1.0。
+
 - skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
   時は胴体長、非計測時0）。contact/dynamics/ground/reach の
   身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ

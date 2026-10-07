@@ -17,28 +17,40 @@ from .skeleton import Skeleton
 _CHAIN = ("head", "neck", "chest", "pelvis")
 
 
+def _obs(skel: Skeleton, name: str):
+    """Observed-only lookup: a predicted joint is prior fill — a
+    chord-placed chest or "foot below ankle" ankle would fabricate a
+    plumb offset, so it is excluded like a missing joint."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def line(skel: Skeleton) -> Optional[dict]:
     """{x, joints, offsets} — plumb x = head/neck average (the
     reference); offsets = each joint's horizontal deviation in px
     and as a fraction of body height."""
-    head = skel.point("head")
-    neck = skel.point("neck")
+    head = _obs(skel, "head")
+    neck = _obs(skel, "neck")
     if not head or not neck:
         return None
     ref_x = (head[0] + neck[0]) / 2.0
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    lo = max((j.y for j in skel.joints.values()
+              if j.state == "observed"), default=0.0)
     body_h = max(lo - head[1], 1.0)
 
     offsets: Dict[str, dict] = {}
     for name in _CHAIN:
-        p = skel.point(name)
+        p = _obs(skel, name)
         if not p:
             continue
         dx = p[0] - ref_x
         offsets[name] = {"dx": round(dx, 1),
                          "of_body_h": round(dx / body_h, 3)}
     # support reference: mean ankle x
-    ankles = [p for p in (skel.point("ankle_l"), skel.point("ankle_r")) if p]
+    ankles = [p for p in (_obs(skel, "ankle_l"), _obs(skel, "ankle_r"))
+              if p]
     if ankles:
         ax = sum(p[0] for p in ankles) / len(ankles)
         offsets["base"] = {"dx": round(ax - ref_x, 1),
@@ -57,8 +69,9 @@ def forward_head(skel: Skeleton) -> Optional[dict]:
 
 
 def _span(skel: Skeleton) -> float:
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    top = _obs(skel, "head")
+    lo = max((j.y for j in skel.joints.values()
+              if j.state == "observed"), default=0.0)
     return (lo - top[1]) if top else 200.0
 
 

@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

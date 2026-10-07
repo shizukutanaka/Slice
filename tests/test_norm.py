@@ -19,8 +19,20 @@ class TestNorm(unittest.TestCase):
     def test_crop_marks_out_of_frame(self):
         head = self.skel.point("head")
         out = norm.crop(self.skel, head[0] + 100, 0, 300, 300)
-        self.assertEqual(out.joints["head"].state, "out_of_frame")
+        # demoted to a legal state (predicted) — "out_of_frame" was
+        # outside the validate() vocabulary and made the doc unsavable
+        self.assertEqual(out.joints["head"].state, "predicted")
         self.assertIn("lost to transform", out.joints["head"].basis)
+        self.assertIn("was observed", out.joints["head"].basis)
+
+    def test_cropped_skeleton_validates(self):
+        # a joint lost to the transform must not make the document
+        # fail validate() / refuse KnowledgeStore.save()
+        from slice import knowledge
+        head = self.skel.point("head")
+        out = norm.crop(self.skel, head[0] + 100, 0, 300, 300)
+        doc = knowledge.build(out, {}, engine={"name": "test"})
+        self.assertEqual(knowledge.validate(doc), [])
 
     def test_resize_scales(self):
         head = self.skel.point("head")

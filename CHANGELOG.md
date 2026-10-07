@@ -6,6 +6,9 @@
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

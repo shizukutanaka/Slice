@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- knowledge/migrate: exportブロックに`keypoints_state`追加。
+  フラット `keypoints_2d` は [x,y,conf] のみでpredicted関節が
+  観測と区別不能だった → keypoint_orderと整合する
+  observed/predicted/absent配列を同梱。migrateは旧docへ
+  `keypoints_state_backfilled` として開示的に補完。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

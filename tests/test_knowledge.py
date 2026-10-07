@@ -46,6 +46,15 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_keypoints_state_aligns_with_order(self):
+        doc = analyze_synth()
+        ex = doc["export"]
+        self.assertEqual(len(ex["keypoints_state"]), len(JOINTS))
+        sk = doc["skeleton"]["joints"]
+        for name, st in zip(ex["keypoint_order"], ex["keypoints_state"]):
+            expect = sk[name]["state"] if name in sk else "absent"
+            self.assertEqual(st, expect)
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

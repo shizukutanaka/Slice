@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- migrate: state未記入関節の由来補記が既存basisと区切りなしで
+  直結していたのを修正（"measured row 10migrated: state unknown"
+  のように既存由来を破損、recoverと同じ "; " 区切りに統一）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- gesture: 逆転骨格で wave が両腕発火していた欠陥を修正。
+  「頭上の手首」判定が画像座標のみで身体の向きを見ていなかった
+  ため、逆さま骨格では全手首が頭上に → 検出捏造。
+  wave は直立時（head 上方に pelvis）のみ発火させる。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

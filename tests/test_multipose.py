@@ -63,6 +63,22 @@ class TestEstimateMulti(unittest.TestCase):
             wide, top_k=3)
         self.assertEqual(len(skels), 3)
 
+    def test_lying_person_retried(self):
+        # a sideways figure is a separate component: it must get the
+        # same orientation retry the single-person path applies
+        person, _ = evaluate.draw_case(160, 300)
+        lying = Bitmap.new(person.height, person.width, BG)
+        for y in range(person.height):
+            for x in range(person.width):
+                lying.set(person.height - 1 - y, x, person.get(x, y))
+        skels = pose.HeuristicPoseEstimator().estimate_multi(lying)
+        self.assertEqual(len(skels), 1)
+        sk = skels[0]
+        self.assertGreaterEqual(len(sk.joints), 15)
+        head = sk.joints.get("head")
+        self.assertIsNotNone(head)
+        self.assertIn("rotated mask", head.basis or "")
+
 
 if __name__ == "__main__":
     unittest.main()

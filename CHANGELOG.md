@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `docs/PHASES.md` 新設 — Phase完了基準の定量化（各条件を
+  モジュール/テスト/コマンドで検証可能に、充足率ベースの
+  完成度計算＋主要ギャップを第一原理順に列挙、AUDIT P4-24対応）
 - CI導入 — `.github/workflows/test.yml`: push/PRごとに
   `python -m unittest discover -s tests` をPython 3.9/3.11/3.12
   で自動実行（stdlib専用・依存インストール不要、

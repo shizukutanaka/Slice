@@ -4,6 +4,9 @@
 
 - REST `GET /export/<id>.<fmt>` — 保存ドキュメントの骨格をbvh/gltf/coco/svg/ascii/paf/heatmapで直接ダウンロード。`skeleton.from_dict`（`to_dict`の逆変換）を新設し、Knowledgeドキュメント→Skeleton復元経路を共通化（エクスポート以外のdoc→Skeleton用途にも利用可能）。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

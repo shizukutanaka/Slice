@@ -4,6 +4,11 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

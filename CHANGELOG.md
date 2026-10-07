@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- framepos: bounds/headroomをobserved関節のみで計測。
+  predicted関節（"foot below ankle"プライア等）が関節クラウド
+  bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
+  （実測 footroom 0.037→0.014）。predictedは欠損扱い。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

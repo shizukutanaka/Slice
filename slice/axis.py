@@ -28,8 +28,13 @@ def _eig2x2(sxx: float, syy: float, sxy: float) -> Tuple[float, float, float]:
 
 def principal(skel: Skeleton) -> Optional[dict]:
     """{angle_deg, anisotropy, spread, centroid} — angle 90°=vertical
-    image axis (upright), 0°=horizontal (lying)."""
-    pts = [(j.x, j.y) for j in skel.joints.values()]
+    image axis (upright), 0°=horizontal (lying).
+
+    PCA runs on observed joints only: predicted positions are
+    fabricated geometry and would pull the "measured" axis toward
+    the prior's shape."""
+    pts = [(j.x, j.y) for j in skel.joints.values()
+           if j.state == "observed"]
     n = len(pts)
     if n < 3:
         return None

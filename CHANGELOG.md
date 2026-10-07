@@ -7,6 +7,22 @@
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
   wide_stepが発火し得た。predictedは欠損扱い。
 
+- gesture: 逆転骨格で wave が両腕発火していた欠陥を修正。
+  「頭上の手首」判定が画像座標のみで身体の向きを見ていなかった
+  ため、逆さま骨格では全手首が頭上に → 検出捏造。
+  wave は直立時（head 上方に pelvis）のみ発火させる。
+
+- symmetry: predicted関節を含むペアを計測対象から除外。
+  predictedは観測側のミラー複製で作られるため、含めると
+  対称スコアが構造的に1.0に — 「計測された対称性」の捏造。
+  ペアは両骨4端点が全てobservedの場合のみ比較し、それ以外は
+  missingに報告（推測しない）。実測: 右腕predicted骨格で
+  score 1.0/compared 7 → missing 3ペア報告に。
+
+- framepos: headroomを頭関節y→関節群最上端に修正。腕上げ
+  （手首が頭より上）で上端余白を過大評価し tight を portrait
+  と誤判定していた（実測 headroom 0.089→0.005）。
+
 - plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
   body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
   閾値が負値で常時発火していた。胴体長フォールバック＋スケール

@@ -8,6 +8,9 @@
   端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
   スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

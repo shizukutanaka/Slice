@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice motion <A> <B>` — motion層のCLI接続。2フレーム画像の関節移動ベクトル＋最速関節・部位別集計JSON。`--min-confidence`で低信頼関節を除外。
+
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

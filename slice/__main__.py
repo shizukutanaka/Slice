@@ -17,7 +17,7 @@ import json
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               dataset, selfcheck)
+               dataset, motion, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -162,6 +162,38 @@ def _cmd_dataset(a) -> int:
     return 0
 
 
+def _cmd_motion(a) -> int:
+    """Frame-to-frame joint motion between two images."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not (skels[0].joints and skels[1].joints):
+        print("no person in one or both frames", file=sys.stderr)
+        return 1
+    res = motion.summarize(*skels,
+                           min_confidence=a.min_confidence)
+    res["vectors"] = {
+        n: {"dx": round(v[0], 2), "dy": round(v[1], 2),
+            "speed": v[2]}
+        for n, v in motion.vectors(
+            *skels, min_confidence=a.min_confidence).items()}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -218,6 +250,20 @@ def main(argv=None) -> int:
     ds.add_argument("-o", "--output",
                     help="output file (default: stdout)")
     ds.set_defaults(fn=_cmd_dataset)
+
+    mo = sub.add_parser(
+        "motion", help="joint motion between two frame images")
+    mo.add_argument("a")
+    mo.add_argument("b")
+    mo.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mo.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mo.add_argument("--min-confidence", type=float, default=0.0,
+                    dest="min_confidence",
+                    help="skip joints below this confidence")
+    mo.add_argument("-o", "--output", help="write the motion JSON")
+    mo.set_defaults(fn=_cmd_motion)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

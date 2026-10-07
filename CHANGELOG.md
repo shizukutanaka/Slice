@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
+  時は胴体長、非計測時0）。contact/dynamics/ground/reach の
+  身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ
+  接触を見逃し、dynamics は wide_step が常時発火、ground は
+  uneven_support が常時発火、reach は半径0の偽ワークスペースを
+  返していた。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -27,10 +27,17 @@ _PAIRS = (
 
 
 def _dir(skel: Skeleton, a: str, b: str) -> Optional[Tuple[float, float]]:
-    pa, pb = skel.point(a), skel.point(b)
-    if not pa or not pb:
+    """Bone direction — only when BOTH endpoints are observed.
+
+    Predicted joints are filled by mirroring the observed side, so a
+    pair containing them would always report perfect symmetry: a
+    fabricated measurement, not a comparison."""
+    ja, jb = skel.joints.get(a), skel.joints.get(b)
+    if not ja or not jb:
         return None
-    dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+    if ja.state != "observed" or jb.state != "observed":
+        return None
+    dx, dy = jb.x - ja.x, jb.y - ja.y
     n = math.hypot(dx, dy)
     return (dx / n, dy / n) if n > 1e-9 else None
 

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.bias` 新設 — 関節別系統誤差プロファイル（正解ペア群から
+  関節ごとの平均誤差ベクトル＋除去後の残差を計測、systematic=
+  補正可能/unbiased=散布/insufficient=サンプル不足、correction()
+  は非systematicに0を返して散布へのオフセット適用を防止）
 - `KnowledgeStore.list()` に `_index.json` キャッシュ索引追加
   （save時に追記、不在/破損/陳腐時は全走査で自動再構築、
   索引自身はdocとして列挙しない、AUDIT P1-10対応）

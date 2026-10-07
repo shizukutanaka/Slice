@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- mass: 身長スパンをobserved関節のみに修正。predicted足
+  （"foot below ankle"プライア）がスパンを~3%伸ばしてcm_per_px
+  を狂わせ、predicted頭でも推定値を返していた → 推測頭なら
+  測定不能として None を返す。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

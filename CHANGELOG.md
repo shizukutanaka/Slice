@@ -4,6 +4,12 @@
 
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
 
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

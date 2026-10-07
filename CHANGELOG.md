@@ -8,6 +8,11 @@
 - pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
   検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

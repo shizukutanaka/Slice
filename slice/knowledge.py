@@ -83,6 +83,10 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
 def validate(doc: dict) -> list:
     """Return a list of schema problems; empty means valid."""
     errors = []
+    # callers only skip documents via a nonempty error list — a
+    # malformed container must report, never raise
+    if not isinstance(doc, dict):
+        return ["document must be a dict"]
     if doc.get("schema") not in SCHEMAS:
         errors.append(f"schema must be one of {SCHEMAS}")
     for key in ("id", "created_at", "engine", "skeleton", "export"):
@@ -97,8 +101,18 @@ def validate(doc: dict) -> list:
             isinstance(analysis, dict) and all(
                 isinstance(v, dict) for v in analysis.values())):
         errors.append("analysis must be a dict of layer dicts")
-    joints = (doc.get("skeleton") or {}).get("joints") or {}
+    skeleton = doc.get("skeleton")
+    if skeleton is not None and not isinstance(skeleton, dict):
+        errors.append("skeleton must be a dict")
+    joints = (skeleton if isinstance(skeleton, dict) else {}
+              ).get("joints") or {}
+    if not isinstance(joints, dict):
+        errors.append("skeleton.joints must be a dict")
+        joints = {}
     for name, j in joints.items():
+        if not isinstance(j, dict):
+            errors.append(f"joint {name} must be a dict")
+            continue
         for f in ("x", "y", "confidence", "state"):
             if f not in j:
                 errors.append(f"joint {name} missing {f}")
@@ -108,15 +122,22 @@ def validate(doc: dict) -> list:
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
     export = doc.get("export") or {}
+    if not isinstance(export, dict):
+        errors.append("export must be a dict")
+        export = {}
     order = export.get("keypoint_order")
-    if order is not None:
+    if order is not None and not isinstance(order, list):
+        errors.append("export.keypoint_order must be a list")
+    elif order is not None:
         flat = export.get("keypoints_2d")
         if not isinstance(flat, list) \
                 or len(flat) != 3 * len(order):
             errors.append(
                 "export.keypoints_2d must be 3*len(keypoint_order)")
         states = export.get("keypoints_state")
-        if states is not None:
+        if states is not None and not isinstance(states, list):
+            errors.append("export.keypoints_state must be a list")
+        elif states is not None:
             # a flat-export state array that contradicts skeleton.joints
             # would let fill masquerade as evidence downstream
             if len(states) != len(order):
@@ -125,6 +146,10 @@ def validate(doc: dict) -> list:
                     "keypoint_order")
             else:
                 for name, st in zip(order, states):
+                    if not isinstance(name, str):
+                        errors.append(
+                            f"export order element {name} not a name")
+                        continue
                     j = joints.get(name)
                     expect = j.get("state", "absent") \
                         if isinstance(j, dict) else "absent"

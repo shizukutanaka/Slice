@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` が不正JSONでraiseしない（Never-raise
+  契約）。doc/skeleton/joints/exportの非dict・非dict要素・
+  非listのorder/states・非文字列のorder要素を全てエラー
+  報告に転換。呼び出し側はエラーリストでdocをスキップする
+  ため、raiseはアーカイブ全体の中断だった。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

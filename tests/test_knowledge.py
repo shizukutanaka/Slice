@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import tempfile
@@ -63,6 +64,28 @@ class TestKnowledge(unittest.TestCase):
             else "observed" for n in JOINTS]
         errors = knowledge.validate(doc)
         self.assertTrue(any("export state" in e for e in errors))
+
+    def test_validate_never_raises_on_malformed(self):
+        # callers skip documents only via the error list — a raised
+        # exception would abort a whole archive/store scan
+        doc = pipeline.strip_runtime(analyze_synth())
+        base = copy.deepcopy(doc)
+        bad_docs = [
+            None, 5, "x", [1],
+            {**base, "skeleton": 5},
+            {**base, "skeleton": {"joints": [1, 2]}},
+            {**base, "skeleton": {"joints": {"head": 3}}},
+            {**base, "skeleton": {"joints": {"head": None}}},
+            {**base, "export": 5},
+            {**base, "export": {"keypoint_order": 5}},
+            {**base, "export": {"keypoint_order": [None, {}],
+                                "keypoints_state": ["observed", "x"]}},
+            {**base, "export": {"keypoint_order": ["head"],
+                                "keypoints_state": 7}},
+        ]
+        for i, d in enumerate(bad_docs):
+            errors = knowledge.validate(d)
+            self.assertTrue(errors, "doc %d reported valid" % i)
 
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())

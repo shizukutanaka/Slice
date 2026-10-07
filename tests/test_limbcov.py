@@ -50,6 +50,18 @@ class TestLimbCov(unittest.TestCase):
         self.assertFalse(b["broken"])
         self.assertNotIn("neck-chest", r["broken"])
 
+    def test_all_predicted_bones_unmeasured_not_covered(self):
+        # zero measured evidence must not report "covered"
+        sk = Skeleton(100, 100)
+        sk.set(Joint("neck", 10, 10, 0.9, basis="t"))
+        sk.set(Joint("chest", 10, 50, 0.9, basis="t"))
+        for j in sk.joints.values():
+            j.state = "predicted"
+        mask = [bytearray(100) for _ in range(100)]
+        r = limbcov.check(sk, mask)
+        self.assertEqual(r["verdict"], "unmeasured")
+        self.assertEqual(r["n_measured"], 0)
+
     def test_empty_skeleton(self):
         sk = Skeleton(10, 10)
         r = limbcov.check(sk, [bytearray(10) for _ in range(10)])

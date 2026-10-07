@@ -13,10 +13,13 @@ positions are wrong or the body isn't what the mask says.
 - `broken` — observed bones whose largest gap exceeds GAP_PX and
   whose endpoints are both observed (a predicted bone crossing
   background is normal: prediction interpolates through empty space)
-- `verdict`: covered | gaps | insufficient
+- `verdict`: covered | gaps | unmeasured | insufficient
 
 Only bones with two observed endpoints are judged; a bone anchored
-by a predicted joint is recorded but never counted as broken.
+by a predicted joint is recorded but never counted as broken. When
+every bone in the skeleton is anchored by predictions, the verdict
+is `unmeasured` — reporting `covered` there would assert a check
+that ran on zero measured evidence.
 """
 
 from __future__ import annotations
@@ -91,13 +94,17 @@ def check(skel: Skeleton, mask: List[bytearray]) -> Dict:
     if not bones:
         return {"verdict": "insufficient",
                 "reason": "no bones with both endpoints placed"}
-    observed_broken = broken
-    verdict = "gaps" if observed_broken else "covered"
+    n_measured = sum(1 for b in bones.values() if b["measured"])
+    if not n_measured:
+        verdict = "unmeasured"
+    else:
+        verdict = "gaps" if broken else "covered"
     return {
         "verdict": verdict,
         "bones": bones,
         "broken": broken,
         "n_bones": len(bones),
+        "n_measured": n_measured,
         "note": "only bones with two observed endpoints count as "
                 "broken — predicted bones legitimately cross space",
     }

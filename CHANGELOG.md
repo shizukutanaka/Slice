@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- limbcov: measured骨0本は"covered"でなく"unmeasured"
+  （全端点predictedでも実測ゼロの検証済み主張をしていた
+  欠陥。n_measuredを出力に追加、selfcheckはunmeasured
+  重大度に自動対応）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

@@ -22,8 +22,10 @@ _DENSITY = 1.04       # kg/L soft tissue
 def estimate(skel: Skeleton, area_px: float,
              mean_width_px: Optional[float] = None) -> Optional[dict]:
     """{kg, volume_l, height_cm, state} — None without a body span."""
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    hj = skel.joints.get("head")
+    top = (hj.x, hj.y) if hj and hj.state == "observed" else None
+    lo = max((j.y for j in skel.joints.values()
+              if j.state == "observed"), default=0.0)
     if top is None or lo - top[1] <= 0 or area_px <= 0:
         return None
 

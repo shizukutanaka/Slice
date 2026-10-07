@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               mask as _mask_mod, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,38 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_mask(a) -> int:
+    """Foreground mask PNG, or alpha-cutout of the input."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    if a.cutout:
+        out = _mask_mod.cutout(bmp, est)
+        note = "background alpha=0 at input resolution"
+    else:
+        small = bmp.downscale(est.max_dim)
+        m = _mask_mod.foreground(small, est)
+        out = _mask_mod.to_bitmap(m, small.width,
+                                  small.height)
+        note = ("mask at estimator resolution "
+                f"{small.width}x{small.height}")
+    with open(a.output, "wb") as f:
+        f.write(bitmap.encode_png(out))
+    small = bmp.downscale(est.max_dim)
+    m = _mask_mod.foreground(small, est)
+    print(json.dumps({"output": a.output,
+                      "coverage": round(
+                          _mask_mod.coverage(m), 4),
+                      "size": [out.width, out.height],
+                      "basis": note}, ensure_ascii=False))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +222,16 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    mk = sub.add_parser(
+        "mask", help="export the foreground mask PNG")
+    mk.add_argument("image")
+    mk.add_argument("-o", "--output", required=True)
+    mk.add_argument("--cutout", action="store_true",
+                    help="write an alpha cutout at full res")
+    mk.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mk.set_defaults(fn=_cmd_mask)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

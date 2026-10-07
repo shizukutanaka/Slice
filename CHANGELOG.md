@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- consistency: 監査をobserved関節のみに修正。predicted
+  head/feet（プライア補完）がbody extentを捏造し
+  `no_body_extent` を回避して虚構スケールで監査を通過
+  させていた → 部位長/対称チェックは両端observedのみ、
+  extentが全predictedなら `no_body_extent`。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
+  _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
+  `crouch`（crouching）＋将来の `invert`（upside down）を追加。
+
 - signature: body_h正規化の欠陥修正。足関節が無い骨格では
   スカラー4要素が生px値で出力され、同じポーズ同士のsignature
   距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は

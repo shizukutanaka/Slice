@@ -83,9 +83,14 @@ class Handler(BaseHTTPRequestHandler):
         elif path.startswith("/knowledge/"):
             kid = path.rsplit("/", 1)[-1]
             try:
-                self._json(self.store.get(kid))
+                doc = self.store.get(kid)
             except KeyError:
-                self._error(404, "not found")
+                return self._error(404, "not found")
+            except (OSError, json.JSONDecodeError):
+                return self._error(500, "corrupt document on disk")
+            if not isinstance(doc, dict):
+                return self._error(500, "corrupt document on disk")
+            self._json(doc)
         elif path.startswith("/overlay/"):
             kid = path.rsplit("/", 1)[-1].removesuffix(".png")
             png = self.overlays.get(kid)
@@ -102,7 +107,10 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path != "/analyze":
             return self._error(404, "not found")
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._error(400, "bad Content-Length")
         if not 0 < length <= 25 * 1024 * 1024:
             return self._error(400, "empty or >25MB body")
         raw = self.rfile.read(length)

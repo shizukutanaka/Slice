@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- rest: エラー経路の誠実性。壊れたstoreドキュメントへの
+  GET /knowledge/<id> が無応答500（JSONDecodeError未捕捉）
+  だったのを「500 + 本文付き」に、非数値Content-Lengthが
+  ValueErrorで接続断していたのを「400 bad Content-Length」
+  に修正。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

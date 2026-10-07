@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               selfcheck, stats)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,34 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_stats(a) -> int:
+    """Aggregate joint-observation stats over a frame directory."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for f in sorted(os.listdir(a.dir)):
+        path = os.path.join(a.dir, f)
+        if not os.path.isfile(path) or not f.endswith(
+                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
+            continue
+        try:
+            with open(path, "rb") as fh:
+                skel = est.estimate(
+                    bitmap.decode(fh.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError):
+            continue
+        if skel.joints:
+            skels.append(skel)
+    if not skels:
+        print("no person detected in any frame", file=sys.stderr)
+        return 1
+    res = stats.summary(skels)
+    res["weakest_joints"] = stats.weakest_joints(
+        res["per_joint"], n=a.weakest)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +218,18 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    st = sub.add_parser(
+        "stats",
+        help="joint-observation stats over a frame directory")
+    st.add_argument("dir", help="directory of frame images")
+    st.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    st.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    st.add_argument("--weakest", type=int, default=5,
+                    help="how many weakest joints to report")
+    st.set_defaults(fn=_cmd_stats)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

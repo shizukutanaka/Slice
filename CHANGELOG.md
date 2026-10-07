@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- compare/dedup: predicted関節がポーズ距離に混入していた欠陥を
+  修正。プライア配置の推測関節を距離計算に含めるとプライアを
+  測るだけ（一致ならdup誤判定、ずれなら虚偽の差分）。両ドキュメント
+  でobservedの関節のみ比較、predictedは欠損扱いで除外。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

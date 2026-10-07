@@ -7,6 +7,10 @@
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
   wide_stepが発火し得た。predictedは欠損扱い。
 
+- axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
+  幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
+  誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。
+
 - calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
   5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
   `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも

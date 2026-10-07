@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               selfcheck, smooth)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,57 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_smooth(a) -> int:
+    """Temporal smoothing over a directory of frame images."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    series = []
+    for f in sorted(os.listdir(a.dir)):
+        path = os.path.join(a.dir, f)
+        if not os.path.isfile(path) or not f.endswith(
+                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
+            continue
+        try:
+            with open(path, "rb") as fh:
+                series.append((f, est.estimate(
+                    bitmap.decode(fh.read()), a.model or "adult")))
+        except (bitmap.UnsupportedFormat, OSError):
+            continue
+    if not series:
+        print("no decodable frames", file=sys.stderr)
+        return 1
+    smoothed = smooth.smooth([sk for _, sk in series],
+                             radius=a.radius)
+    names = set()
+    for _, sk in series:
+        names.update(sk.joints)
+    before = {n: smooth.jitter([sk for _, sk in series], n)
+              for n in sorted(names)}
+    after = {n: smooth.jitter(smoothed, n) for n in sorted(names)}
+    res = {"frames": len(series), "radius": a.radius,
+           "joints": {n: {"jitter_before": before[n],
+                          "jitter_after": after[n],
+                          "reduction": round(
+                              before[n] - after[n], 3)}
+                      for n in sorted(names)}}
+    res["mean_jitter"] = {
+        "before": round(sum(before.values()) / len(before), 3)
+                  if before else 0.0,
+        "after": round(sum(after.values()) / len(after), 3)
+                 if after else 0.0}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    if a.output:
+        os.makedirs(a.output, exist_ok=True)
+        for (f, _), sk in zip(series, smoothed):
+            base = os.path.splitext(f)[0] + ".json"
+            with open(os.path.join(a.output, base), "w") as fh:
+                json.dump(sk.to_dict(), fh,
+                          ensure_ascii=False, indent=2)
+        print(f"wrote {len(smoothed)} smoothed skeletons "
+              f"-> {a.output}", file=sys.stderr)
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +241,19 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    sm = sub.add_parser(
+        "smooth", help="temporal smoothing of a frame series")
+    sm.add_argument("dir", help="directory of frame images")
+    sm.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sm.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sm.add_argument("--radius", type=int, default=1,
+                    help="moving-average radius in frames")
+    sm.add_argument("-o", "--output",
+                    help="write smoothed skeleton JSONs to this dir")
+    sm.set_defaults(fn=_cmd_smooth)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

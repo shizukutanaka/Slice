@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice smooth <dir> [-o dir]` — smooth層のCLI接続。フレーム列の関節軌跡を移動平均し、関節別ジッタ改善量をJSON報告。`-o`で平滑化済み骨格JSONを書き出し。欠損フレームの位置を捏造しない誠実設計を継承。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

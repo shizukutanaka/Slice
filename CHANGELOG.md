@@ -6,6 +6,29 @@
   （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
   空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を
   assumptionに明記、AUDIT P3-19対応）
+- `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
+  （レイヤ名→自由形式dict、v1との相互後方互換、v1での
+  analysis付け足しはvalidate拒否、build(analysis=...)で
+  自動v1.1化、AUDIT P1-7/8対応）
+- `slice.migrate` 新設 — 旧Knowledgeドキュメントのスキーマ正規化
+  （export/prediction/coverage/bonesを関節から再構築、欠損stateは
+  predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、
+  全変更をchangesに列挙＋valid_before/afterで検証可能）
+- pose: 骨盤幅を胴カラムランで計測（外縁=腕を含みpriorと66%乖離
+  していた問題を解消）＋膝を足ランのアンカーで選択（膝行の
+  最端ラン=腕を拾う誤りを修正）＋rom: 1px未満セグメントは
+  角度測定しない（方向を定義できない値でoverextendedを出すのは
+  発見の捏造）
+- pose: 股検出を隣接ラン間ギャップに修正（首尾ラン比較が
+  「腕|胴|腕」を胸部で誤検出→ hip -32px の系統誤差を解消）
+  ＋肘をプライア長ではなく計測した肩→手首距離の上腕比に配置
+  （elbow -30px→+2px）。bench: err 15.55→4.49px, OKS 0.53→0.90
+
+
+- `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
+  Skeletonを返す複数人検出経路（連結成分のラベル化を共有化、
+  接触した人物は1成分=1骨格のまま推測しないことをdocstringに
+  明記、AUDIT P0-1本体対応）
 - `slice.basis` 新設 — 関節provenance文字列の語彙レジストリ
   （既存basisを観測/ミラー/補間/プライア/変換/不明の6カテゴリに
   分類、新規は接頭辞規約、audit()で骨格の証拠内訳を集計、
@@ -107,6 +130,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.people` 新設 — 前景連結成分の人物候補列挙（top-K
+  成分のbbox/面積/辺接触、単一成分前提の最初の一歩、
+  成分≠人物をnoteに明記、AUDIT P0-1対応）
 - `docs/AUDIT.md` 新設 — 長所50/短所50/改善点の製品監査
   （第一原理＋ソクラテス問答によるP0–P4優先度付け）
 - `mask.cutout` 修正 — 透過黒初期化が暗色被写体を再推定で

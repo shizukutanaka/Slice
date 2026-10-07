@@ -4,6 +4,12 @@
 
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

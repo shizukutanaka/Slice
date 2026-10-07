@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- limbs: チェーン中間関節欠損を partial として報告。肘が無い
+  腕で肩→手首の弦長を「全計測」扱いしていた誠実性の欠陥を修正
+  （欠損関節で弦化したチェーンは過小計測）。併せて body_h≤0
+  の退化時は of_body_h=None に。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

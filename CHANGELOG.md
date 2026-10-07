@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
+  （レイヤ名→自由形式dict、v1との相互後方互換、v1での
+  analysis付け足しはvalidate拒否、build(analysis=...)で
+  自動v1.1化、AUDIT P1-7/8対応）
 - `slice.migrate` 新設 — 旧Knowledgeドキュメントのスキーマ正規化
   （export/prediction/coverage/bonesを関節から再構築、欠損stateは
   predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、

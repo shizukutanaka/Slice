@@ -4,6 +4,10 @@
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

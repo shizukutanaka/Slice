@@ -4,6 +4,9 @@
 
 - `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

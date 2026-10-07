@@ -4,6 +4,11 @@
 
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

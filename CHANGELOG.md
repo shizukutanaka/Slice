@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
+  首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
+  計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

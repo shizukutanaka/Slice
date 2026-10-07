@@ -30,9 +30,19 @@ _BONES_CM = [
 ]
 
 
+def _obs_point(skel: Skeleton, name: str):
+    """Observed-only lookup: a predicted joint is prior fill — a
+    scale factor or cm length derived from it would measure the
+    prior, not the person, so it is excluded like a missing joint."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def _head_px(skel: Skeleton, prior: dict) -> Optional[float]:
     """Head length in px: crown (≈2×head radius above neck) to neck."""
-    head, neck = skel.point("head"), skel.point("neck")
+    head, neck = _obs_point(skel, "head"), _obs_point(skel, "neck")
     if head and neck:
         return (neck[1] - head[1]) * 2.0
     return None
@@ -61,7 +71,7 @@ def measure_cm(skel: Skeleton, model: Optional[str] = None) -> Dict:
         return out
     lengths = {}
     for label, a, b in _BONES_CM:
-        pa, pb = skel.point(a), skel.point(b)
+        pa, pb = _obs_point(skel, a), _obs_point(skel, b)
         if pa and pb:
             px = math.hypot(pa[0] - pb[0], pa[1] - pb[1])
             lengths[label] = round(px / ppcm, 1)

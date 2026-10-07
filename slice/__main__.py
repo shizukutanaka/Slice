@@ -17,7 +17,7 @@ import json
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               classify, describe, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +143,26 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_describe(a) -> int:
+    """Describe one image's figure in a sentence."""
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        bmp = bitmap.decode(raw)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no figure data")
+        return 1
+    pose = (classify.analyze(skel) or {}).get("pose")
+    print(describe.describe(skel, pose))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +209,14 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    d = sub.add_parser("describe",
+                       help="describe one image's figure in a sentence")
+    d.add_argument("image")
+    d.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    d.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    d.set_defaults(fn=_cmd_describe)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

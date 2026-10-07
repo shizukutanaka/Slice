@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- norm: 変換がcentroidも写像（関節だけ動かしてcentroidを旧フレーム座標のまま残し`ratio.analyze`等へ陳腐座標を流していた欠陥を解消）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

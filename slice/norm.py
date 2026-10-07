@@ -29,6 +29,10 @@ def _copy(skel: Skeleton) -> Skeleton:
 
 def _map(skel: Skeleton, fx, fy, frame_w: int, frame_h: int) -> Skeleton:
     out = _copy(skel)
+    # the centroid is a frame-space point too — leave it untransformed
+    # and it silently describes a location in the OLD frame
+    if out.centroid is not None:
+        out.centroid = (fx(out.centroid[0]), fy(out.centroid[1]))
     for j in out.joints.values():
         j.x, j.y = fx(j.x), fy(j.y)
         if j.state == "observed" and not (
@@ -55,6 +59,8 @@ def resize(skel: Skeleton, w: int, h: int,
 def to_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
     """x/w, y/h normalized coordinates (0-1)."""
     out = _copy(skel)
+    if out.centroid is not None:
+        out.centroid = (out.centroid[0] / w, out.centroid[1] / h)
     for j in out.joints.values():
         j.x, j.y = j.x / w, j.y / h
     return out
@@ -63,6 +69,8 @@ def to_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
 def from_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
     """Back to pixels."""
     out = _copy(skel)
+    if out.centroid is not None:
+        out.centroid = (out.centroid[0] * w, out.centroid[1] * h)
     for j in out.joints.values():
         j.x, j.y = j.x * w, j.y * h
     return out

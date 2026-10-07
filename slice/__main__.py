@@ -17,7 +17,7 @@ import json
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               dataset, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +143,25 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_dataset(a) -> int:
+    """Export a KnowledgeStore as CSV or JSONL."""
+    docs = dataset.from_store(knowledge.KnowledgeStore(a.store))
+    if a.format == "csv":
+        text = dataset.to_csv(docs)
+    elif a.format == "csv-joints":
+        text = dataset.to_csv(docs, joints=True)
+    else:
+        text = dataset.to_jsonl(docs)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"wrote {a.output} ({len(docs)} docs)",
+              file=sys.stderr)
+    else:
+        print(text, end="")
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +208,16 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ds = sub.add_parser(
+        "dataset", help="export a KnowledgeStore as CSV or JSONL")
+    ds.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore directory")
+    ds.add_argument("--format", default="csv",
+                    choices=["csv", "csv-joints", "jsonl"])
+    ds.add_argument("-o", "--output",
+                    help="output file (default: stdout)")
+    ds.set_defaults(fn=_cmd_dataset)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

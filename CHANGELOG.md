@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

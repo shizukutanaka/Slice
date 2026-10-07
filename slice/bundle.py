@@ -37,7 +37,7 @@ def pack(store, path: str) -> dict:
         except (KeyError, OSError, json.JSONDecodeError):
             skipped += 1
             continue
-        if validate(doc):
+        if not isinstance(doc, dict) or validate(doc):
             skipped += 1
             continue
         docs.append(doc)
@@ -76,8 +76,11 @@ def unpack(path: str) -> List[dict]:
         for name in z.namelist():
             if not name.startswith("docs/"):
                 continue
-            doc = json.loads(z.read(name))
-            if validate(doc):
+            try:
+                doc = json.loads(z.read(name))
+            except json.JSONDecodeError:
+                continue  # one corrupt member must not kill the archive
+            if not isinstance(doc, dict) or validate(doc):
                 continue
             docs.append(doc)
     return docs

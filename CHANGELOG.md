@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
+  時は胴体長、非計測時0）。contact/dynamics/ground/reach の
+  身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ
+  接触を見逃し、dynamics は wide_step が常時発火、ground は
+  uneven_support が常時発火、reach は半径0の偽ワークスペースを
+  返していた。
+
 - classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
   骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
   のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。

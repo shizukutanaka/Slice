@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from typing import Dict, Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, body_span
 
 Point = Tuple[float, float]
 
@@ -36,10 +36,12 @@ def arm_reach(skel: Skeleton, side: str) -> Optional[dict]:
         r = (_d(s, e) + _d(e, w)) * (1.0 + _HAND_FRAC)
         return {"shoulder": s, "radius": round(r, 1),
                 "measured": True}
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    if top:
-        r = (lo - top[1]) * _PRIOR_FRAC
+    # no arm bones: fall back to the body-height prior — but only
+    # when a body scale exists; a degenerate (inverted/empty)
+    # skeleton has no honest reach radius
+    span = body_span(skel)
+    if span > 0:
+        r = span * _PRIOR_FRAC
         return {"shoulder": s, "radius": round(r, 1),
                 "measured": False}
     return None

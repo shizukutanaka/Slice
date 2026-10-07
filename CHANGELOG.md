@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.framefit` 新設 — 部分人体/フレーム切り取りの推定
+  （骨格端点のフレーム辺距離、上下左右の辺別 possibly_truncated、
+  extremity判定で誤検出抑制、state:"estimated"、AUDIT P0-2対応）
 - `slice.bias` 新設 — 関節別系統誤差プロファイル（正解ペア群から
   関節ごとの平均誤差ベクトル＋除去後の残差を計測、systematic=
   補正可能/unbiased=散布/insufficient=サンプル不足、correction()

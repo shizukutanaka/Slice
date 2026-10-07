@@ -4,6 +4,12 @@
 
 - `slice people <image> [--min-frac F]` — people層のCLI接続。前景成分を人物候補としてランク列挙（size/fraction/bbox/aspect/touches_edge＋「成分≠人物」警告文）。複数人検出の前段診断。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

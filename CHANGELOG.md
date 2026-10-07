@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- recover: relaxed_threshold段が呼出側のadaptive/reject_shadow/
+  cleanフラグを伝播（色ゲートだけ緩めるはずが、シャドウ棄却・
+  形態クリーンも外れた別プロファイルで沈黙回復し、開示の
+  "gate relaxed to N"より強い緩和が適用されていた欠陥を解消）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

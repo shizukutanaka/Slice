@@ -25,17 +25,23 @@ from .skeleton import Skeleton
 
 
 def _anchor(skel: Skeleton) -> Optional[tuple]:
-    """Tracking anchor: pelvis if present, else skeleton centroid."""
-    p = skel.point("pelvis")
-    if p:
-        return p
+    """Tracking anchor: an OBSERVED pelvis if present, else the
+    skeleton centroid. A predicted pelvis is prior fill — its position
+    is a guess, so anchoring on it would compute the link distance on
+    a guess."""
+    p = skel.joints.get("pelvis")
+    if p and p.state == "observed":
+        return (p.x, p.y)
     return skel.centroid
 
 
 def _torso(skel: Skeleton) -> float:
     """Normalising length (pelvis<->neck); falls back to a fraction of
-    frame height when the torso is not observed."""
-    p, n = skel.point("pelvis"), skel.point("neck")
+    frame height when the torso is not observed — a predicted endpoint
+    is a guess, not a measurement."""
+    pj, nj = skel.joints.get("pelvis"), skel.joints.get("neck")
+    p = (pj.x, pj.y) if pj and pj.state == "observed" else None
+    n = (nj.x, nj.y) if nj and nj.state == "observed" else None
     if p and n:
         d = math.hypot(n[0] - p[0], n[1] - p[1])
         if d > 1e-6:

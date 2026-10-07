@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- bundle: unpackが破損zipメンバー（zlib/BadZipFile/非UTF8）をskip（1件の破損で全体が死ぬ経路を解消）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- symmetry: predicted関節を含むペアを計測対象から除外。
+  predictedは観測側のミラー複製で作られるため、含めると
+  対称スコアが構造的に1.0に — 「計測された対称性」の捏造。
+  ペアは両骨4端点が全てobservedの場合のみ比較し、それ以外は
+  missingに報告（推測しない）。実測: 右腕predicted骨格で
+  score 1.0/compared 7 → missing 3ペア報告に。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

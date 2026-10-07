@@ -4,6 +4,10 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い

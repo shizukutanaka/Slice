@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- mass: 身長スパンをobserved関節のみに修正。predicted足
+  （"foot below ankle"プライア）がスパンを~3%伸ばしてcm_per_px
+  を狂わせ、predicted頭でも推定値を返していた → 推測頭なら
+  測定不能として None を返す。
+
 - signature: predicted骨の方向ベクトルが指紋に混入していた欠陥を
   修正。推測肢が観測とほぼ同一の指紋を生成し（距離0.0039）、
   dedup/queryが「測定された一致」として誤認していた。predicted

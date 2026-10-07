@@ -4,6 +4,9 @@
 
 - `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- knowledge: store.list()が手置き不正docで落ちない —
+  非dict skeleton/body_modelはNoneとして列挙し、索引内の
+  非dictエントリも耐性化。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

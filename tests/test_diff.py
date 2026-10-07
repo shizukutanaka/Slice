@@ -31,6 +31,27 @@ class TestDiff(unittest.TestCase):
         self.assertAlmostEqual(m["dx"], 10.0)
         self.assertFalse(d["identical"])
 
+    def test_malformed_joint_reported_not_diffed(self):
+        a, b = _doc(), _doc()
+        b["skeleton"]["joints"]["head"] = 5
+        d = diff(a, b)
+        self.assertIn("head", d["joints"]["malformed"]["b"])
+        self.assertIn("head", d["joints"]["removed"])
+        self.assertEqual(d["joints"]["moved"], [])
+
+    def test_non_numeric_coords_malformed(self):
+        a, b = _doc(), _doc()
+        b["skeleton"]["joints"]["head"]["x"] = "10"
+        d = diff(a, b)
+        self.assertIn("head", d["joints"]["malformed"]["b"])
+
+    def test_non_dict_inputs_no_crash(self):
+        a = _doc()
+        d = diff([1, 2], a)
+        self.assertFalse(d["identical"])
+        self.assertEqual(d["joints"]["added"],
+                         sorted(a["skeleton"]["joints"]))
+
     def test_added_and_removed_joints(self):
         a, b = _doc(), _doc()
         del b["skeleton"]["joints"]["foot_l"]

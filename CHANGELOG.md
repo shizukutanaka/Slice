@@ -6,6 +6,9 @@
   （手首が頭より上）で上端余白を過大評価し tight を portrait
   と誤判定していた（実測 headroom 0.089→0.005）。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

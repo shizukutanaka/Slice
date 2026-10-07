@@ -115,3 +115,30 @@ def body_span(skel: Skeleton) -> float:
     if n and p:
         return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
     return 0.0
+
+
+def observed_body_span(skel: Skeleton) -> float:
+    """`body_span` measured over observed joints only.
+
+    A predicted head or foot is prior fill: letting it extend the
+    span fabricates the scale that thresholds and reach envelopes
+    are derived from. Same torso-length fallback, 0.0 when nothing
+    observable gives a scale.
+    """
+    obs = [j for j in skel.joints.values() if j.state == OBSERVED]
+
+    def pt(name: str):
+        j = skel.joints.get(name)
+        return (j.x, j.y) if j and j.state == OBSERVED else None
+
+    top = pt("head")
+    lo = max((j.y for j in obs), default=0.0)
+    if top:
+        s = lo - top[1]
+        if s > 0:
+            return s
+    n = pt("neck")
+    p = pt("pelvis")
+    if n and p:
+        return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
+    return 0.0

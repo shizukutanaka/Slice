@@ -4,6 +4,17 @@
 
 - `slice stats <dir>` — stats層のCLI接続。フレーム列の関節別観測率・平均confidence・fill率＋weakest_joints（死角関節）を集計報告。`--weakest`で上位N件調整。
 
+- plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
+  body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
+  閾値が負値で常時発火していた。胴体長フォールバック＋スケール
+  不在時は posture=unknown に。
+
+- limbs: チェーン中間関節欠損を partial として報告。肘が無い
+  腕で肩→手首の弦長を「全計測」扱いしていた誠実性の欠陥を修正
+  （欠損関節で弦化したチェーンは過小計測）。併せて body_h≤0
+  の退化時は of_body_h=None に。
+
+- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

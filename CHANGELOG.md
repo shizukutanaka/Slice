@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- skeleton: `normalized()` のアンカーをobserved関節のみに
+  修正。predictedのpelvis/neckが正規化の原点・単位になり
+  推測座標がKnowledgeドキュメントに載っていた → アンカーが
+  predictedならブロックごと棄権（None）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

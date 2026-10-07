@@ -42,14 +42,19 @@ def limb(skel: Skeleton, kind: str, side: str) -> Optional[dict]:
 
     top = skel.point("head")
     lo = max((j.y for j in skel.joints.values()), default=0.0)
-    body_h = (lo - top[1]) if top else None
+    body_h = (lo - top[1]) if top else 0.0
     length = sum(_d(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
     obs = sum(1 for s in states if s == "observed")
+    # a missing chain joint joins its neighbours into a chord — the
+    # summed length then under-measures the limb, so the profile is
+    # partial even when every present joint is observed
+    missing = len(pts) < len(names)
     return {"length_px": round(length, 1),
-            "of_body_h": round(length / body_h, 3) if body_h else None,
+            "of_body_h": round(length / body_h, 3)
+            if body_h > 0 else None,
             "segments": len(pts) - 1,
             "observed": obs,
-            "partial": obs < len(states)}
+            "partial": missing or obs < len(states)}
 
 
 def profile(skel: Skeleton) -> Dict[str, Optional[dict]]:

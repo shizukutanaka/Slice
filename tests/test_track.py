@@ -1,7 +1,7 @@
 """Tests for slice.track — temporal ID across frames."""
 import unittest
 
-from slice.skeleton import Joint, Skeleton, OBSERVED
+from slice.skeleton import Joint, Skeleton, OBSERVED, PREDICTED
 from slice import track
 
 
@@ -48,6 +48,23 @@ class TestTrack(unittest.TestCase):
         out = track.track([s, s])
         self.assertEqual(out[1]["track_id"], 0)
         self.assertEqual(out[1]["anchor"], (100, 100))
+
+    def test_predicted_pelvis_not_anchor(self):
+        # a prior-placed pelvis must not anchor the track —
+        # the link distance would be computed on a guess
+        s = _skel(100, 120)
+        p = s.joints["pelvis"]
+        s.set(Joint("pelvis", p.x + 500, p.y, 0.5, PREDICTED))
+        s.centroid = (100, 120)
+        out = track.track([s])
+        self.assertEqual(out[0]["anchor"], (100, 120))
+
+    def test_predicted_torso_not_normaliser(self):
+        # predicted neck/pelvis must not scale the jump metric
+        s = _skel(100, 120)
+        s.joints["neck"].state = PREDICTED
+        self.assertEqual(track._torso(s),
+                         200 * 0.25)
 
     def test_summarize(self):
         frames = ([_skel(50 + i, 120) for i in range(3)]

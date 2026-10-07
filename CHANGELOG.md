@@ -4,6 +4,12 @@
 
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
 
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

@@ -33,8 +33,13 @@ def signature(skel: Skeleton) -> List[float]:
     head = skel.point("head")
     feet = [p for p in (skel.point("foot_l"), skel.point("foot_r"))
             if p]
-    body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 1.0
     neck, pelvis = skel.point("neck"), skel.point("pelvis")
+    body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 0.0
+    if body_h <= 1e-6:
+        # feet missing or the figure is inverted — normalise by the
+        # torso unit like compare/dedup do, never raw pixels
+        body_h = math.hypot(neck[0] - pelvis[0], neck[1] - pelvis[1]) \
+            if neck and pelvis else 1.0
     vec.append((neck[0] - pelvis[0]) / body_h if neck and pelvis else 0.0)
     wl, wr = skel.point("wrist_l"), skel.point("wrist_r")
     vec.append(math.hypot(wl[0] - wr[0], wl[1] - wr[1]) / body_h

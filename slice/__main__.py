@@ -17,7 +17,7 @@ import json
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               bundle, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +143,38 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_bundle(a) -> int:
+    if a.action == "pack":
+        man = bundle.pack(knowledge.KnowledgeStore(a.dir), a.zip)
+        print(json.dumps(man, ensure_ascii=False, indent=2))
+        return 0
+    if a.action == "manifest":
+        try:
+            print(json.dumps(bundle.manifest(a.zip),
+                             ensure_ascii=False, indent=2))
+        except (OSError, KeyError) as e:
+            print(f"cannot read bundle: {e}", file=sys.stderr)
+            return 2
+        return 0
+    # unpack -> save each valid doc into the target store
+    try:
+        docs = bundle.unpack(a.zip)
+    except (OSError, KeyError) as e:
+        print(f"cannot read bundle: {e}", file=sys.stderr)
+        return 2
+    st = knowledge.KnowledgeStore(a.dir)
+    saved = skipped = 0
+    for d in docs:
+        try:
+            st.save(d)
+            saved += 1
+        except ValueError:
+            skipped += 1
+    print(f"unpacked: {saved} saved, {skipped} invalid skipped "
+          f"({a.zip} -> {a.dir})", file=sys.stderr)
+    return 0 if saved or not skipped else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +221,14 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    bu = sub.add_parser(
+        "bundle", help="pack/unpack a KnowledgeStore as a zip")
+    bu.add_argument("action", choices=["pack", "unpack", "manifest"])
+    bu.add_argument("zip", help="bundle zip path")
+    bu.add_argument("dir", nargs="?", default="knowledge",
+                    help="store dir (pack source / unpack target)")
+    bu.set_defaults(fn=_cmd_bundle)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

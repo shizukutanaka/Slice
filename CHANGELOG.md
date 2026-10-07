@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice bundle pack|unpack|manifest <zip> [DIR]` — bundle層のCLI接続。KnowledgeStoreのzip梱包（manifest付き、不正docはskipped記録）／復元／マニフェスト閲覧。ストア配布形式がライブラリ専用だった状態を解消。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

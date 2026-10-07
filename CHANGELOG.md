@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- lift: 出力に関節の `state` を同梱。zの出典（basis）は従来通り
+  だが、x,yがpredictedでも観測座標と区別不能だった — 推測座標は
+  prior fillとして明示。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

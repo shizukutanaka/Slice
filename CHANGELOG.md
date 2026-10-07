@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- plumb: plumb line・forward_head・baseをobserved関節のみに
+  修正。弦配置のpredicted chestがforward_headの胴体基準を、
+  predicted ankleが支持基準offsetを捏造していた → predictedは
+  欠損扱い（forward_headはNoneで測定不能）。
+
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

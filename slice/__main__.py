@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               lift, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,36 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_lift(a) -> int:
+    """Pseudo-3D joint coordinates from facing cues."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    lifted = lift.lift(skel)
+    res = {"joints": lifted,
+           "depth_spread": lift.depth_spread(lifted),
+           "frame": {"width": skel.image_width,
+                     "height": skel.image_height},
+           "facing": skel.orientation.get("facing", "unknown"),
+           "basis": "z is a cue-driven guess only when side-facing; "
+                    "flat 0 otherwise"}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +220,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    li = sub.add_parser(
+        "lift", help="pseudo-3D joint coordinates")
+    li.add_argument("image")
+    li.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    li.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    li.add_argument("-o", "--output",
+                    help="write the lifted joints JSON")
+    li.set_defaults(fn=_cmd_lift)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice lift <image> [-o out.json]` — lift層のCLI接続。向き手がかりによる擬似3D座標（側面時のみz推定、正面は正直な平坦0）＋depth_spread。BVH/glTF前段の3DブリッジをCLI化。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

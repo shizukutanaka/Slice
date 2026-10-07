@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- angles: predicted関節を含む角度を「計測値」として出力していた
+  欠陥を修正。プライア配置の四肢は構造的に~180°に伸びるため
+  elbow_flex等が捏造計測値になっていた（実測 175.8°）。
+  全端点observedの角度のみ出力、predictedは欠損扱いで省略。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

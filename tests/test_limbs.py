@@ -36,6 +36,15 @@ class TestLimbs(unittest.TestCase):
         self.assertTrue(r["partial"])
         self.assertEqual(r["segments"], 1)
 
+    def test_delta_skips_partial_side(self):
+        # left arm loses its elbow → chord under-measure; comparing
+        # that against the intact right arm would fabricate asymmetry
+        del self.skel.joints["elbow_l"]
+        p = limbs.profile(self.skel)
+        self.assertTrue(p["arm_l"]["partial"])
+        self.assertNotIn("arm", p["delta"])
+        self.assertIn("leg", p["delta"])
+
     def test_missing_limb_none(self):
         for n in ("shoulder_l", "elbow_l", "wrist_l"):
             del self.skel.joints[n]

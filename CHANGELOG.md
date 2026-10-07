@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

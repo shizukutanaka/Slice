@@ -4,6 +4,9 @@
 
 - `slice signature <img> [img2]` — signature層のCLI接続。1枚でポーズ指紋（骨方向固定長ベクトル）、2枚でRMS距離（同一ポーズ=0）。解像度・構図非依存のポーズ類似検索が1コマンドに。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

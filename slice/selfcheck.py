@@ -23,9 +23,9 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from . import (axis, balance, bitmap, classify, contrad, evid, fit,
-               gate, ground, human, imgqual, knowledge, limbcov,
-               mask as mask_mod, pipeline, stability)
+from . import (axis, balance, bitmap, classify, consistency, contrad,
+               evid, fit, gate, ground, human, imgqual, knowledge,
+               limbcov, mask as mask_mod, pipeline, stability)
 
 _SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
 
@@ -56,6 +56,11 @@ def _severity(layer: str, result: Dict) -> str:
         return "advisory" if stability.unstable(result) else "ok"
     if layer == "contrad":
         return {"consistent": "ok", "contradicted": "problem"}.get(
+            result["verdict"], "unmeasured")
+    if layer == "consistency":
+        # anatomical-prior violations are advisory, not fail: real
+        # bodies legitimately exceed population bounds
+        return {"consistent": "ok", "issues": "advisory"}.get(
             result["verdict"], "unmeasured")
     if layer == "gate":
         return {"pass": "ok", "warn": "advisory",
@@ -120,6 +125,11 @@ def run(raw: bytes, *, model: Optional[str] = None,
         })
         reasons += ["contrad:" + c["id"]
                     for c in layers["contrad"]["contradictions"]]
+        c_issues = consistency.audit(skel, mdl)
+        layers["consistency"] = {
+            "issues": c_issues,
+            "verdict": "issues" if c_issues else "consistent"}
+        reasons += ["consistency:" + i for i in c_issues]
 
     doc = pipeline._build_doc(
         skel, bmp, knowledge.sha256(raw), source_name, mdl,
@@ -140,5 +150,5 @@ def run(raw: bytes, *, model: Optional[str] = None,
         "doc": pipeline.strip_runtime(doc),
         "state": "derived",
         "basis": "self-audit over imgqual/human/evid/limbcov/fit/"
-                 "stability/contrad/gate",
+                 "stability/contrad/consistency/gate",
     }

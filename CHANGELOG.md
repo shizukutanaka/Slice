@@ -4,6 +4,9 @@
 
 - `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

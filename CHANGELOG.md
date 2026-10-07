@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- pose: 向きリトライ（±90°/180°）— 横たわり・逆立ちの人物に対し
+  直立スキャンがゴミ骨格をobservedとして出力し、逆立ちでは監査
+  をすり抜ける完全な嘘骨格すら生成していた誠実性の穴を修正。
+  全4向きを推定し「issues減 or 頭帯幅1.3倍超」の厳格条件でのみ
+  回転を採用、座標を画像空間へ逆写像しbasisにrotated明記。
+  実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
+  腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

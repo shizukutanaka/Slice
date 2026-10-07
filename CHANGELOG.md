@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- sample: joints_reportをobserved関節のみに修正。predicted
+  関節位置（プライア補完）で実画素を採取し `wrist_l: covered`
+  等の部位帰属ラベルを捏造していた → predictedはレポート
+  から除外。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

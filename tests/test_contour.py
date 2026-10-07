@@ -35,6 +35,16 @@ class TestContour(unittest.TestCase):
         self.assertEqual(contour.trace(mask), [])
         self.assertEqual(contour.features(mask)["area"], 0)
 
+    def test_features_discloses_truncation(self):
+        mask = self.est._mask(self.bmp)
+        f = contour.features(mask)
+        # a normal trace closes: the flag must exist and be True
+        self.assertTrue(f["contour_closed"])
+        # _trace reports the flag directly
+        path, closed = contour._trace(mask)
+        self.assertTrue(closed)
+        self.assertEqual(path, contour.trace(mask))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- contour: features()に`contour_closed`を開示（トレースが反復上限で未閉鎖打ち切りの際、perimeter/compactnessが下界として完全計測値を装っていた欠陥を解消）
 - bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。

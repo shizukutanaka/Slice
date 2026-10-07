@@ -31,8 +31,8 @@ def _border(mask: List[bytearray], x: int, y: int) -> bool:
     return False
 
 
-def trace(mask: List[bytearray]) -> List[Point]:
-    """Moore-neighbor boundary trace, clockwise, from the topmost fg."""
+def _trace(mask: List[bytearray]) -> Tuple[List[Point], bool]:
+    """Moore trace + completion flag: (path, closed)."""
     h, w = len(mask), len(mask[0])
     start: Optional[Point] = None
     for y in range(h):
@@ -43,7 +43,7 @@ def trace(mask: List[bytearray]) -> List[Point]:
         if start:
             break
     if start is None:
-        return []
+        return [], True
 
     path = [start]
     cur = start
@@ -57,14 +57,21 @@ def trace(mask: List[bytearray]) -> List[Point]:
                 found = ((nx, ny), i)
                 break
         if found is None:
-            break  # isolated pixel
+            return path, True  # isolated pixel
         nxt, i = found
         back = (i + 5) % 8  # resume searching just past the backtrack
         if nxt == start:
-            break
+            return path, True
         path.append(nxt)
         cur = nxt
-    return path
+    # cap reached without returning to the start pixel: the boundary
+    # walked is longer than the bound allows (pathological masks)
+    return path, False
+
+
+def trace(mask: List[bytearray]) -> List[Point]:
+    """Moore-neighbor boundary trace, clockwise, from the topmost fg."""
+    return _trace(mask)[0]
 
 
 def features(mask: List[bytearray]) -> dict:
@@ -78,12 +85,17 @@ def features(mask: List[bytearray]) -> dict:
     ys = [p[1] for p in pts]
     bbox = (min(xs), min(ys), max(xs), max(ys))
     bw, bh = bbox[2] - bbox[0] + 1, bbox[3] - bbox[1] + 1
-    contour = trace(mask)
+    contour, closed = _trace(mask)
     area = len(pts)
     perim = float(len(contour))
     return {
         "area": area,
         "perimeter": perim,
+        # False = the trace hit its iteration bound without closing;
+        # perimeter and compactness are then lower bounds, not a
+        # finished measurement — a truncated number must not pose
+        # as a complete one
+        "contour_closed": closed,
         "bbox": bbox,
         "aspect": round(bw / bh, 4),
         "compactness": round(perim * perim / (4 * math.pi * area), 3),

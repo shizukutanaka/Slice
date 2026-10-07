@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               recover, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,27 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_recover(a) -> int:
+    """Staged-fallback estimation for hard inputs."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = recover.recover(bmp, est, a.model or "adult")
+    out = dict(res)
+    out.pop("skeleton")
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if res["state"] == "observed" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +211,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    rc = sub.add_parser(
+        "recover", help="staged-fallback estimation")
+    rc.add_argument("image")
+    rc.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    rc.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rc.add_argument("-o", "--output",
+                    help="also write the result JSON here")
+    rc.set_defaults(fn=_cmd_recover)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

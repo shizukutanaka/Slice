@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

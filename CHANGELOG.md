@@ -5,6 +5,46 @@
 - `slice.limbcov` 新設 — 骨レベルのシルエット被覆監査（各骨を
   ~2px刻みでサンプリし6px超の背景横断をbroken検出、predicted
   端点の骨は計測のみで断罪しない、evidの点検査を線分へ拡張）
+- `slice.framefit` 新設 — 部分人体/フレーム切り取りの推定
+  （骨格端点のフレーム辺距離、上下左右の辺別 possibly_truncated、
+  extremity判定で誤検出抑制、state:"estimated"、AUDIT P0-2対応）
+- `slice.bias` 新設 — 関節別系統誤差プロファイル（正解ペア群から
+  関節ごとの平均誤差ベクトル＋除去後の残差を計測、systematic=
+  補正可能/unbiased=散布/insufficient=サンプル不足、correction()
+  は非systematicに0を返して散布へのオフセット適用を防止）
+- `KnowledgeStore.list()` に `_index.json` キャッシュ索引追加
+  （save時に追記、不在/破損/陳腐時は全走査で自動再構築、
+  索引自身はdocとして列挙しない、AUDIT P1-10対応）
+- `render` の状態表現を色+形状の二重符号化に — predicted骨を
+  破線・predicted関節を中抜きリングに（色覚特性/グレースケール
+  でもobserved/predictedを区別可能、AUDIT P4-23対応）
+- `slice.trust` 新設 — 関節信頼度の合成グレード（calib精度/stability感度/
+  evid証拠位置の既計算結果を任意サブセットで統合→high/medium/low＋
+  downgrade要因をfactorsに開示。入力なし時はheuristicと明示）
+- `slice.priorchk` 新設 — 解剖学プライア自体の監査（keyset/bounds/
+  limb_order[thigh≥shin, upper_arm≥forearm]/stack合計/head_order
+  [deformed>child>adult]の5チェック、発火時はモデル・コード・生値を開示）
+- `slice.track` 新設 — フレーム列の骨格に安定track_idを付与
+  （pelvis/centroid距離の貪欲対応、トルソ正規化の最大ジャンプ閾値、
+  空フレーム・再獲得・ギャップ数を正直に記録、単一人物前提を
+  assumptionに明記、AUDIT P3-19対応）
+- `slice.knowledge/v1.1` 導入 — `analysis` 拡張スロット
+  （レイヤ名→自由形式dict、v1との相互後方互換、v1での
+  analysis付け足しはvalidate拒否、build(analysis=...)で
+  自動v1.1化、AUDIT P1-7/8対応）
+- `slice.migrate` 新設 — 旧Knowledgeドキュメントのスキーマ正規化
+  （export/prediction/coverage/bonesを関節から再構築、欠損stateは
+  predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、
+  全変更をchangesに列挙＋valid_before/afterで検証可能）
+- pose: 骨盤幅を胴カラムランで計測（外縁=腕を含みpriorと66%乖離
+  していた問題を解消）＋膝を足ランのアンカーで選択（膝行の
+  最端ラン=腕を拾う誤りを修正）＋rom: 1px未満セグメントは
+  角度測定しない（方向を定義できない値でoverextendedを出すのは
+  発見の捏造）
+- pose: 股検出を隣接ラン間ギャップに修正（首尾ラン比較が
+  「腕|胴|腕」を胸部で誤検出→ hip -32px の系統誤差を解消）
+  ＋肘をプライア長ではなく計測した肩→手首距離の上腕比に配置
+  （elbow -30px→+2px）。bench: err 15.55→4.49px, OKS 0.53→0.90
 
 
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数
@@ -112,6 +152,9 @@
   （`python -m slice.bench`: 推定時間/detection/observed/
   mean_error/OKSを評価、精度閾値は現状実測値に固定＝
   回帰検出器、timingは情報のみ、AUDIT P2-13対応）
+- `slice.people` 新設 — 前景連結成分の人物候補列挙（top-K
+  成分のbbox/面積/辺接触、単一成分前提の最初の一歩、
+  成分≠人物をnoteに明記、AUDIT P0-1対応）
 - `docs/AUDIT.md` 新設 — 長所50/短所50/改善点の製品監査
   （第一原理＋ソクラテス問答によるP0–P4優先度付け）
 - `mask.cutout` 修正 — 透過黒初期化が暗色被写体を再推定で

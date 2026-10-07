@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- signature: predicted骨の方向ベクトルが指紋に混入していた欠陥を
+  修正。推測肢が観測とほぼ同一の指紋を生成し（距離0.0039）、
+  dedup/queryが「測定された一致」として誤認していた。predicted
+  端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
+  スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

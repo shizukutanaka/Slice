@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- track: アンカー/胴体長正規化をobserved関節のみに修正。
+  predictedのpelvisがリンク距離・jump計測の根拠になっていた
+  （推測位置での"linked"判定）。predicted pelvisはcentroidに
+  フォールバック。
+
 - mass: 身長スパンをobserved関節のみに修正。predicted足
   （"foot below ankle"プライア）がスパンを~3%伸ばしてcm_per_px
   を狂わせ、predicted頭でも推定値を返していた → 推測頭なら

@@ -21,18 +21,20 @@ from .landmarks import BONES, JOINTS
 from .skeleton import OBSERVED, PREDICTED, Skeleton
 
 SCHEMA = "slice.knowledge/v1"
+SCHEMA_V11 = "slice.knowledge/v1.1"
+SCHEMAS = (SCHEMA, SCHEMA_V11)
 
 
 def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
           *, image_sha256: str = "", source_name: str = "",
-          engine: dict) -> dict:
+          engine: dict, analysis: Optional[dict] = None) -> dict:
     joints = skel.joints
     flat = []
     for name in JOINTS:
         j = joints.get(name)
         flat += [j.x, j.y, j.confidence] if j else [0.0, 0.0, 0.0]
-    return {
-        "schema": SCHEMA,
+    doc = {
+        "schema": SCHEMA_V11 if analysis is not None else SCHEMA,
         "id": "k_" + secrets.token_hex(6),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "engine": engine,
@@ -73,16 +75,28 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
             "bones": [list(b) for b in BONES],
         },
     }
+    if analysis is not None:
+        doc["analysis"] = analysis
+    return doc
 
 
 def validate(doc: dict) -> list:
     """Return a list of schema problems; empty means valid."""
     errors = []
-    if doc.get("schema") != SCHEMA:
-        errors.append(f"schema must be {SCHEMA}")
+    if doc.get("schema") not in SCHEMAS:
+        errors.append(f"schema must be one of {SCHEMAS}")
     for key in ("id", "created_at", "engine", "skeleton", "export"):
         if key not in doc:
             errors.append(f"missing {key}")
+    # v1.1 extension slot: `analysis` is a dict of named layer outputs;
+    # each layer is a free-form dict (its own state/basis vocabulary).
+    # Tolerated on v1 too — docs written before the version bump stay
+    # readable; new documents carrying analysis are built as v1.1.
+    analysis = doc.get("analysis")
+    if analysis is not None and not (
+            isinstance(analysis, dict) and all(
+                isinstance(v, dict) for v in analysis.values())):
+        errors.append("analysis must be a dict of layer dicts")
     joints = (doc.get("skeleton") or {}).get("joints") or {}
     for name, j in joints.items():
         for f in ("x", "y", "confidence", "state"):
@@ -96,8 +110,19 @@ def validate(doc: dict) -> list:
     return errors
 
 
+INDEX_NAME = "_index.json"
+
+
+def _list_entry(doc: dict) -> dict:
+    return {"id": doc.get("id"),
+            "created_at": doc.get("created_at"),
+            "body_model": (doc.get("skeleton") or {})
+            .get("body_model", {}).get("name")}
+
+
 class KnowledgeStore:
-    """File-backed store: one <id>.json per analysis, directory = index."""
+    """File-backed store: one <id>.json per analysis, with a cached
+    listing manifest so `list()` does not have to open every document."""
 
     def __init__(self, root: str):
         self.root = root
@@ -113,6 +138,7 @@ class KnowledgeStore:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(doc, f, ensure_ascii=False, indent=2)
         os.replace(tmp, path)
+        self._index_add(doc)
         return doc["id"]
 
     def get(self, kid: str) -> dict:
@@ -124,10 +150,44 @@ class KnowledgeStore:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
+    def _index_path(self) -> str:
+        return os.path.join(self.root, INDEX_NAME)
+
+    def _index_load(self) -> Optional[dict]:
+        """Load the cached index -> {kid: entry}, or None if unusable."""
+        try:
+            with open(self._index_path(), encoding="utf-8") as f:
+                d = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(d, dict) or not isinstance(d.get("entries"), dict):
+            return None
+        return d["entries"]
+
+    def _index_add(self, doc: dict) -> None:
+        """Best-effort index update; a broken index self-heals in list()."""
+        entries = self._index_load()
+        if entries is None:
+            entries = {}
+        entries[doc["id"]] = _list_entry(doc)
+        try:
+            with open(self._index_path(), "w", encoding="utf-8") as f:
+                json.dump({"schema": "slice.index/v1", "entries": entries},
+                          f, ensure_ascii=False)
+        except OSError:
+            pass
+
     def list(self) -> list:
-        out = []
-        for fn in sorted(os.listdir(self.root)):
-            if fn.endswith(".json"):
+        files = [fn for fn in sorted(os.listdir(self.root))
+                 if fn.endswith(".json") and fn != INDEX_NAME]
+        indexed = self._index_load()
+        out, healed = [], indexed is None
+        entries = dict(indexed) if indexed else {}
+        for fn in files:
+            kid = fn[:-5]
+            ent = entries.pop(kid, None)
+            if ent is None:
+                healed = True
                 try:
                     with open(os.path.join(self.root, fn),
                               encoding="utf-8") as f:
@@ -136,10 +196,16 @@ class KnowledgeStore:
                     continue
                 if not isinstance(d, dict):
                     continue
-                out.append({"id": d.get("id"),
-                            "created_at": d.get("created_at"),
-                            "body_model": (d.get("skeleton") or {})
-                            .get("body_model", {}).get("name")})
+                ent = _list_entry(d)
+            out.append(ent)
+        if healed or entries:  # index was missing/stale -> rewrite it
+            known = {e.get("id"): e for e in out if e.get("id")}
+            try:
+                with open(self._index_path(), "w", encoding="utf-8") as f:
+                    json.dump({"schema": "slice.index/v1",
+                               "entries": known}, f, ensure_ascii=False)
+            except OSError:
+                pass
         return out
 
 

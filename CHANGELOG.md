@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dominance: 双側膝屈曲（スクワット）の捏造利き脚を修正。
+  unloaded_l+unloaded_r が同時発火して同票決 max() が "l" を
+  返していた（実測 conf 0.37）。双側屈曲は相殺し
+  both_legs_flexed（even）キューに変換 → even/conf 1.0。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

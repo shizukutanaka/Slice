@@ -4,6 +4,10 @@
 
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

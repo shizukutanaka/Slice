@@ -65,10 +65,17 @@ def cues(skel: Skeleton) -> List[dict]:
 
 
 def _span(skel: Skeleton) -> float:
+    # observed-only span with the torso-length fallback of
+    # skeleton.body_span: a predicted head/foot is prior fill
     top = _obs(skel, "head")
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
-    return (lo - top[1]) if top else 200.0
+    if top and lo - top[1] > 0:
+        return lo - top[1]
+    n, p = _obs(skel, "neck"), _obs(skel, "pelvis")
+    if n and p:
+        return _d(n, p) or 200.0
+    return 200.0
 
 
 def score(skel: Skeleton) -> dict:

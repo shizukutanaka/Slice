@@ -4,6 +4,10 @@
 
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
 
+- `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
+  推定器を走らせ、confidenceビン別の実測命中率（reliability
+  diagram）を報告。overconfidentビンがあれば exit 1。
+
 - `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

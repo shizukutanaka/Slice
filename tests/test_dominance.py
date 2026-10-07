@@ -51,6 +51,18 @@ class TestDominance(unittest.TestCase):
         self.assertNotIn("pelvis_centered", cues)
         self.assertNotIn("pelvis_shift", cues)
 
+    def test_bilateral_flexion_not_dominant(self):
+        # a squat flexes both knees: unload cues on both sides must
+        # cancel, not coin-flip a fabricated dominant leg
+        for s in ("l", "r"):
+            hip = self.skel.point(f"hip_{s}")
+            self.skel.joints[f"knee_{s}"].x = hip[0] - 40
+            self.skel.joints[f"ankle_{s}"].x = hip[0]
+        r = dominance.assess(self.skel)
+        self.assertEqual(r["dominant"], "even")
+        self.assertNotIn("unloaded_l", [c["cue"] for c in r["cues"]])
+        self.assertIn("both_legs_flexed", [c["cue"] for c in r["cues"]])
+
     def test_empty_skeleton_unknown(self):
         for n in list(self.skel.joints):
             del self.skel.joints[n]

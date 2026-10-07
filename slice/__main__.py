@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               sample, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,33 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_sample(a) -> int:
+    """Sample colour at each joint; label bare skin vs covered."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    mask = est._mask(small)
+    rep = sample.joints_report(small, skel, mask)
+    res = {"joints": rep,
+           "cover": sample.body_cover_summary(rep),
+           "frame": {"width": small.width,
+                     "height": small.height},
+           "basis": "skin-like = rgb window; a colour cue, "
+                    "not segmentation"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +217,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    sa = sub.add_parser(
+        "sample", help="joint colour sampling (bare vs covered)")
+    sa.add_argument("image")
+    sa.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sa.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sa.set_defaults(fn=_cmd_sample)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -4,6 +4,11 @@
 
 - `slice track <dir>` CLI — track層の接続。フレーム列（ディレクトリ、名前順）を一括推定→安定`track_id`付与。フレーム別に`new_track`/`linked`/`reacquired`/`empty`を表示、`--max-jump`（トルソ単位の追跡閾値）・`--robust`・`-o`で全リンク＋集計JSON（n_tracks/n_empty/n_reacquired/skipped）を出力。trackがライブラリ専用だったP3-19をCLIで実用化。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

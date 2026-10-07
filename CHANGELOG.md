@@ -4,6 +4,11 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

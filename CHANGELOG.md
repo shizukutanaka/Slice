@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

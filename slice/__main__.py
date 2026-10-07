@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
@@ -143,6 +144,39 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_split(a) -> int:
+    """Split a fused silhouette into per-person skeletons."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skels = est.estimate_split(bmp, a.model or "adult",
+                               top_k=a.top_k)
+    figs = []
+    for i, sk in enumerate(skels):
+        figs.append({
+            "figure": i,
+            "joints": {n: {"x": round(j.x, 1),
+                           "y": round(j.y, 1),
+                           "confidence": j.confidence,
+                           "state": j.state}
+                       for n, j in sk.joints.items()},
+            "observed": sum(1 for j in sk.joints.values()
+                            if j.state == "observed"),
+            "frame": {"width": sk.image_width,
+                      "height": sk.image_height},
+        })
+    res = {"figures": len(figs), "results": figs,
+           "basis": "estimate_split: head-band peaks + geodesic "
+                    "watershed; touching people may stay merged"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if figs else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +223,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    sp = sub.add_parser(
+        "split", help="watershed-split fused silhouettes")
+    sp.add_argument("image")
+    sp.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sp.add_argument("--top-k", type=int, default=4,
+                    help="max figures")
+    sp.set_defaults(fn=_cmd_split)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

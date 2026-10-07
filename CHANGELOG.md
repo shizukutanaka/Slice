@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- reid: predicted由来の比率特徴を比較から除外し
+  `predicted_features`/`excluded_predicted`で開示。プライア表で
+  置かれた比率は同一BODY_MODELなら誰でも一致する定数のため、
+  「別人が同じプライアでsame_person」という偽陽性を生んでいた
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

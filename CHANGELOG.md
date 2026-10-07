@@ -4,6 +4,10 @@
 
 - `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
 
+- `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
+  推定器を走らせ、confidenceビン別の実測命中率（reliability
+  diagram）を報告。overconfidentビンがあれば exit 1。
+
 - `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

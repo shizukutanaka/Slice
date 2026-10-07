@@ -32,6 +32,11 @@
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 
+- `slice.storechk`＋`slice audit --store DIR` — KnowledgeStore側の監査経路。selfcheckが画像を監査するのに対し、保存済みドキュメント群を監査：audit lint（invalid/flagged/cleanの文書別集計）＋近重複検出（dedup）＋関節別観測率の全ストア集計（`blind_joints`=全ドキュメントで一度も観測されなかった関節）。索引未登録ファイルも`unreadable`として失格扱い（見えない不正は最も危険なため）。verdict=pass/warn/fail＋exit codeでCIゲート可。
+- selfcheck: 関節系レイヤをエスティメータ解像度で比較（Devin Review #152修正）— >max_dim画像で骨格座標はダウンスケール済みなのにフル解像度マスクと比較していたため、全関節がoff_mask・fit=0になる誤警告を修正。`ground`も`small.height`へ。
+- selfcheck: `human`レイヤを最大成分のみで採点 — フレーム内の無関係な物体がperson-like判定を歪めていた問題を修正（推定器と同じ成分を監査）。
+- stability: probe変体が推定器の`adaptive`/`reject_shadow`/`clean`フラグを引き継ぐ — robust プロファイルのベースラインをdefault変体と比較し「プロファイル差」を「閾値感度」と誤読する問題を修正。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- fit: 説明済み画素の計測をobserved関節のみに修正。predicted骨
+  （プライア直線四肢）がシルエット画素を「説明済み」に水増し
+  し、全腕predictedでもfractionが0.80→0.81に改善したかのように
+  報告していた → predicted骨/関節はカバレッジから除外。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

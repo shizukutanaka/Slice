@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `KnowledgeStore.list()` に `_index.json` キャッシュ索引追加
+  （save時に追記、不在/破損/陳腐時は全走査で自動再構築、
+  索引自身はdocとして列挙しない、AUDIT P1-10対応）
 - `render` の状態表現を色+形状の二重符号化に — predicted骨を
   破線・predicted関節を中抜きリングに（色覚特性/グレースケール
   でもobserved/predictedを区別可能、AUDIT P4-23対応）

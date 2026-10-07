@@ -60,6 +60,27 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_store_list_uses_index_and_heals(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            idx = os.path.join(d, knowledge.INDEX_NAME)
+            self.assertTrue(os.path.isfile(idx))
+            with open(idx) as f:
+                entries = json.load(f)["entries"]
+            self.assertIn(kid, entries)
+            # index itself is never reported as a document
+            self.assertNotIn(knowledge.INDEX_NAME[:-5],
+                             {i["id"] for i in store.list()})
+            # deleting the index -> list() rescans and rebuilds it
+            os.remove(idx)
+            self.assertIn(kid, {i["id"] for i in store.list()})
+            self.assertTrue(os.path.isfile(idx))
+            # stale index entry for a deleted doc is pruned
+            os.remove(os.path.join(d, kid + ".json"))
+            self.assertNotIn(kid, {i["id"] for i in store.list()})
+
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()
         self.assertEqual(doc["schema"], "slice.knowledge/v1")

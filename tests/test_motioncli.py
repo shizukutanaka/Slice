@@ -38,7 +38,7 @@ class TestMotionCli(unittest.TestCase):
 
     def test_no_person_reports_failure(self):
         from slice import bitmap as _bmp
-        blank = _bmp.Bitmap(80, 80)
+        blank = _bmp.Bitmap.new(80, 80, (128, 128, 128, 255))
         p = _png(blank)
         self.addCleanup(lambda: os.path.exists(p) and os.unlink(p))
         self.assertEqual(main(["motion", p, self.pa]), 1)

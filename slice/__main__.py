@@ -6,6 +6,8 @@
     python -m slice batch <dir> --store DIR [--model M] [-r]
     python -m slice audit <image> [--model M] [--robust] [-o audit.json]
         — run every quality layer over one image and print a verdict
+    python -m slice audit --store DIR  — audit the stored documents
+          (honesty lint, near-duplicates, joint observed-rate)
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
     python -m slice serve [--port 8000] [--store DIR]
@@ -21,6 +23,7 @@ import sys
 
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, repro, rest, selfcheck)
+               pipeline, render, rest, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 
@@ -125,6 +128,12 @@ def _cmd_analyze_multi(a, raw) -> int:
 
 
 def _cmd_audit(a) -> int:
+    if a.store:
+        return _cmd_audit_store(a)
+    if not a.image:
+        print("audit: image path or --store DIR required",
+              file=sys.stderr)
+        return 2
     with open(a.image, "rb") as f:
         raw = f.read()
     try:
@@ -171,6 +180,22 @@ def _cmd_repro(a) -> int:
     return 0 if res["verdict"] == "reproducible" else 1
 
 
+def _cmd_audit_store(a) -> int:
+    res = storechk.audit_store(a.store)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        out = {k: res[k] for k in ("verdict", "n_docs", "blind_joints",
+                                   "reasons")}
+        out["reasons"] = out["reasons"][:10]
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    print(f"store: {res['n_docs']} docs, verdict={res['verdict']} "
+          f"({res['n_reasons']} reasons)", file=sys.stderr)
+    return 0 if res["verdict"] != "fail" else 1
+
+
 def _cmd_limbcov(a) -> int:
     """Bone-level silhouette coverage: bones crossing background."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -202,7 +227,9 @@ def _cmd_calib(a) -> int:
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     # overconfidence is the dangerous direction: reporting 0.9 when the
     # empirical hit rate is 0.5. Underconfidence is merely conservative.
-    return 1 if rep["overconfident_bins"] else 0
+    # An all-empty table measured nothing — fail rather than pass mute.
+    measured = any(b["n"] for b in rep["bins"])
+    return 1 if rep["overconfident_bins"] or not measured else 0
 
 
 def _cmd_serve(a) -> int:
@@ -244,7 +271,11 @@ def main(argv=None) -> int:
     b.set_defaults(fn=_cmd_batch)
 
     au = sub.add_parser("audit", help="run all quality layers on one image")
-    au.add_argument("image")
+    au.add_argument("image", nargs="?",
+                    help="image file (a store dir needs --store)")
+    au.add_argument("--store",
+                    help="audit a KnowledgeStore directory instead "
+                         "of an image")
     au.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     au.add_argument("--robust", action="store_true",
                     help="robust estimation profile")

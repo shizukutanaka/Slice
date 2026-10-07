@@ -23,9 +23,9 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from . import (axis, balance, bitmap, classify, contrad, evid, fit,
-               gate, ground, human, imgqual, knowledge, limbcov,
-               mask as mask_mod, pipeline, stability)
+from . import (axis, balance, bitmap, classify, consistency, contrad,
+               evid, fit, gate, ground, human, imgqual, knowledge,
+               limbcov, mask as mask_mod, pipeline, stability)
 
 _SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
 
@@ -57,6 +57,11 @@ def _severity(layer: str, result: Dict) -> str:
     if layer == "contrad":
         return {"consistent": "ok", "contradicted": "problem"}.get(
             result["verdict"], "unmeasured")
+    if layer == "consistency":
+        # anatomical-prior violations are advisory, not fail: real
+        # bodies legitimately exceed population bounds
+        return {"consistent": "ok", "issues": "advisory"}.get(
+            result["verdict"], "unmeasured")
     if layer == "gate":
         return {"pass": "ok", "warn": "advisory",
                 "fail": "problem"}.get(result["verdict"], "unmeasured")
@@ -81,10 +86,19 @@ def run(raw: bytes, *, model: Optional[str] = None,
         reasons.append("imgqual:" + layers["imgqual"]["verdict"])
 
     skel = est.estimate(bmp, mdl)
-    mask = mask_mod.foreground(bmp, est)
+    # joint-based layers must compare at the estimator's own
+    # resolution — skeleton coords live in downscaled space, so a
+    # full-resolution mask would flag every joint as off-mask.
+    small = bmp.downscale(est.max_dim)
+    mask = mask_mod.foreground(small, est)
 
     if mask_mod.coverage(mask) > 0:
-        layers["human"] = human.assess(mask)
+        labels, sizes = est._label_components(
+            mask, small.width, small.height)
+        best = max(sizes, key=sizes.get)
+        comp = est._component_mask(
+            labels, best, small.width, small.height)
+        layers["human"] = human.assess(comp)
         if layers["human"]["state"] == "measured" \
                 and not layers["human"]["person_like"]:
             reasons.append("human:not_person_like")
@@ -106,11 +120,16 @@ def run(raw: bytes, *, model: Optional[str] = None,
             "classify": classify.analyze(skel),
             "axis": {"angle_deg": (
                 (axis.principal(skel) or {}).get("angle_deg"))},
-            "ground": ground.estimate(skel, bmp.height),
+            "ground": ground.estimate(skel, small.height),
             "balance": balance.assess(skel),
         })
         reasons += ["contrad:" + c["id"]
                     for c in layers["contrad"]["contradictions"]]
+        c_issues = consistency.audit(skel, mdl)
+        layers["consistency"] = {
+            "issues": c_issues,
+            "verdict": "issues" if c_issues else "consistent"}
+        reasons += ["consistency:" + i for i in c_issues]
 
     doc = pipeline._build_doc(
         skel, bmp, knowledge.sha256(raw), source_name, mdl,
@@ -131,5 +150,5 @@ def run(raw: bytes, *, model: Optional[str] = None,
         "doc": pipeline.strip_runtime(doc),
         "state": "derived",
         "basis": "self-audit over imgqual/human/evid/limbcov/fit/"
-                 "stability/contrad/gate",
+                 "stability/contrad/consistency/gate",
     }

@@ -49,7 +49,15 @@ def from_store(store) -> List[dict]:
             continue
         # A file edited after save, or dropped in by hand, must not
         # leak into exports: only schema-valid documents count.
-        if not isinstance(doc, dict) or validate(doc):
+        # validate raises on malformed internals — an unprocessable
+        # doc is simply not exported.
+        if not isinstance(doc, dict):
+            continue
+        try:
+            bad = validate(doc)
+        except Exception:
+            continue
+        if bad:
             continue
         docs.append(doc)
     return docs

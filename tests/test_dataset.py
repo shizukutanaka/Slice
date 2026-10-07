@@ -117,6 +117,20 @@ class TestDataset(unittest.TestCase):
             docs = from_store(store)
             self.assertEqual([x["id"] for x in docs], [d["id"]])
 
+    def test_from_store_skips_unprocessable_doc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            d = _doc()
+            store.save(d)
+            # validate raises on malformed internals — the export
+            # must skip such a doc, not die with it
+            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
+                      "w") as f:
+                json.dump({"id": "k_aaaaaaaaaaaa",
+                           "skeleton": {"joints": {"head": 5}}}, f)
+            docs = from_store(store)
+            self.assertEqual([x["id"] for x in docs], [d["id"]])
+
     def test_rows_survive_malformed_docs(self):
         from slice.dataset import summary_rows, joint_rows, to_csv
         d = _doc()

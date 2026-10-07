@@ -4,6 +4,11 @@
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
+- knowledge: `validate` がexportブロックを検査するように。
+  keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
+  skeleton.jointsとの整合検査 — フラット出口で推測関節が
+  観測を装う矛盾docを拒否。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

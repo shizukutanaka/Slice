@@ -4,6 +4,10 @@
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
 - dynamics: cues/spanをobserved関節のみに修正。docstringが
   "all on observed joints"と謳いながらpredicted関節を含めて
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/

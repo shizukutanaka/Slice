@@ -7,6 +7,10 @@
 - selfcheck: `human`レイヤを最大成分のみで採点 — フレーム内の無関係な物体がperson-like判定を歪めていた問題を修正（推定器と同じ成分を監査）。
 - stability: probe変体が推定器の`adaptive`/`reject_shadow`/`clean`フラグを引き継ぐ — robust プロファイルのベースラインをdefault変体と比較し「プロファイル差」を「閾値感度」と誤読する問題を修正。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

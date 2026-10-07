@@ -12,10 +12,17 @@ from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, st
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
+# opt-in profile for noisy/uneven real photos: adaptive threshold,
+# cast-shadow rejection, morphological mask cleanup — all merged
+# estimator features that the default profile leaves off.
+ROBUST_ESTIMATOR = pose.HeuristicPoseEstimator(
+    adaptive=True, reject_shadow=True, clean=True)
 
 
 def _build_doc(skel, bmp, image_sha: str, source_name: str,
-               model: Optional[str]) -> dict:
+               model: Optional[str], estimator=None,
+               robust: bool = False) -> dict:
+    estimator = estimator or ESTIMATOR
     added = predict.complete(skel, model)
     ratios = ratio.analyze(skel, centroid=skel.centroid)
     cls = classify.analyze(skel)
@@ -23,8 +30,9 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         skel, ratios, cls,
         image_sha256=image_sha,
         source_name=source_name,
-        engine={"name": ESTIMATOR.name, "version": ESTIMATOR.version,
-                "slice": __version__},
+        engine={"name": estimator.name, "version": estimator.version,
+                "slice": __version__,
+                "profile": "robust" if robust else "default"},
     )
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
@@ -35,15 +43,17 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
 
 
 def analyze(raw: bytes, *, model: Optional[str] = None,
-            source_name: str = "") -> dict:
+            source_name: str = "", robust: bool = False) -> dict:
     bmp = bitmap.decode(raw)
-    skel = ESTIMATOR.estimate(bmp, model or "adult")
+    estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
+    skel = estimator.estimate(bmp, model or "adult")
     return _build_doc(skel, bmp, knowledge.sha256(raw), source_name,
-                      model)
+                      model, estimator=estimator, robust=robust)
 
 
 def analyze_multi(raw: bytes, *, model: Optional[str] = None,
-                  source_name: str = "", top_k: int = 4) -> List[dict]:
+                  source_name: str = "", top_k: int = 4,
+                  robust: bool = False) -> List[dict]:
     """One Knowledge document per detected person.
 
     Each document is a complete v1 analysis of its own skeleton and
@@ -53,10 +63,12 @@ def analyze_multi(raw: bytes, *, model: Optional[str] = None,
     one component) or empty (nothing detected): the pixels decide.
     """
     bmp = bitmap.decode(raw)
-    skels = ESTIMATOR.estimate_multi(bmp, model or "adult",
+    estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
+    skels = estimator.estimate_multi(bmp, model or "adult",
                                      top_k=top_k)
     sha = knowledge.sha256(raw)
-    docs = [_build_doc(s, bmp, sha, source_name, model)
+    docs = [_build_doc(s, bmp, sha, source_name, model,
+                       estimator=estimator, robust=robust)
             for s in skels]
     for i, d in enumerate(docs):
         d["people"] = {"index": i, "count": len(docs),

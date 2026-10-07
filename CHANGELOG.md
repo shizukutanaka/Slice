@@ -4,6 +4,9 @@
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

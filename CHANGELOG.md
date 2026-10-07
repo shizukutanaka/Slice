@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
+  骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
+  のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。
+  下端を全関節のmaxに変更し、全足が頭より上なら `invert`
+  （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
+
 - describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
   _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
   `crouch`（crouching）＋将来の `invert`（upside down）を追加。

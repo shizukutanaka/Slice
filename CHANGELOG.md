@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- consensus: 全関節predictedの骨格を`state:observed`と虚偽報告していた欠陥を修正（1件以上observedで初めてobserved、joints有りではpredicted）
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

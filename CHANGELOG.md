@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `slice.modelchk` 新設 — 選択モデルの整合性監査（頭身比だけで
+  選ばれたBODY_MODELを、肩/腰/胴/腕/脚の実測比率5次元で再検証、
+  2+次元乖離または総誤差超過でmismatch、better_modelは助言のみ）
 - `slice.limbcov` 新設 — 骨レベルのシルエット被覆監査（各骨を
   ~2px刻みでサンプリし6px超の背景横断をbroken検出、predicted
   端点の骨は計測のみで断罪しない、evidの点検査を線分へ拡張）

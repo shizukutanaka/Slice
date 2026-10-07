@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- lift: facing "left"/"right"（実際のプロファイル検出）でも遠側にzを付与
+  （facing "side"のみ対象だったため真の側面人物が平坦zになっていた欠陥。
+  遠側は向き方向側フランク＝facing "left"なら_l側。orientation["side"]の
+  未使用ヒント入力も"side"時に継続尊重）
+
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

@@ -34,6 +34,17 @@ class TestSmooth(unittest.TestCase):
         sm = smooth.smooth(series)
         self.assertNotIn("wrist_l", sm[1].joints)
 
+    def test_observed_not_dragged_by_prediction(self):
+        # a predicted neighbour must not pull an observed joint
+        # toward its fabricated location
+        series = [_copy_with(self.skel) for _ in range(3)]
+        w = series[1].joints["wrist_l"]
+        w.state = "predicted"
+        w.x += 40
+        sm = smooth.smooth(series)
+        self.assertEqual(sm[0].joints["wrist_l"].x,
+                         self.skel.joints["wrist_l"].x)
+
     def test_state_and_confidence_preserved(self):
         series = [_copy_with(self.skel) for _ in range(3)]
         series[1].joints["wrist_l"].state = "predicted"

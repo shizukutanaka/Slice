@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- pose: 向きリトライの誤反転を修正（腕上げ等のupright図形を回転しない — 回転候補にhead-band強化＋関節非減を必須化）
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

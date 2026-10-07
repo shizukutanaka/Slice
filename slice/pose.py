@@ -360,13 +360,15 @@ class HeuristicPoseEstimator(PoseEstimator):
                 continue
             issues = len(consistency.audit(cand, model))
             headw = _head_band_width(comp_r, rw, rh)
-            # Rotate only on strict evidence: fewer audit issues or a
-            # decisively stronger head band — a sideways blob (wide
-            # hand, dress hem) only looks head-sized and must not flip
-            # an upright figure.
-            qualifies = (issues < base_issues
-                         or (issues == base_issues
-                             and headw > base_headw * 1.3))
+            # Rotate only on strict evidence: a rotated candidate
+            # that finds fewer joints than the upright scan is
+            # regression, not reorientation; and rotating without a
+            # decisively stronger head band just re-labels feet as
+            # head — an audit-clean fabrication on the rotated mask
+            # must not flip real upright evidence.
+            qualifies = (len(cand.joints) >= len(sk.joints)
+                         and issues <= base_issues
+                         and headw > base_headw * 1.3)
             if not qualifies:
                 continue
             key = (issues, -len(cand.joints), -headw)

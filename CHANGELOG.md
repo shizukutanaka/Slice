@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

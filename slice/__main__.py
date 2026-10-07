@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               autocrop, crop, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,36 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_autocrop(a) -> int:
+    """Suggest (and optionally apply) a person-bbox crop."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    aspect = None
+    if a.aspect:
+        try:
+            w, h = (float(v) for v in a.aspect.split(":"))
+            aspect = w / h if h else None
+        except ValueError:
+            print("--aspect must be W:H (e.g. 3:4)",
+                  file=sys.stderr)
+            return 2
+    res = autocrop.suggest(bmp, margin=a.margin,
+                           aspect=aspect)
+    if a.output and res.get("crop"):
+        rect = tuple(res["crop"])
+        out = crop.crop(bmp, rect)
+        with open(a.output, "wb") as f:
+            f.write(bitmap.encode_png(out))
+        print(f"wrote {a.output} "
+              f"({out.width}x{out.height})", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("crop") else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +220,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ac = sub.add_parser(
+        "autocrop", help="person-bbox crop suggestion")
+    ac.add_argument("image")
+    ac.add_argument("--margin", type=float, default=0.1,
+                    help="pad fraction around the bbox")
+    ac.add_argument("--aspect",
+                    help="target aspect as W:H (e.g. 3:4)")
+    ac.add_argument("-o", "--output",
+                    help="write the cropped PNG here")
+    ac.set_defaults(fn=_cmd_autocrop)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

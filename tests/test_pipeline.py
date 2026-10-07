@@ -43,6 +43,16 @@ class TestPipeline(unittest.TestCase):
         out = pipeline.strip_runtime(doc)
         self.assertFalse(any(k.startswith("_") for k in out))
 
+    def test_robust_profile_recorded_and_detects(self):
+        raw = bitmap.encode_png(synthetic_person())
+        doc = pipeline.analyze(raw, robust=True)
+        self.assertEqual(doc["engine"]["profile"], "robust")
+        self.assertGreater(
+            len(doc["prediction"]["observed"]), 8)
+        # default profile stays default
+        doc2 = pipeline.analyze(raw)
+        self.assertEqual(doc2["engine"]["profile"], "default")
+
 
 if __name__ == "__main__":
     unittest.main()

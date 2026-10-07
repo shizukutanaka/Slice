@@ -40,13 +40,16 @@ def from_store(store) -> List[dict]:
     """Load every valid document a KnowledgeStore can read."""
     docs = []
     for entry in store.list():
+        kid = entry.get("id")
+        if not isinstance(kid, str):
+            continue  # hand-dropped dict without an id
         try:
-            doc = store.get(entry["id"])
+            doc = store.get(kid)
         except (KeyError, OSError, json.JSONDecodeError):
             continue
         # A file edited after save, or dropped in by hand, must not
         # leak into exports: only schema-valid documents count.
-        if validate(doc):
+        if not isinstance(doc, dict) or validate(doc):
             continue
         docs.append(doc)
     return docs

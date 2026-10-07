@@ -13,7 +13,6 @@
   実写真の一括解析が最もそれを必要とする経路だった。
   docの `engine.profile` に "robust" と記録される。
 
->>>>>>> origin/main
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- compare: 手置き不正docで落ちない — 非dict関節・非数値座標・
+  非dict doc・非数値confidenceを比較対象外に（pose_distanceは
+  従来通りNoneを返す）。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
+  body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
+  閾値が負値で常時発火していた。胴体長フォールバック＋スケール
+  不在時は posture=unknown に。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

@@ -56,9 +56,8 @@ def cues(skel: Skeleton) -> List[dict]:
 
 
 def _span(skel: Skeleton) -> float:
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    return (lo - top[1]) if top else 200.0
+    from .skeleton import body_span
+    return body_span(skel) or 200.0
 
 
 def score(skel: Skeleton) -> dict:

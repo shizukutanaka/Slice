@@ -82,7 +82,8 @@ def report(pairs, estimator=None, **kw) -> Dict:
         elif gap < -0.10:
             underconf += 1
     return {
-        "state": "estimated",
+        # an all-empty table measured nothing — do not claim estimated
+        "state": "estimated" if filled else "unmeasured",
         "basis": "ground-truth fixture error rates per confidence bin",
         "hit_radius_px": kw.get("hit_radius", HIT_RADIUS_PX),
         "bins": table,

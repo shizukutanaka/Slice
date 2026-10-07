@@ -57,6 +57,8 @@ class TestCalib(unittest.TestCase):
         t = calib.reliability_table([])
         self.assertEqual(len(t), calib.BINS)
         self.assertTrue(all(b["n"] == 0 for b in t))
+        # an all-empty report must not claim a measured state
+        self.assertEqual(calib.report([])["state"], "unmeasured")
 
     def test_boundary_confidence_bins_match_lookup(self):
         # 0.6 / 0.1 is 5.999... in floats — the table must index the

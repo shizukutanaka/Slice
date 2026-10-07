@@ -113,3 +113,25 @@ def head_length_px(skel: Skeleton) -> Optional[float]:
         return None
     mult = 1.0 if neck.basis == NECK_CLAVICLE_BASIS else 2.0
     return (neck.y - head.y) * mult
+
+
+def body_span(skel: Skeleton) -> float:
+    """Head-to-lowest-joint body span in px.
+
+    Falls back to the neck–pelvis torso length when the head is the
+    lowest joint (inverted figure) or absent; returns 0.0 when no
+    body scale is measurable at all. Callers normalising by body
+    height must never divide by a raw-pixel default or a negative
+    span — both fabricate scale where none was measured.
+    """
+    top = skel.point("head")
+    lo = max((j.y for j in skel.joints.values()), default=0.0)
+    if top:
+        s = lo - top[1]
+        if s > 0:
+            return s
+    n = skel.point("neck")
+    p = skel.point("pelvis")
+    if n and p:
+        return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
+    return 0.0

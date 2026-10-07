@@ -22,7 +22,13 @@ _TORSO = ("neck", "pelvis")
 
 
 def _vec(doc: dict) -> Optional[dict]:
-    joints = (doc.get("skeleton") or {}).get("joints") or {}
+    sk = doc.get("skeleton") if isinstance(doc, dict) else None
+    raw = sk.get("joints") if isinstance(sk, dict) else None
+    joints = {n: j for n, j in (raw or {}).items()
+              if isinstance(j, dict)
+              and isinstance(j.get("x"), (int, float))
+              and isinstance(j.get("y"), (int, float))} \
+        if isinstance(raw, dict) else {}
     p0, p1 = joints.get(_TORSO[0]), joints.get(_TORSO[1])
     if not p0 or not p1:
         return None

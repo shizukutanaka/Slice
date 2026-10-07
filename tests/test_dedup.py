@@ -68,6 +68,23 @@ class TestDedup(unittest.TestCase):
         self.assertGreaterEqual(r["n_pairs"], 1)
         self.assertLess(r["n_pairs"], 6)
 
+    def test_malformed_docs_skipped_not_crashed(self):
+        a, b = _doc(), _doc()
+        docs = [
+            a,
+            {"skeleton": {"joints": {"neck": 5, "pelvis": {"x": 1,
+                                                           "y": 2}}}},
+            {"skeleton": 5},
+            {"skeleton": {"joints": {"neck": {"x": "top", "y": 0},
+                                     "pelvis": {"x": 0, "y": 9}}}},
+            [1, 2],
+            b,
+        ]
+        r = dedup(docs)
+        self.assertEqual(r["n_docs"], 6)
+        self.assertEqual(r["n_pairs"], 1)
+        self.assertEqual(distance(a, b), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

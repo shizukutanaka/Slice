@@ -4,6 +4,9 @@
 
 - `slice stats <dir>` — stats層のCLI接続。フレーム列の関節別観測率・平均confidence・fill率＋weakest_joints（死角関節）を集計報告。`--weakest`で上位N件調整。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

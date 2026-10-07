@@ -59,6 +59,22 @@ class TestRepro(unittest.TestCase):
         r = repro.verify(doc, bmp)
         self.assertIn("neck", r["added"])
 
+    def test_malformed_doc_no_crash(self):
+        bmp, _ = evaluate.draw_case(160, 300)
+        doc, _ = _doc(bmp)
+        doc["skeleton"]["joints"]["head"] = 5
+        doc["skeleton"]["joints"]["neck"]["x"] = "top"
+        r = repro.verify(doc, bmp)
+        self.assertEqual(sorted(r["malformed"]), ["head", "neck"])
+        self.assertNotIn("head", [d["joint"] for d in r["drifts"]])
+
+    def test_non_dict_doc_no_crash(self):
+        bmp, _ = evaluate.draw_case(160, 300)
+        for bad in ({"skeleton": 5}, [1, 2]):
+            r = repro.verify(bad, bmp)
+            self.assertEqual(r["joints_compared"], 0)
+            self.assertEqual(r["malformed"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

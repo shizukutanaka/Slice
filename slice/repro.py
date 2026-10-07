@@ -45,15 +45,31 @@ def verify(doc: dict, bmp: Bitmap,
     is not part of schema v1, so `model` falls back to the estimator
     default — disclosed in `basis`.
     """
-    rec = (doc.get("skeleton") or {}).get("joints") or {}
-    frame = (doc.get("skeleton") or {}).get("frame") or {}
-    model = ((doc.get("skeleton") or {}).get("body_model") or {}) \
-        .get("name") or DEFAULT_MODEL
+    sk_doc = doc.get("skeleton") if isinstance(doc, dict) else None
+    sk_doc = sk_doc if isinstance(sk_doc, dict) else {}
+    raw = sk_doc.get("joints")
+    raw = raw if isinstance(raw, dict) else {}
+    rec, malformed = {}, []
+    for name, j in raw.items():
+        if (isinstance(j, dict)
+                and isinstance(j.get("x"), (int, float))
+                and isinstance(j.get("y"), (int, float))):
+            rec[name] = j
+        else:
+            malformed.append(name)
+    frame = sk_doc.get("frame")
+    frame = frame if isinstance(frame, dict) else {}
+    bm = sk_doc.get("body_model")
+    model = (bm.get("name") if isinstance(bm, dict) else None) \
+        or DEFAULT_MODEL
 
     est = estimator or HeuristicPoseEstimator()
     sk = est.estimate(bmp, model)
-    sx = frame.get("width") and sk.image_width / frame["width"] or 1.0
-    sy = frame.get("height") and sk.image_height / frame["height"] or 1.0
+    fw, fh = frame.get("width"), frame.get("height")
+    sx = fw if isinstance(fw, (int, float)) and fw > 0 else 0
+    sy = fh if isinstance(fh, (int, float)) and fh > 0 else 0
+    sx = sk.image_width / sx if sx else 1.0
+    sy = sk.image_height / sy if sy else 1.0
 
     drifts, flips, missing, added = [], [], [], []
     compared = 0
@@ -85,6 +101,7 @@ def verify(doc: dict, bmp: Bitmap,
         "state_flips": flips,
         "missing": sorted(missing),
         "added": sorted(added),
+        "malformed": sorted(malformed),
         "tolerance_px": tolerance,
         "state": "measured",
         "basis": "re-estimate on source image vs recorded joints "

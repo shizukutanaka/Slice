@@ -29,6 +29,10 @@ def _copy(skel: Skeleton) -> Skeleton:
 
 def _map(skel: Skeleton, fx, fy, frame_w: int, frame_h: int) -> Skeleton:
     out = _copy(skel)
+    # the mapped joints live in the NEW frame — declaring the old
+    # dimensions would make the skeleton describe coordinates it
+    # does not have
+    out.image_width, out.image_height = frame_w, frame_h
     for j in out.joints.values():
         j.x, j.y = fx(j.x), fy(j.y)
         if j.state == "observed" and not (
@@ -55,6 +59,7 @@ def resize(skel: Skeleton, w: int, h: int,
 def to_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
     """x/w, y/h normalized coordinates (0-1)."""
     out = _copy(skel)
+    out.image_width, out.image_height = 1, 1
     for j in out.joints.values():
         j.x, j.y = j.x / w, j.y / h
     return out
@@ -63,6 +68,7 @@ def to_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
 def from_unit(skel: Skeleton, w: int, h: int) -> Skeleton:
     """Back to pixels."""
     out = _copy(skel)
+    out.image_width, out.image_height = w, h
     for j in out.joints.values():
         j.x, j.y = j.x * w, j.y * h
     return out

@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

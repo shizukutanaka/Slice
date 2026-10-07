@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `render` の状態表現を色+形状の二重符号化に — predicted骨を
+  破線・predicted関節を中抜きリングに（色覚特性/グレースケール
+  でもobserved/predictedを区別可能、AUDIT P4-23対応）
 - `slice.trust` 新設 — 関節信頼度の合成グレード（calib精度/stability感度/
   evid証拠位置の既計算結果を任意サブセットで統合→high/medium/low＋
   downgrade要因をfactorsに開示。入力なし時はheuristicと明示）

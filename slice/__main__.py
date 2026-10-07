@@ -3,7 +3,7 @@
     python -m slice analyze <image> [-o knowledge.json]
         [--model adult|child|deformed] [--robust] [--overlay out.png]
         [--store DIR]
-    python -m slice batch <dir> --store DIR [--model M] [-r]
+    python -m slice batch <dir> --store DIR [--model M] [--robust] [-r]
     python -m slice audit <image> [--model M] [--robust] [-o audit.json]
         — run every quality layer over one image and print a verdict
     python -m slice audit --store DIR  — audit the stored documents
@@ -84,7 +84,8 @@ def _cmd_batch(a) -> int:
         try:
             with open(p, "rb") as f:
                 raw = f.read()
-            doc = pipeline.analyze(raw, model=a.model, source_name=p)
+            doc = pipeline.analyze(raw, model=a.model, source_name=p,
+                                   robust=a.robust)
             kid = store.save(pipeline.strip_runtime(doc))
             obs = doc["coverage"]["observed"]
             print(f"{p}: {kid} ({obs} observed)")
@@ -281,6 +282,8 @@ def main(argv=None) -> int:
                    help="KnowledgeStore directory to write into")
     b.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     b.add_argument("-r", "--recursive", action="store_true")
+    b.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
     b.set_defaults(fn=_cmd_batch)
 
     au = sub.add_parser("audit", help="run all quality layers on one image")

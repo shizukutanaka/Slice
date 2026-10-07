@@ -65,6 +65,18 @@ class TestClassify(unittest.TestCase):
                ankle_l=(45, 375), ankle_r=(160, 375))
         self.assertEqual(classify.analyze(s)["pose"], "run")
 
+    def test_invert_head_down(self):
+        # handstand/head-down: every foot above the head. A foot-only
+        # bottom collapses span_y to ~0, so this also guards that the
+        # span is measured over all joints, not just the feet.
+        s = sk(head=(100, 370), neck=(100, 320), chest=(100, 240),
+               pelvis=(100, 160), hip_l=(85, 155), hip_r=(115, 155),
+               knee_l=(85, 110), knee_r=(115, 110),
+               ankle_l=(85, 25), ankle_r=(115, 25))
+        r = classify.analyze(s)
+        self.assertEqual(r["pose"], "invert")
+        self.assertEqual(r["label"], "逆さま")
+
     def test_unknown_empty(self):
         r = classify.analyze(Skeleton(10, 10))
         self.assertEqual(r["pose"], "unknown")

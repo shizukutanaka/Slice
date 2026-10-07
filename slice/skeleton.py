@@ -22,7 +22,10 @@ class Joint:
     x: float
     y: float
     confidence: float
-    state: str = OBSERVED  # OBSERVED | PREDICTED
+    # OBSERVED | PREDICTED — default is PREDICTED: claiming evidence
+    # must be deliberate. A Joint built without a state argues the
+    # weaker claim, never silently manufactures an observation.
+    state: str = PREDICTED
     basis: str = ""        # what evidence produced this joint
 
     def to_dict(self) -> dict:

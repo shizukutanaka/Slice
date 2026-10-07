@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- skeleton: Joint.stateのデフォルトをpredictedに（フェイルオープン修正—state未指定で観測を捏造する穴。観測主張は明示必須）
 - bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。

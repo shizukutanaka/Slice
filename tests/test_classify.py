@@ -4,13 +4,13 @@ from tests import synthetic_person
 
 from slice import classify
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 
 
 def sk(**joints):
     s = Skeleton(400, 400)
     for n, xy in joints.items():
-        s.set(Joint(n, xy[0], xy[1], 0.8))
+        s.set(Joint(n, xy[0], xy[1], 0.8, OBSERVED))
     return s
 
 

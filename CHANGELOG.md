@@ -7,6 +7,9 @@
   距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は
   compare/dedupと同じ胴体長で正規化→距離0.24（骨欠損分のみ）。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

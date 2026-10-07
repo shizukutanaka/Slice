@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- track: アンカー/胴体長正規化をobserved関節のみに修正。
+  predictedのpelvisがリンク距離・jump計測の根拠になっていた
+  （推測位置での"linked"判定）。predicted pelvisはcentroidに
+  フォールバック。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

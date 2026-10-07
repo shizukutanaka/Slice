@@ -115,28 +115,16 @@ def _draw(out: Bitmap, skel: Skeleton,
             continue
         both_obs = (skel.get(a).state == OBSERVED
                     and skel.get(b).state == OBSERVED)
-        color = BLUE if both_obs else ORANGE
+        color = strong if both_obs else faint
         draw = _line if both_obs else _line_dashed
         draw(out, pa[0], pa[1], pb[0], pb[1], color)
-        color = (BLUE if skel.get(a).state == OBSERVED
-                 and skel.get(b).state == OBSERVED else ORANGE)
-        _line(out, pa[0], pa[1], pb[0], pb[1], color)
-        color = (strong if skel.get(a).state == OBSERVED
-                 and skel.get(b).state == OBSERVED else faint)
-        _line(out, pa[0], pa[1], pb[0], pb[1], color)
     for j in skel.joints.values():
-        r = max(2, bmp.width // 160)
+        r = max(2, out.width // 160)
         if j.state == OBSERVED:
-            _disc(out, j.x * sx, j.y * sy, r, BLUE)
+            _disc(out, j.x * sx, j.y * sy, r, strong)
             _disc(out, j.x * sx, j.y * sy, 1, WHITE)
         else:
-            _ring(out, j.x * sx, j.y * sy, r + 1, ORANGE)
-        color = BLUE if j.state == OBSERVED else ORANGE
-        _disc(out, j.x * sx, j.y * sy, max(2, bmp.width // 160), color)
-        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
-        color = strong if j.state == OBSERVED else faint
-        _disc(out, j.x * sx, j.y * sy, max(2, out.width // 160), color)
-        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
+            _ring(out, j.x * sx, j.y * sy, r + 1, faint)
 
     # Facing arrow above the head when the estimator saw a side profile.
     facing = skel.orientation.get("facing")

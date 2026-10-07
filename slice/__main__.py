@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               reid, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,31 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_reid(a) -> int:
+    """Same-person check between two images (bone-ratio matching)."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    feats = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skel = est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+        if not skel.joints:
+            print(f"no person in {p}", file=sys.stderr)
+            return 1
+        feats.append(reid.features(skel))
+    res = reid.compare(feats[0], feats[1],
+                       threshold=a.threshold)
+    res["features_a"] = feats[0]["vector"]
+    res["features_b"] = feats[1]["vector"]
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("same_person") else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +215,19 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ri = sub.add_parser(
+        "reid", help="same-person check between two images")
+    ri.add_argument("a")
+    ri.add_argument("b")
+    ri.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ri.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ri.add_argument("--threshold", type=float,
+                    default=reid.DEFAULT_THRESHOLD,
+                    help="mean |feature diff| below this = same person")
+    ri.set_defaults(fn=_cmd_reid)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

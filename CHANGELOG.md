@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- CI導入 — `.github/workflows/test.yml`: push/PRごとに
+  `python -m unittest discover -s tests` をPython 3.9/3.11/3.12
+  で自動実行（stdlib専用・依存インストール不要、
+  AUDIT P1-6対応）
 - REST認証オプション — `serve(token=)` / `--token` / `SLICE_TOKEN`
   でAPIルートに `Authorization: Bearer` を要求（hmac比較、
   `/`と`/health`はviewer/プローブ用に開放、未設定時は従来の

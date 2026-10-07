@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- bitmap/cli: corrupt画像を UnsupportedFormat に畳み込み
+  （zlib/struct/IndexErrorが素通ししていた → CLI exit 2・
+  REST 415・batch失敗カウントの契約に統一）。`_cmd_analyze`/
+  `_cmd_audit` の存在しないファイルもTraceback→exit 2。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

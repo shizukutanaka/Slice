@@ -19,9 +19,14 @@ Truth = Dict[str, Tuple[float, float]]
 
 
 def draw_case(width: int = 160, height: int = 300, *,
+              pose: str = "stand",
               skin=(60, 60, 60, 255),
               bg=(235, 235, 235, 255)) -> Tuple[Bitmap, Truth]:
-    """Standing front figure; returns (bitmap, ground-truth joints)."""
+    """Standing front figure; returns (bitmap, ground-truth joints).
+
+    `pose` selects the arm geometry: "stand" hangs the arms beside
+    the torso; "t" spreads them horizontally so calibration/bias
+    measurements do not rest on a single pose."""
     bmp = Bitmap.new(width, height, bg)
     cx = width // 2
     truth: Truth = {}
@@ -46,22 +51,38 @@ def draw_case(width: int = 160, height: int = 300, *,
     truth["head"] = (cx, head_r + 8)
     rect(cx - 3, head_r + 6, cx + 3, sh_y + 6)
     truth["neck"] = (cx, sh_y + 6)
-    rect(cx - torso_w / 2 - 10, sh_y, cx + torso_w / 2 + 10, sh_y + 6)
-    rect(cx - torso_w / 2, sh_y, cx + torso_w / 2, hip_y)
-    truth["shoulder_l"] = (cx - torso_w / 2 - 10, sh_y + 3)
-    truth["shoulder_r"] = (cx + torso_w / 2 + 9, sh_y + 3)
+    if pose == "t":
+        # horizontal arm strip at shoulder height; reach is the free
+        # side space so the fixture fits narrow canvases too
+        rect(cx - torso_w / 2, sh_y, cx + torso_w / 2, hip_y)
+        reach = (cx - torso_w / 2) * 0.92
+        ay0, ay1 = sh_y + 2, sh_y + 10
+        rect(cx - torso_w / 2 - reach, ay0, cx - torso_w / 2, ay1)
+        rect(cx + torso_w / 2, ay0, cx + torso_w / 2 + reach, ay1)
+        amy = (ay0 + ay1) / 2
+        truth["shoulder_l"] = (cx - torso_w / 2, amy)
+        truth["shoulder_r"] = (cx + torso_w / 2 - 1, amy)
+        truth["elbow_l"] = (cx - torso_w / 2 - reach / 2, amy)
+        truth["elbow_r"] = (cx + torso_w / 2 + reach / 2, amy)
+        truth["wrist_l"] = (cx - torso_w / 2 - reach, amy)
+        truth["wrist_r"] = (cx + torso_w / 2 + reach - 1, amy)
+    else:
+        rect(cx - torso_w / 2 - 10, sh_y, cx + torso_w / 2 + 10, sh_y + 6)
+        rect(cx - torso_w / 2, sh_y, cx + torso_w / 2, hip_y)
+        truth["shoulder_l"] = (cx - torso_w / 2 - 10, sh_y + 3)
+        truth["shoulder_r"] = (cx + torso_w / 2 + 9, sh_y + 3)
+        rect(cx - torso_w / 2 - 10, sh_y + 6, cx - torso_w / 2 - 2,
+             height * 0.75)
+        rect(cx + torso_w / 2 + 2, sh_y + 6, cx + torso_w / 2 + 10,
+             height * 0.75)
+        truth["elbow_l"] = (cx - torso_w / 2 - 6, height * 0.5)
+        truth["elbow_r"] = (cx + torso_w / 2 + 6, height * 0.5)
+        truth["wrist_l"] = (cx - torso_w / 2 - 6, height * 0.75 - 1)
+        truth["wrist_r"] = (cx + torso_w / 2 + 6, height * 0.75 - 1)
     truth["chest"] = (cx, (sh_y + hip_y) / 2)
     truth["pelvis"] = (cx, hip_y - 1)
     truth["hip_l"] = (cx - torso_w / 2, hip_y)
     truth["hip_r"] = (cx + torso_w / 2 - 1, hip_y)
-    rect(cx - torso_w / 2 - 10, sh_y + 6, cx - torso_w / 2 - 2,
-         height * 0.75)
-    rect(cx + torso_w / 2 + 2, sh_y + 6, cx + torso_w / 2 + 10,
-         height * 0.75)
-    truth["elbow_l"] = (cx - torso_w / 2 - 6, height * 0.5)
-    truth["elbow_r"] = (cx + torso_w / 2 + 6, height * 0.5)
-    truth["wrist_l"] = (cx - torso_w / 2 - 6, height * 0.75 - 1)
-    truth["wrist_r"] = (cx + torso_w / 2 + 6, height * 0.75 - 1)
     rect(cx - torso_w / 2, hip_y, cx - gap / 2, height - 10)
     rect(cx + gap / 2, hip_y, cx + torso_w / 2, height - 10)
     truth["knee_l"] = ((cx - torso_w / 2 + cx - gap / 2) / 2,

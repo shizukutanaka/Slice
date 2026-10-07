@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- pose: 水平腕（Tポーズ/腕上げ）検出 — 最広行が胴幅×1.6超のとき
+  腕ストリップと判定し、肩=胴縁・肘=中点・手首=先端を観測
+  （従来は肩が腕先端に吸収され118px誤差＋肘/手首未検出）。
+  `evaluate.draw_case(pose="t")` でポーズ多様性のあるフィクスチャ。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

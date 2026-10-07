@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `slice.extjoints` 新設 — v2拡張関節語彙（v1の17関節を不変のまま、
+  mid_hip/waist/mid_thigh等の補間関節＋fingertip/toe/heelを
+  predictedとして導出、nose/eye/earは証拠なし=reservedで
+  発行しない、basisは共有語彙の接頭辞規約に準拠、
+  AUDIT P2-15対応）
 - `analyze(robust=True)` / REST `?robust=1` / CLI `--robust` —
   頑健性プロファイルのパイプライン接続（adaptive閾値＋落ち影除去
   ＋形態学クリーンアップを1フラグで有効化、実写向けopt-in、

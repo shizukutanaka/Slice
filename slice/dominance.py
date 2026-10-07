@@ -47,6 +47,14 @@ def cues(skel: Skeleton) -> List[dict]:
             out.append({"cue": f"unloaded_{side}",
                         "side": "r" if side == "l" else "l",
                         "strength": 0.7})
+    # bilateral flexion is not dominance evidence: a squat fires
+    # unload on both sides, and counting both would fabricate an
+    # arbitrary dominant leg on a symmetric pose
+    if (any(c["cue"] == "unloaded_l" for c in out)
+            and any(c["cue"] == "unloaded_r" for c in out)):
+        out = [c for c in out if not c["cue"].startswith("unloaded_")]
+        out.append({"cue": "both_legs_flexed",
+                    "side": "even", "strength": 0.6})
     return out
 
 

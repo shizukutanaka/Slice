@@ -34,6 +34,20 @@ class TestPoseDistance(unittest.TestCase):
         r = compare.pose_distance(a, b, min_confidence=0.5)
         self.assertNotIn("wrist_l", r["per_joint"])
 
+    def test_malformed_docs_no_crash(self):
+        a, b = _doc(160, 300), _doc(160, 300)
+        self.assertIsNone(compare.pose_distance(
+            a, {"skeleton": {"joints": {"neck": 5,
+                                       "pelvis": {"x": 1, "y": 2}}}}))
+        self.assertIsNone(compare.pose_distance(a, {"skeleton": 5}))
+        self.assertIsNone(compare.pose_distance([1, 2], b))
+
+    def test_non_numeric_confidence_joint_excluded(self):
+        a, b = _doc(160, 300), _doc(160, 300)
+        b["skeleton"]["joints"]["wrist_l"]["confidence"] = "high"
+        r = compare.pose_distance(a, b, min_confidence=0.5)
+        self.assertNotIn("wrist_l", r["per_joint"])
+
 
 if __name__ == "__main__":
     unittest.main()

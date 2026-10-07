@@ -4,6 +4,9 @@
 
 - `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

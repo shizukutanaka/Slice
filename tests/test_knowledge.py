@@ -46,6 +46,16 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_validate_catches_coverage_falsification(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        # demote one joint to predicted, leaving the coverage
+        # block claiming the old observed count — a stale/
+        # falsified metric must fail validation
+        first = next(iter(doc["skeleton"]["joints"]))
+        doc["skeleton"]["joints"][first]["state"] = "predicted"
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("coverage." in e for e in errors))
+
     def test_store_roundtrip(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:

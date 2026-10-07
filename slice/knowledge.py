@@ -107,6 +107,34 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    cov = doc.get("coverage")
+    if isinstance(cov, dict):
+        # coverage is the document's evidence-dependence metric —
+        # recomputing it from the joints keeps it honest
+        n_obs = sum(1 for j in joints.values()
+                    if isinstance(j, dict)
+                    and j.get("state") == OBSERVED)
+        n_pred = sum(1 for j in joints.values()
+                     if isinstance(j, dict)
+                     and j.get("state") == PREDICTED)
+        total = len(JOINTS)
+        if "observed" in cov and cov["observed"] != n_obs:
+            errors.append(
+                f"coverage.observed {cov['observed']} != {n_obs}")
+        if "predicted" in cov and cov["predicted"] != n_pred:
+            errors.append(
+                f"coverage.predicted {cov['predicted']} != {n_pred}")
+        if "unfilled" in cov \
+                and cov["unfilled"] != total - len(joints):
+            errors.append(
+                f"coverage.unfilled {cov['unfilled']} != "
+                f"{total - len(joints)}")
+        if "observed_ratio" in cov:
+            expect_r = round(n_obs / total, 3)
+            if abs(cov["observed_ratio"] - expect_r) > 0.001:
+                errors.append(
+                    f"coverage.observed_ratio "
+                    f"{cov['observed_ratio']} != {expect_r}")
     return errors
 
 

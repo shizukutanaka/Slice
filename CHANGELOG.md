@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- knowledge: `validate` がcoverageブロックをjointsから再計算
+  検査するように。observed/predicted/unfilled/observed_ratioの
+  虚偽・陳腐化メトリクスを拒否（証拠依存度の水増しを検出）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

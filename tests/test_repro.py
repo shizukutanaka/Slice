@@ -15,6 +15,21 @@ def _doc(bmp, est=None):
 
 
 class TestRepro(unittest.TestCase):
+    def test_completed_doc_reproduces(self):
+        # stored docs are built via analyze, which fills predicted
+        # joints — verify must mirror that or every predicted joint
+        # reports as missing → spurious "changed"
+        from slice.predict import complete
+        bmp, _ = evaluate.draw_case(160, 300)
+        est = HeuristicPoseEstimator()
+        sk = est.estimate(bmp)
+        complete(sk)
+        doc = knowledge.build(sk, {}, source_name="t",
+                              engine={"name": "t", "version": "0"})
+        r = repro.verify(doc, bmp)
+        self.assertEqual(r["verdict"], "reproducible")
+        self.assertEqual(r["missing"], [])
+
     def test_same_pipeline_reproduces(self):
         bmp, _ = evaluate.draw_case(160, 300)
         doc, _ = _doc(bmp)

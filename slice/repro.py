@@ -30,6 +30,7 @@ from typing import Dict, Optional
 from .anatomy import DEFAULT_MODEL
 from .bitmap import Bitmap
 from .pose import HeuristicPoseEstimator
+from .predict import complete
 from .skeleton import OBSERVED, PREDICTED
 
 TOLERANCE_PX = 2.0
@@ -52,6 +53,11 @@ def verify(doc: dict, bmp: Bitmap,
 
     est = estimator or HeuristicPoseEstimator()
     sk = est.estimate(bmp, model)
+    # docs built by the analyze pipeline carry predicted joints —
+    # complete the re-run the same way when the record shows them,
+    # or every recorded predicted joint reports spuriously "missing"
+    if any(rj.get("state") == PREDICTED for rj in rec.values()):
+        complete(sk, model)
     sx = frame.get("width") and sk.image_width / frame["width"] or 1.0
     sy = frame.get("height") and sk.image_height / frame["height"] or 1.0
 

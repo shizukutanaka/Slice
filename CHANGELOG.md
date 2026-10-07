@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- repro: 記録docがpredicted関節を持つ場合は再推定にも
+  predict.completeを適用（analyzeパイプライン産docの
+  全predicted関節が常にmissing→changedに化けていた欠陥）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

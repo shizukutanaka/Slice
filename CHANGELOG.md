@@ -4,6 +4,10 @@
 
 - `slice people <image> [--min-frac F]` — people層のCLI接続。前景成分を人物候補としてランク列挙（size/fraction/bbox/aspect/touches_edge＋「成分≠人物」警告文）。複数人検出の前段診断。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

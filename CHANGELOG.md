@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- segment: predicted骨が前景ピクセルに部位ラベルを付けていた
+  欠陥を修正。プライア配置の骨は測定ではないため、両端点が
+  observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

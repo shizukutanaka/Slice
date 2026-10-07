@@ -21,9 +21,8 @@ import json
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, repro, rest, selfcheck)
-               pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, repro, rest, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 

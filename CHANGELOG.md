@@ -8,6 +8,17 @@
 - pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
   検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
 
+- plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
+  body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
+  閾値が負値で常時発火していた。胴体長フォールバック＋スケール
+  不在時は posture=unknown に。
+
+- limbs: チェーン中間関節欠損を partial として報告。肘が無い
+  腕で肩→手首の弦長を「全計測」扱いしていた誠実性の欠陥を修正
+  （欠損関節で弦化したチェーンは過小計測）。併せて body_h≤0
+  の退化時は of_body_h=None に。
+
+- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

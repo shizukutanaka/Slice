@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- predict: プライア由来のbasisにモデル名を同梱（`prior off X (child)` — どの体型モデル表で置かれたか不明だった推測関節の由来を開示）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
 

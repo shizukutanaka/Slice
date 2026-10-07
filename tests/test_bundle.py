@@ -88,6 +88,37 @@ class TestBundle(unittest.TestCase):
             self.assertEqual(m["count"], 1)
             self.assertEqual(m["skipped"], 1)
 
+    def test_pack_skips_unsafe_member_id(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            store.save(_doc())
+            poison = _doc()
+            store.save(poison)
+            # a valid-schema doc whose id would escape docs/ on
+            # extraction must be refused, not shipped (reached via
+            # a stale index entry)
+            doc = _doc()
+            doc["id"] = "../evil"
+            with open(os.path.join(tmp, poison["id"] + ".json"),
+                      "w") as f:
+                json.dump(doc, f)
+            zpath = os.path.join(tmp, "out.zip")
+            m = pack(store, zpath)
+            self.assertEqual(m["count"], 1)
+            self.assertEqual(m["skipped"], 1)
+            with zipfile.ZipFile(zpath) as z:
+                self.assertNotIn("docs/../evil.json", z.namelist())
+
+    def test_manifest_missing_member(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            zpath = os.path.join(tmp, "x.zip")
+            with zipfile.ZipFile(zpath, "w") as z:
+                z.writestr("docs/k_xxxxxxxxxxxx.json", "{}")
+            with self.assertRaises(ValueError):
+                manifest(zpath)
+
     def test_empty_store(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)

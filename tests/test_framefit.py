@@ -31,6 +31,16 @@ class TestAssess(unittest.TestCase):
             "head": (32, 1), "pelvis": (32, 50), "foot_l": (30, 80)}))
         self.assertIn("top", r["possibly_truncated"])
 
+    def test_predicted_extremity_not_flagged(self):
+        # a predicted wrist at the frame edge is a prior placement,
+        # not evidence the body continues past the frame
+        sk = _skel({"head": (32, 10), "pelvis": (32, 50),
+                    "foot_l": (30, 80), "foot_r": (34, 80)})
+        sk.set(Joint("wrist_l", 1, 55, 0.3, state="predicted"))
+        r = framefit.assess(sk)
+        self.assertNotIn("left", r["possibly_truncated"])
+        self.assertFalse(r["partial"])
+
     def test_torso_joint_at_edge_not_flagged(self):
         # pelvis flush to the right edge is odd but not an extremity
         r = framefit.assess(_skel({

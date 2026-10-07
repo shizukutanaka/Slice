@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- framefit: 最外側関節をobservedのみに修正（フレーム端
+  のpredicted関節がpossibly_truncatedを発火していた
+  欠陥 — 推測位置で人体途切れを主張しない）。
+
+ 11378ca (framefit: 最外側関節をobservedのみに修正)
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

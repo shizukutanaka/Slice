@@ -25,10 +25,17 @@ _MARGINS = {"top": 4, "bottom": 4, "left": 4, "right": 4}
 
 
 def _extremes(skel):
-    """Outermost placed joint per side."""
+    """Outermost *observed* joint per side.
+
+    Predicted joints sit wherever the prior put them — including
+    past the real silhouette — so letting one become the outermost
+    would assert truncation on a guessed position.
+    """
     w, h = skel.image_width, skel.image_height
     best = {"top": None, "bottom": None, "left": None, "right": None}
     for name, j in skel.joints.items():
+        if j.state != "observed":
+            continue
         x, y = j.x, j.y
         if best["top"] is None or y < best["top"][1]:
             best["top"] = (name, y)

@@ -4,6 +4,9 @@
 
 - `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

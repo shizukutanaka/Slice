@@ -19,9 +19,13 @@ from .skeleton import Skeleton
 
 def signature(skel: Skeleton) -> List[float]:
     """2 floats per bone (unit direction) + 4 pose scalars, fixed order."""
+    def obs(name):
+        j = skel.joints.get(name)
+        return (j.x, j.y) if j and j.state == "observed" else None
+
     vec: List[float] = []
     for a, b in BONES:
-        pa, pb = skel.point(a), skel.point(b)
+        pa, pb = obs(a), obs(b)
         if pa and pb:
             dx, dy = pb[0] - pa[0], pb[1] - pa[1]
             L = math.hypot(dx, dy) or 1.0
@@ -33,6 +37,8 @@ def signature(skel: Skeleton) -> List[float]:
     head = skel.point("head")
     feet = [p for p in (skel.point("foot_l"), skel.point("foot_r"))
             if p]
+    body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 1.0
+    neck, pelvis = obs("neck"), obs("pelvis")
     neck, pelvis = skel.point("neck"), skel.point("pelvis")
     body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 0.0
     if body_h <= 1e-6:
@@ -41,13 +47,13 @@ def signature(skel: Skeleton) -> List[float]:
         body_h = math.hypot(neck[0] - pelvis[0], neck[1] - pelvis[1]) \
             if neck and pelvis else 1.0
     vec.append((neck[0] - pelvis[0]) / body_h if neck and pelvis else 0.0)
-    wl, wr = skel.point("wrist_l"), skel.point("wrist_r")
+    wl, wr = obs("wrist_l"), obs("wrist_r")
     vec.append(math.hypot(wl[0] - wr[0], wl[1] - wr[1]) / body_h
                if wl and wr else 0.0)
-    al, ar = skel.point("ankle_l"), skel.point("ankle_r")
+    al, ar = obs("ankle_l"), obs("ankle_r")
     vec.append(math.hypot(al[0] - ar[0], al[1] - ar[1]) / body_h
                if al and ar else 0.0)
-    sl, sr = skel.point("shoulder_l"), skel.point("shoulder_r")
+    sl, sr = obs("shoulder_l"), obs("shoulder_r")
     vec.append(math.hypot(sl[0] - sr[0], sl[1] - sr[1]) / body_h
                if sl and sr else 0.0)
     return vec

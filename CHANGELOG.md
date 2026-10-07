@@ -4,6 +4,10 @@
 
 - `slice scale <image>` — scale層のCLI接続。頭長プライアでpx→cm換算し身長・胴・四肢の実寸推定を報告。頭が測れない場合は較正不可を正直に報告。
 
+- `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
+  推定器を走らせ、confidenceビン別の実測命中率（reliability
+  diagram）を報告。overconfidentビンがあれば exit 1。
+
 - `slice limbcov <image>` — limbcov層の単体CLI接続。各骨を~2px刻みサンプリし、6px超の背景横断をbroken検出（predicted端点は断罪しない）。gaps/insufficientは exit 1。
 
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の

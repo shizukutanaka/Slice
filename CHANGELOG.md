@@ -7,6 +7,67 @@
   し、全腕predictedでもfractionが0.80→0.81に改善したかのように
   報告していた → predicted骨/関節はカバレッジから除外。
 
+- calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
+  5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
+  `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
+  exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
+
+- reach: predicted腕でも `measured: True` を返していた欠陥を修正。
+  プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
+  — observed関節のみ計測、predictedは欠損扱いでプライア
+  フォールバック（`measured: False`）、predicted肩は None。
+
+- pose: 向きリトライ（±90°/180°）— 横たわり・逆立ちの人物に対し
+  直立スキャンがゴミ骨格をobservedとして出力し、逆立ちでは監査
+  をすり抜ける完全な嘘骨格すら生成していた誠実性の穴を修正。
+  全4向きを推定し「issues減 or 頭帯幅1.3倍超」の厳格条件でのみ
+  回転を採用、座標を画像空間へ逆写像しbasisにrotated明記。
+  実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
+  腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
+
+- dominance: 双側膝屈曲（スクワット）の捏造利き脚を修正。
+  unloaded_l+unloaded_r が同時発火して同票決 max() が "l" を
+  返していた（実測 conf 0.37）。双側屈曲は相殺し
+  both_legs_flexed（even）キューに変換 → even/conf 1.0。
+
+- skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
+  時は胴体長、非計測時0）。contact/dynamics/ground/reach の
+  身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ
+  接触を見逃し、dynamics は wide_step が常時発火、ground は
+  uneven_support が常時発火、reach は半径0の偽ワークスペースを
+  返していた。
+
+- classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
+  骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
+  のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。
+  下端を全関節のmaxに変更し、全足が頭より上なら `invert`
+  （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
+
+- describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
+  _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
+  `crouch`（crouching）＋将来の `invert`（upside down）を追加。
+
+- signature: body_h正規化の欠陥修正。足関節が無い骨格では
+  スカラー4要素が生px値で出力され、同じポーズ同士のsignature
+  距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は
+  compare/dedupと同じ胴体長で正規化→距離0.24（骨欠損分のみ）。
+
+- gesture: 逆転骨格で wave が両腕発火していた欠陥を修正。
+  「頭上の手首」判定が画像座標のみで身体の向きを見ていなかった
+  ため、逆さま骨格では全手首が頭上に → 検出捏造。
+  wave は直立時（head 上方に pelvis）のみ発火させる。
+
+- symmetry: predicted関節を含むペアを計測対象から除外。
+  predictedは観測側のミラー複製で作られるため、含めると
+  対称スコアが構造的に1.0に — 「計測された対称性」の捏造。
+  ペアは両骨4端点が全てobservedの場合のみ比較し、それ以外は
+  missingに報告（推測しない）。実測: 右腕predicted骨格で
+  score 1.0/compared 7 → missing 3ペア報告に。
+
+- framepos: headroomを頭関節y→関節群最上端に修正。腕上げ
+  （手首が頭より上）で上端余白を過大評価し tight を portrait
+  と誤判定していた（実測 headroom 0.089→0.005）。
+
 - plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
   body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
   閾値が負値で常時発火していた。胴体長フォールバック＋スケール
@@ -20,6 +81,11 @@
 - bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
+- `slice.storechk`＋`slice audit --store DIR` — KnowledgeStore側の監査経路。selfcheckが画像を監査するのに対し、保存済みドキュメント群を監査：audit lint（invalid/flagged/cleanの文書別集計）＋近重複検出（dedup）＋関節別観測率の全ストア集計（`blind_joints`=全ドキュメントで一度も観測されなかった関節）。索引未登録ファイルも`unreadable`として失格扱い（見えない不正は最も危険なため）。verdict=pass/warn/fail＋exit codeでCIゲート可。
+- selfcheck: 関節系レイヤをエスティメータ解像度で比較（Devin Review #152修正）— >max_dim画像で骨格座標はダウンスケール済みなのにフル解像度マスクと比較していたため、全関節がoff_mask・fit=0になる誤警告を修正。`ground`も`small.height`へ。
+- selfcheck: `human`レイヤを最大成分のみで採点 — フレーム内の無関係な物体がperson-like判定を歪めていた問題を修正（推定器と同じ成分を監査）。
+- stability: probe変体が推定器の`adaptive`/`reject_shadow`/`clean`フラグを引き継ぐ — robust プロファイルのベースラインをdefault変体と比較し「プロファイル差」を「閾値感度」と誤読する問題を修正。
 
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを

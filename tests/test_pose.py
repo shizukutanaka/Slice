@@ -67,6 +67,25 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
 
+    def test_inverted_person_180_retry(self):
+        """An upside-down figure used to yield a consistent-looking
+        but fully wrong skeleton (head found where the feet are).
+        The 180° orientation retry un-rotates joints into image space
+        and records the rotation in the joint basis."""
+        src = synthetic_person()
+        w, h = src.width, src.height
+        inv = Bitmap.new(w, h, src.get(1, 1))
+        for y in range(h):
+            for x in range(w):
+                inv.set(x, y, src.get(x, h - 1 - y))
+        j = HeuristicPoseEstimator().estimate(inv).joints
+        self.assertEqual(j["head"].state, OBSERVED)
+        self.assertGreater(j["head"].y, h * 0.7)    # head at the bottom
+        self.assertGreater(j["ankle_l"].y, 0)
+        self.assertLess(j["ankle_l"].y, h * 0.3)    # feet at the top
+        self.assertTrue(any(jt.basis and "rotated" in jt.basis
+                            for jt in j.values()))
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

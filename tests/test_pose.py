@@ -1,6 +1,6 @@
 import unittest
 
-from tests import synthetic_person, wide_hand_person
+from tests import crouch_person, synthetic_person, wide_hand_person
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -66,6 +66,18 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(j["wrist_l"].state, OBSERVED)
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
+
+    def test_crouch_dangling_wrist_not_amputated(self):
+        """Wide flat feet used to swallow the below-crotch arm band
+        (x-overlap classified arm pixels as leg), leaving the wrist
+        floating at hip height."""
+        skel = HeuristicPoseEstimator().estimate(crouch_person())
+        j = skel.joints
+        for side in ("l", "r"):
+            self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
+            # wrist reaches the arm bar's bottom (~80% height), not
+            # amputated at the hip line
+            self.assertGreater(j[f"wrist_{side}"].y, 300 * 0.7, side)
 
     def test_confidence_range(self):
         for j in self.skel.joints.values():

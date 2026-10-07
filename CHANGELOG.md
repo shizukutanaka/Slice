@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- pose: 股より下の腕を「底行到達連結性」で脚と判別 — 従来のx重複
+  足判定は広い足（しゃがみ/開脚/足開き）に隣接する腕を脚と誤認し
+  腕を股で切断（手首が腰高に浮く計測誤差）。ランのx帯を下方向に
+  追跡し底行に届くもののみ脚とする。`tests.crouch_person`で回帰
+  ガード（wrist 197→239pxへ復帰）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

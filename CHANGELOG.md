@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `analyze(robust=True)` / REST `?robust=1` / CLI `--robust` —
+  頑健性プロファイルのパイプライン接続（adaptive閾値＋落ち影除去
+  ＋形態学クリーンアップを1フラグで有効化、実写向けopt-in、
+  `engine.profile` で使用プロファイルを記録）
 - `slice.diag` 新設 — 空Skeletonの理由診断（no_foreground/
   too_small/too_short/foreground_at_edge/low_contrast の
   理由コード＋coverage計測、AUDIT P0-5対応）

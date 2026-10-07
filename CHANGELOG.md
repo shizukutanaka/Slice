@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
+  5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
+  `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
+  exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
+
 - reach: predicted腕でも `measured: True` を返していた欠陥を修正。
   プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
   — observed関節のみ計測、predictedは欠損扱いでプライア

@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               gait, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,46 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_gait(a) -> int:
+    """Gait phase cues over a frame directory."""
+    files = sorted(
+        os.path.join(a.dir, f) for f in os.listdir(a.dir)
+        if os.path.splitext(f)[1].lower() in (".png", ".bmp"))
+    if not files:
+        print(f"no .png/.bmp in {a.dir}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    frames = []
+    for p in files:
+        try:
+            with open(p, "rb") as f:
+                skel = est.estimate(bitmap.decode(f.read()),
+                                    a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            frames.append({"file": os.path.basename(p),
+                           "error": str(e)})
+            continue
+        if not skel.joints:
+            frames.append({"file": os.path.basename(p),
+                           "state": "no_person"})
+            continue
+        asmt = gait.assess(skel)
+        frames.append({"file": os.path.basename(p),
+                       **asmt})
+    ok = [f for f in frames if "error" not in f
+          and f.get("state") != "no_person"]
+    res = {"frames": frames, "analyzed": len(ok),
+           "count": len(files)}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output} ({len(ok)} frames)",
+              file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if ok else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +230,17 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    ga = sub.add_parser(
+        "gait", help="gait phase cues over a frame dir")
+    ga.add_argument("dir", help="directory of frame images")
+    ga.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ga.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ga.add_argument("-o", "--output",
+                    help="write the gait report JSON")
+    ga.set_defaults(fn=_cmd_gait)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

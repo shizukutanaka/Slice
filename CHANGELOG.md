@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

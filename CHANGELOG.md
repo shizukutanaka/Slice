@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
 - dynamics: cues/spanをobserved関節のみに修正。docstringが
   "all on observed joints"と謳いながらpredicted関節を含めて
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/

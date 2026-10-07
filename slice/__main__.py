@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               distfield, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,35 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_distfield(a) -> int:
+    """Distance transform: local thickness at each joint."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    w, h = small.width, small.height
+    m = est._mask(small)
+    dist = distfield.distance_transform(m)
+    skel = est.estimate(bmp, a.model or "adult")
+    joints = {n: round(distfield.thickness_at(
+                      dist, w, j.x, j.y), 2)
+              for n, j in skel.joints.items()
+              if j.state == "observed"}
+    res = {"profile": distfield.thickness_profile(
+               dist, w, h, m),
+           "joint_thickness_px": joints,
+           "frame": [w, h],
+           "basis": "chamfer distance transform; thickness = "
+                    "2 x local distance"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["profile"]["max"] else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +219,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    df = sub.add_parser(
+        "distfield", help="limb thickness via distance transform")
+    df.add_argument("image")
+    df.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    df.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    df.set_defaults(fn=_cmd_distfield)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

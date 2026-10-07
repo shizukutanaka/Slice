@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import ground
+from slice import ground, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -25,6 +25,18 @@ class TestGround(unittest.TestCase):
         gy = ground.estimate(self.skel)["ground_y"]
         r = ground.estimate(self.skel, frame_h=int(gy))
         self.assertEqual(r["contact"], "cropped")
+
+    def test_predicted_feet_no_clearance(self):
+        # "foot below ankle" priors sit ~3% below the observed ankle —
+        # they must not fabricate a floating gap (clearance 7.8px
+        # on a grounded figure before the fix)
+        for n in ("foot_l", "foot_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        self.assertEqual(self.skel.joints["foot_l"].state, "predicted")
+        r = ground.estimate(self.skel)
+        self.assertEqual(r["contact"], "grounded")
+        self.assertEqual(ground.clearance(self.skel), 0)
 
     def test_floating_figure_airborne(self):
         # a hand below the feet reads as airborne

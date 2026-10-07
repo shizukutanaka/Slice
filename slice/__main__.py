@@ -245,7 +245,9 @@ def _cmd_calib(a) -> int:
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     # overconfidence is the dangerous direction: reporting 0.9 when the
     # empirical hit rate is 0.5. Underconfidence is merely conservative.
-    return 1 if rep["overconfident_bins"] else 0
+    # An all-empty table measured nothing — fail rather than pass mute.
+    measured = any(b["n"] for b in rep["bins"])
+    return 1 if rep["overconfident_bins"] or not measured else 0
 
 
 def _cmd_serve(a) -> int:

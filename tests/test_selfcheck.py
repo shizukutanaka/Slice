@@ -25,7 +25,7 @@ class TestSelfCheck(unittest.TestCase):
         r = selfcheck.run(raw)
         self.assertIn(r["verdict"], ("pass", "warn"))
         for layer in ("imgqual", "human", "evid", "limbcov", "fit",
-                      "stability", "contrad", "gate"):
+                      "stability", "contrad", "consistency", "gate"):
             self.assertIn(layer, r["layers"], layer)
             self.assertIn(layer, r["severity"], layer)
         self.assertIn("skeleton", r["doc"])

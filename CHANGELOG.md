@@ -4,6 +4,10 @@
 
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
 - dynamics: cues/spanをobserved関節のみに修正。docstringが
   "all on observed joints"と謳いながらpredicted関節を含めて
   いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/

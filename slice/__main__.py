@@ -22,8 +22,8 @@ import os
 import sys
 
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, signature as _signature)
-               pipeline, render, rest, selfcheck, storechk)
+               pipeline, render, rest, selfcheck, storechk,
+               signature as _signature)
 from .anatomy import BODY_MODELS
 
 

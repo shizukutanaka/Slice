@@ -344,9 +344,6 @@ class HeuristicPoseEstimator(PoseEstimator):
         # may overwrite the shared attribute, so carry it on the
         # skeleton instead of reading it back
         sk.mask_threshold = thr
-        return sk
-        comp, size = self._largest_component(mask, w, h)
-        sk = self._estimate_component(small, comp, size, w, h, model)
         if not sk.joints:
             return sk
         # Orientation retry: the upright scan silently mismeasures a
@@ -387,6 +384,7 @@ class HeuristicPoseEstimator(PoseEstimator):
                 + f"estimated on {best_deg}deg-rotated mask"
         best.centroid = _unrotate(best.centroid, best_deg, w, h)
         best.image_width, best.image_height = w, h
+        best.mask_threshold = thr
         return best
 
     def estimate_multi(self, bmp: Bitmap, model: str = DEFAULT_MODEL,

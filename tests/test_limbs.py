@@ -28,6 +28,14 @@ class TestLimbs(unittest.TestCase):
         r = limbs.limb(self.skel, "arm", "r")
         self.assertTrue(r["partial"])
 
+    def test_missing_joint_marks_partial(self):
+        # elbow absent → shoulder→wrist chord under-measures the arm;
+        # the profile must not claim a complete measurement
+        del self.skel.joints["elbow_l"]
+        r = limbs.limb(self.skel, "arm", "l")
+        self.assertTrue(r["partial"])
+        self.assertEqual(r["segments"], 1)
+
     def test_missing_limb_none(self):
         for n in ("shoulder_l", "elbow_l", "wrist_l"):
             del self.skel.joints[n]

@@ -84,6 +84,33 @@ class TestHeuristicPose(unittest.TestCase):
             else:
                 self.assertGreater(j["wrist_r"].x, j["shoulder_r"].x)
 
+    def test_asymmetric_raised_arm_partial_detection(self):
+        """One arm raised, other dangling: raised side detected above
+        the shoulder row and the dangling side stays detected."""
+        bmp = synthetic_person()
+        w, h = bmp.width, bmp.height
+        cx = w // 2
+        tw = w * 0.34
+        sh_y = h * 0.22
+        bg = bmp.get(1, 1)
+        skin = bmp.get(cx, int(sh_y) + 2)
+        for y in range(int(sh_y) + 6, int(h * 0.75)):
+            for x in range(int(cx - tw / 2 - 10), int(cx - tw / 2 - 2)):
+                bmp.set(x, y, bg)
+        tip_y = w * 0.11 + 12
+        for i in range(40):
+            t = i / 40
+            x0 = int(cx - tw / 2 - t * (cx - tw / 2 - 14))
+            y0 = int(sh_y + 6 - t * (sh_y - tip_y))
+            for dy in range(6):
+                for dx in range(6):
+                    bmp.set(x0 + dx, y0 + dy, skin)
+        j = HeuristicPoseEstimator().estimate(bmp).joints
+        self.assertEqual(j["wrist_l"].state, OBSERVED)
+        self.assertLess(j["wrist_l"].y, j["shoulder_l"].y)
+        self.assertEqual(j["wrist_r"].state, OBSERVED)
+        self.assertGreater(j["wrist_r"].y, j["shoulder_r"].y)
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

@@ -10,6 +10,10 @@
   実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
   腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
 
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

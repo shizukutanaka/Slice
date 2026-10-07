@@ -4,6 +4,9 @@
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

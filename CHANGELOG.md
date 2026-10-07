@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- REST `GET /export/<id>.<fmt>` — 保存ドキュメントの骨格をbvh/gltf/coco/svg/ascii/paf/heatmapで直接ダウンロード。`skeleton.from_dict`（`to_dict`の逆変換）を新設し、Knowledgeドキュメント→Skeleton復元経路を共通化（エクスポート以外のdoc→Skeleton用途にも利用可能）。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

@@ -6,6 +6,7 @@
     GET  /knowledge            list stored knowledge ids
     GET  /knowledge/<id>       one stored document
     GET  /overlay/<id>         PNG overlay (requires ?save=1 at analyze)
+    GET  /export/<id>.<fmt>    skeleton as bvh/gltf/coco/svg/ascii/paf/heatmap
 """
 
 from __future__ import annotations
@@ -16,7 +17,8 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from . import __version__, bitmap, knowledge, pipeline, render
+from . import (__version__, ascii, bitmap, bvh, coco, gltf, heatmap,
+               knowledge, paf, pipeline, render, skeleton, svg)
 
 _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
@@ -86,6 +88,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(self.store.get(kid))
             except KeyError:
                 self._error(404, "not found")
+        elif path.startswith("/export/"):
+            self._export(path)
         elif path.startswith("/overlay/"):
             kid = path.rsplit("/", 1)[-1].removesuffix(".png")
             png = self.overlays.get(kid)
@@ -95,6 +99,49 @@ class Handler(BaseHTTPRequestHandler):
                 self._error(404, "no overlay")
         else:
             self._error(404, "not found")
+
+    _EXPORT_CT = {
+        "bvh": "text/plain; charset=utf-8",
+        "ascii": "text/plain; charset=utf-8",
+        "gltf": "application/json",
+        "coco": "application/json",
+        "paf": "application/json",
+        "svg": "image/svg+xml",
+        "heatmap": "image/png",
+    }
+
+    def _export(self, path):
+        name = path.rsplit("/", 1)[-1]
+        kid, _, fmt = name.rpartition(".")
+        if fmt not in self._EXPORT_CT:
+            return self._error(
+                404, "format must be one of: "
+                + ", ".join(sorted(self._EXPORT_CT)))
+        try:
+            doc = self.store.get(kid)
+        except KeyError:
+            return self._error(404, "not found")
+        skel = skeleton.from_dict(doc.get("skeleton") or {})
+        if not skel.joints:
+            return self._error(404, "no skeleton in document")
+        if fmt == "bvh":
+            body = bvh.export(skel).encode("utf-8")
+        elif fmt == "ascii":
+            body = ascii.render(skel).encode("utf-8")
+        elif fmt == "svg":
+            body = svg.render(skel).encode("utf-8")
+        elif fmt == "gltf":
+            body = json.dumps(gltf.to_gltf(skel),
+                              ensure_ascii=False).encode("utf-8")
+        elif fmt == "coco":
+            body = json.dumps(coco.to_coco(skel),
+                              ensure_ascii=False).encode("utf-8")
+        elif fmt == "paf":
+            body = json.dumps(paf.field(skel),
+                              ensure_ascii=False).encode("utf-8")
+        elif fmt == "heatmap":
+            body = bitmap.encode_png(heatmap.render(skel))
+        return self._bytes(body, self._EXPORT_CT[fmt])
 
     def do_POST(self):
         if not self._require_auth():

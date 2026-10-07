@@ -93,3 +93,23 @@ class Skeleton:
         if norm is not None:
             d["normalized"] = norm
         return d
+
+
+def from_dict(d: dict) -> Skeleton:
+    """Rebuild a Skeleton from a Knowledge doc's `skeleton` block —
+    the inverse of `Skeleton.to_dict`. Missing dims fall back to 0 so
+    downstream format renderers can still scale from joint coords.
+    """
+    frame = d.get("frame") or {}
+    sk = Skeleton(image_width=int(frame.get("width") or 0),
+                  image_height=int(frame.get("height") or 0))
+    for name, j in (d.get("joints") or {}).items():
+        sk.set(Joint(name=name,
+                     x=float(j.get("x") or 0),
+                     y=float(j.get("y") or 0),
+                     confidence=float(j.get("confidence") or 0),
+                     state=j.get("state") or PREDICTED,
+                     basis=j.get("basis") or ""))
+    sk.orientation = d.get("orientation") or {}
+    sk.body_model = d.get("body_model") or {}
+    return sk

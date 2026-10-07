@@ -4,6 +4,12 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

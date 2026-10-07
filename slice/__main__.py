@@ -8,6 +8,8 @@
         — run every quality layer over one image and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
+    python -m slice modelchk <image>
+        — chosen BODY_MODEL vs measured ratios
 """
 
 from __future__ import annotations
@@ -16,8 +18,8 @@ import argparse
 import json
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bitmap, knowledge, modelchk, pipeline,
+               ratio, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +145,26 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_modelchk(a) -> int:
+    """Audit the chosen BODY_MODEL against measured ratios."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    ratios = ratio.analyze(skel, centroid=skel.centroid)
+    res = modelchk.check(skel, ratios)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "consistent" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +211,15 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    mc = sub.add_parser(
+        "modelchk", help="chosen body-model consistency audit")
+    mc.add_argument("image")
+    mc.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mc.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mc.set_defaults(fn=_cmd_modelchk)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

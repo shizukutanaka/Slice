@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice trust <image>` — trust層のCLI接続。evid（証拠位置）＋stability（摂動感度）を実行し関節ごとの high/medium/low グレード＋格下げ要因を報告。calib正解データ非依存で動作。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

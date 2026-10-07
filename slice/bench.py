@@ -29,8 +29,11 @@ from .skeleton import Joint, Skeleton
 # estimator places anatomical centers)
 MIN_DETECTION = 0.9
 MIN_OBSERVED = 0.8
-MAX_MEAN_ERROR_PX = 20.0
-MIN_OKS = 0.5
+# thresholds sit ~3x above the current measured baseline
+# (err ~3.5px, oks ~0.92) — loose enough to pass, tight enough to
+# have caught the pre-#147 regression (err 15.5px, oks 0.53)
+MAX_MEAN_ERROR_PX = 10.0
+MIN_OKS = 0.8
 
 
 def _truth_skeleton(truth, w, h) -> Skeleton:

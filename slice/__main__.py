@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
-from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+from . import (__version__, bitmap, knowledge, pipeline, render, repro,
+               rest, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,31 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_repro(a) -> int:
+    """Re-estimate the source image and diff against a stored doc."""
+    try:
+        with open(a.doc, "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"cannot load doc {a.doc}: {e}", file=sys.stderr)
+        return 2
+    if not isinstance(doc, dict) or "skeleton" not in doc:
+        print("doc must be a Knowledge JSON with a skeleton block",
+              file=sys.stderr)
+        return 2
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    res = repro.verify(doc, bmp, est, tolerance=a.tolerance)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "reproducible" else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +215,16 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    rp = sub.add_parser(
+        "repro", help="reproducibility check doc vs image")
+    rp.add_argument("doc", help="a Knowledge JSON doc")
+    rp.add_argument("image")
+    rp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rp.add_argument("--tolerance", type=float, default=8.0,
+                    help="position drift tolerance px")
+    rp.set_defaults(fn=_cmd_repro)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

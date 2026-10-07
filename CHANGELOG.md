@@ -4,6 +4,9 @@
 
 - `slice consensus <image> [-o sk.json]` — consensus層のCLI接続。閾値±25%・解像度±25%の5変体で中央値投票骨格＋disputed関節列挙を報告。confidenceは観測率割引、`-o`で合意骨格JSON書き出し。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

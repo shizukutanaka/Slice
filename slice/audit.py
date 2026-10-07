@@ -62,10 +62,22 @@ def audit(doc: dict) -> dict:
             "joints": sorted(suspect)})
 
     pred = doc.get("prediction") or {}
-    if set(pred.get("observed") or []) != set(observed):
+    # both lists are cross-checked against every joint, not only the
+    # standard vocabulary — build() fills them from all joints, so a
+    # non-vocab joint must not trigger a false mismatch
+    actual_observed = {n for n, j in joints.items()
+                       if j.get("state") == OBSERVED}
+    actual_predicted = {n for n, j in joints.items()
+                        if j.get("state") == "predicted"}
+    if set(pred.get("observed") or []) != actual_observed:
         warnings.append({
             "code": "prediction_mismatch",
             "detail": "prediction.observed list disagrees with "
+                      "joint states"})
+    if set(pred.get("predicted") or []) != actual_predicted:
+        warnings.append({
+            "code": "prediction_mismatch",
+            "detail": "prediction.predicted list disagrees with "
                       "joint states"})
 
     if (doc.get("pose") or {}).get("label") \

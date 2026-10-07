@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- audit: prediction_mismatchをpredictedリストにも拡張
+  （observed側のみ突き合わせだった非対称を修正＋語彙外
+  関節の誤検知防止 — 両リストを全関節stateと照合）。
+
 - knowledge: `validate` がframe・normalizedブロックを検査する
   ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
   neck=1単位）— 陳腐/書換えブロックを拒否。

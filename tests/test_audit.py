@@ -49,6 +49,30 @@ class TestAudit(unittest.TestCase):
         codes = [w["code"] for w in a["warnings"]]
         self.assertIn("prediction_mismatch", codes)
 
+    def test_prediction_predicted_list_checked(self):
+        # the predicted list was never cross-checked: a stale doc
+        # that drops a predicted joint looked clean
+        doc = _doc()
+        doc["skeleton"]["joints"]["wrist_l"]["state"] = "predicted"
+        doc["prediction"]["predicted"] = []  # stale bookkeeping
+        a = audit(doc)
+        details = [w["detail"] for w in a["warnings"]
+                   if w["code"] == "prediction_mismatch"]
+        self.assertIn("prediction.predicted list disagrees with "
+                      "joint states", details)
+
+    def test_non_vocab_joint_no_false_mismatch(self):
+        # build() fills the lists from all joints, so an observed
+        # non-vocabulary joint listed honestly must not flag
+        doc = _doc()
+        doc["skeleton"]["joints"]["halo"] = {
+            "x": 1.0, "y": 2.0, "confidence": 0.5,
+            "state": "observed", "basis": "test"}
+        doc["prediction"]["observed"].append("halo")
+        a = audit(doc)
+        codes = [w["code"] for w in a["warnings"]]
+        self.assertNotIn("prediction_mismatch", codes)
+
     def test_confidence_suspect(self):
         doc = _doc()
         for j in doc["skeleton"]["joints"].values():

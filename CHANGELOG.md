@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice signature <img> [img2]` — signature層のCLI接続。1枚でポーズ指紋（骨方向固定長ベクトル）、2枚でRMS距離（同一ポーズ=0）。解像度・構図非依存のポーズ類似検索が1コマンドに。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

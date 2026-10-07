@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
+  #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
+  `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
+  混入し続けていた残件（obs版の死行も併せて除去）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

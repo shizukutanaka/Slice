@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- reach: predicted腕でも `measured: True` を返していた欠陥を修正。
+  プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
+  — observed関節のみ計測、predictedは欠損扱いでプライア
+  フォールバック（`measured: False`）、predicted肩は None。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

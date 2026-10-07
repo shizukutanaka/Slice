@@ -25,11 +25,21 @@ def _d(a: Point, b: Point) -> float:
     return math.hypot(b[0] - a[0], b[1] - a[1])
 
 
+def _obs(skel: Skeleton, name: str) -> Optional[Point]:
+    """Observed-only lookup: a predicted joint is prior fill —
+    treating a straight-arm prior as a measured arm length would
+    fabricate the workspace radius."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def arm_reach(skel: Skeleton, side: str) -> Optional[dict]:
     """{shoulder, radius, measured} — radius in px."""
-    s = skel.point(f"shoulder_{side}")
-    e = skel.point(f"elbow_{side}")
-    w = skel.point(f"wrist_{side}")
+    s = _obs(skel, f"shoulder_{side}")
+    e = _obs(skel, f"elbow_{side}")
+    w = _obs(skel, f"wrist_{side}")
     if s is None:
         return None
     if e and w:

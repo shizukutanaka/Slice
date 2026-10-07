@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- audit: 手置き不正docで落ちない — 非dict関節を
+  malformed_jointsとして列挙し、validateのraiseをerror
+  文字列に転換（validate契約は据え置き）。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

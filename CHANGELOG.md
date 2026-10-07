@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- framepos: headroomを頭関節y→関節群最上端に修正。腕上げ
+  （手首が頭より上）で上端余白を過大評価し tight を portrait
+  と誤判定していた（実測 headroom 0.089→0.005）。
+
 - `slice calib` — calib層のCLI接続。evaluate正解フィクスチャ群で
   推定器を走らせ、confidenceビン別の実測命中率（reliability
   diagram）を報告。overconfidentビンがあれば exit 1。

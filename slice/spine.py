@@ -22,12 +22,19 @@ def _d(a: Point, b: Point) -> float:
 
 
 def curve(skel: Skeleton) -> Optional[dict]:
-    """{lateral_deflection, lean_deg, chord_len, state}."""
+    """{lateral_deflection, lean_deg, chord_len, state}.
+
+    Only an observed torso chain is measured: a predicted chest is
+    placed on the neck–pelvis chord by the prior, so its "curve"
+    would always read straight — a fabricated measurement."""
     neck = skel.point("neck")
     chest = skel.point("chest")
     pelvis = skel.point("pelvis")
     if not neck or not chest or not pelvis:
         return None
+    for n in ("neck", "chest", "pelvis"):
+        if skel.joints[n].state != "observed":
+            return None
 
     chord = _d(neck, pelvis)
     chain = _d(neck, chest) + _d(chest, pelvis)

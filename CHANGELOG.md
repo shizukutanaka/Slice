@@ -4,6 +4,12 @@
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
 - ground: 最低点・clearance・スパンをobserved関節のみに修正。
   "foot below ankle"プライアが観測足より下に置かれ、接地した
   人物にclearance 7.8pxの浮遊ギャップを捏造していた。

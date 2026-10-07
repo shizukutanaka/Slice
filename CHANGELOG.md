@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- bvh: `report(skel)`開示サイドカー追加（BVH形式がjoint metadataを持てずpredicted骨が実測と区別不能で書き出されていた欠陥を解消）
 - bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
 - diff: 不正docの関節エントリで落ちない — 非dict関節/
   非数値座標/非dict入力をmalformedとして列挙し比較対象外に。

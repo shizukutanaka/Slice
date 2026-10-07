@@ -176,6 +176,21 @@ class TestKnowledge(unittest.TestCase):
             self.assertIn("k_bbbbbbbbbbbb", ids)
             self.assertNotIn("k_cccccccccccc", ids)
 
+    def test_store_list_rebuilds_non_dict_index_row(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            idx = os.path.join(d, knowledge.INDEX_NAME)
+            with open(idx) as f:
+                data = json.load(f)
+            data["entries"][kid] = 42  # hand-edited index row
+            with open(idx, "w") as f:
+                json.dump(data, f)
+            listed = store.list()
+            self.assertTrue(all(isinstance(i, dict) for i in listed))
+            self.assertIn(kid, {i["id"] for i in listed})
+
 
 if __name__ == "__main__":
     unittest.main()

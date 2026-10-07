@@ -235,6 +235,8 @@ class KnowledgeStore:
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
+            if ent is not None and not isinstance(ent, dict):
+                ent = None  # hand-edited index row: rebuild from doc
             if ent is None:
                 healed = True
                 try:

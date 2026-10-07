@@ -86,10 +86,19 @@ def run(raw: bytes, *, model: Optional[str] = None,
         reasons.append("imgqual:" + layers["imgqual"]["verdict"])
 
     skel = est.estimate(bmp, mdl)
-    mask = mask_mod.foreground(bmp, est)
+    # joint-based layers must compare at the estimator's own
+    # resolution — skeleton coords live in downscaled space, so a
+    # full-resolution mask would flag every joint as off-mask.
+    small = bmp.downscale(est.max_dim)
+    mask = mask_mod.foreground(small, est)
 
     if mask_mod.coverage(mask) > 0:
-        layers["human"] = human.assess(mask)
+        labels, sizes = est._label_components(
+            mask, small.width, small.height)
+        best = max(sizes, key=sizes.get)
+        comp = est._component_mask(
+            labels, best, small.width, small.height)
+        layers["human"] = human.assess(comp)
         if layers["human"]["state"] == "measured" \
                 and not layers["human"]["person_like"]:
             reasons.append("human:not_person_like")
@@ -111,7 +120,7 @@ def run(raw: bytes, *, model: Optional[str] = None,
             "classify": classify.analyze(skel),
             "axis": {"angle_deg": (
                 (axis.principal(skel) or {}).get("angle_deg"))},
-            "ground": ground.estimate(skel, bmp.height),
+            "ground": ground.estimate(skel, small.height),
             "balance": balance.assess(skel),
         })
         reasons += ["contrad:" + c["id"]

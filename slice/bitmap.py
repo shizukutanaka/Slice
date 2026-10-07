@@ -67,12 +67,21 @@ class Bitmap:
 
 
 def decode(raw: bytes) -> Bitmap:
-    if raw[:8] == PNG_MAGIC:
-        return _decode_png(raw)
-    if raw[:2] == BMP_MAGIC:
-        return _decode_bmp(raw)
-    if raw[:2] == JPEG_MAGIC or raw[:4] == b"RIFF":
-        return _decode_pillow(raw)
+    # every caller treats UnsupportedFormat as "unloadable" (CLI exit 2,
+    # REST 415, batch failure). Corrupt bytes inside a recognized
+    # container currently escape as zlib.error / struct.error /
+    # IndexError — fold them into the same contract.
+    try:
+        if raw[:8] == PNG_MAGIC:
+            return _decode_png(raw)
+        if raw[:2] == BMP_MAGIC:
+            return _decode_bmp(raw)
+        if raw[:2] == JPEG_MAGIC or raw[:4] == b"RIFF":
+            return _decode_pillow(raw)
+    except UnsupportedFormat:
+        raise
+    except (zlib.error, struct.error, IndexError) as e:
+        raise UnsupportedFormat(f"corrupt image data: {e}") from e
     raise UnsupportedFormat("not a PNG / BMP / JPEG / WEBP image")
 
 
@@ -101,7 +110,10 @@ def _decode_pillow(raw: bytes) -> Bitmap:
     except ImportError as e:
         raise UnsupportedFormat(
             "JPEG/WEBP need Pillow; PNG and BMP work without it") from e
-    img = Image.open(io.BytesIO(raw)).convert("RGBA")
+    try:
+        img = Image.open(io.BytesIO(raw)).convert("RGBA")
+    except Exception as e:  # PIL raises several types on corrupt data
+        raise UnsupportedFormat(f"corrupt image data: {e}") from e
     w, h = img.size
     return Bitmap(w, h, bytearray(img.tobytes()))
 

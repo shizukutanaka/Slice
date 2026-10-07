@@ -24,9 +24,22 @@ from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
 from .anatomy import BODY_MODELS
 
 
+def _read_image(a) -> bytes:
+    """Bytes from a.image, or raise UnsupportedFormat on OSError so
+    every caller shares the exit-2 contract."""
+    try:
+        with open(a.image, "rb") as f:
+            return f.read()
+    except OSError as e:
+        raise bitmap.UnsupportedFormat(f"cannot read {a.image}: {e}")
+
+
 def _cmd_analyze(a) -> int:
-    with open(a.image, "rb") as f:
-        raw = f.read()
+    try:
+        raw = _read_image(a)
+    except bitmap.UnsupportedFormat as e:
+        print(f"cannot load image: {e}", file=sys.stderr)
+        return 2
     if a.multi:
         return _cmd_analyze_multi(a, raw)
     try:
@@ -125,9 +138,8 @@ def _cmd_analyze_multi(a, raw) -> int:
 
 
 def _cmd_audit(a) -> int:
-    with open(a.image, "rb") as f:
-        raw = f.read()
     try:
+        raw = _read_image(a)
         res = selfcheck.run(raw, model=a.model, source_name=a.image,
                             robust=a.robust)
     except bitmap.UnsupportedFormat as e:

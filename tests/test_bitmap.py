@@ -38,6 +38,32 @@ class TestBitmap(unittest.TestCase):
         with self.assertRaises(bitmap.UnsupportedFormat):
             bitmap.decode(b"\x00\x01\x02\x03")
 
+    def test_corrupt_is_unsupported_not_raw_error(self):
+        # every caller keys on UnsupportedFormat; corrupt bytes inside a
+        # recognized container must not escape as zlib/struct/IndexError
+        cases = []
+        valid = bitmap.encode_png(synthetic_person(20, 30))
+        cases.append(valid[:20])                     # truncated IHDR
+        cases.append(bitmap.PNG_MAGIC + b"\x00" * 20)  # no IHDR payload
+        # valid structure but IDAT's zlib stream is cut mid-way
+        idat_at = valid.find(b"IDAT")
+        cases.append(valid[:idat_at + 12])
+        # valid zlib but decompressed data is shorter than the image
+        import struct, zlib
+        ihdr = struct.pack(">IIBBBBB", 10, 10, 8, 6, 0, 0, 0)
+
+        def chunk(tag, payload):
+            c = struct.pack(">I", len(payload)) + tag + payload
+            return c + struct.pack(
+                ">I", zlib.crc32(tag + payload) & 0xFFFFFFFF)
+        cases.append(bitmap.PNG_MAGIC + chunk(b"IHDR", ihdr)
+                     + chunk(b"IDAT", zlib.compress(b"\x00" * 8))
+                     + chunk(b"IEND", b""))
+        for raw in cases:
+            with self.subTest(raw=raw[:16]):
+                with self.assertRaises(bitmap.UnsupportedFormat):
+                    bitmap.decode(raw)
+
     def test_downscale(self):
         bmp = synthetic_person(200, 400)
         small = bmp.downscale(100)

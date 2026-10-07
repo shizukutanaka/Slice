@@ -6,6 +6,15 @@
   （export/prediction/coverage/bonesを関節から再構築、欠損stateは
   predicted+記録、座標なし関節はdropped、created_at捏造せず空のまま、
   全変更をchangesに列挙＋valid_before/afterで検証可能）
+- pose: 骨盤幅を胴カラムランで計測（外縁=腕を含みpriorと66%乖離
+  していた問題を解消）＋膝を足ランのアンカーで選択（膝行の
+  最端ラン=腕を拾う誤りを修正）＋rom: 1px未満セグメントは
+  角度測定しない（方向を定義できない値でoverextendedを出すのは
+  発見の捏造）
+- pose: 股検出を隣接ラン間ギャップに修正（首尾ラン比較が
+  「腕|胴|腕」を胸部で誤検出→ hip -32px の系統誤差を解消）
+  ＋肘をプライア長ではなく計測した肩→手首距離の上腕比に配置
+  （elbow -30px→+2px）。bench: err 15.55→4.49px, OKS 0.53→0.90
 
 
 - `estimate_multi` 追加 — top-K前景成分を独立に推定して複数

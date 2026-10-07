@@ -4,6 +4,9 @@
 
 - `slice migrate --store DIR [--write]` — migrate層のCLI接続。ストア内旧ドキュメントを現行スキーマへ正規化。デフォルトはドライラン（変更点のみ報告）、`--write`で原子的に書き込み。全修復をchanges列挙＋修復不能docは書き込まない誠実設計。
 
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
 - bundle/dataset: 手置き不正docでconsumerが落ちない。
   unpack内corrupt/非dict memberが全体abortしていたのを
   個別スキップに、id無しdocのstore.get(None) TypeErrorを

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice retarget <src> <dst> [-o sk.json]` — retarget層のCLI接続。src骨方向×dst骨長で体格間ポーズ転写。出力関節は全てpredicted（合成幾何であり観測証拠ではない）誠実設計を継承。
+
 - `slice audit` CLI＋`slice.selfcheck` 新設 — 全監査層の
   ワンショット統合（imgqual→検出→evid/limbcov/fit/stability/
   contrad→gate を1デコードで実行、各層のverdict語彙を

@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
-               selfcheck)
+               retarget, selfcheck)
 from .anatomy import BODY_MODELS
 
 
@@ -143,6 +144,38 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_retarget(a) -> int:
+    """Pose retarget: source directions onto target proportions."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.source, a.target):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not all(sk.joints for sk in skels):
+        print("no person in one or both images",
+              file=sys.stderr)
+        return 1
+    try:
+        out = retarget.retarget(*skels)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    doc = out.to_dict()
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output} ({len(out.joints)} joints, "
+              f"all predicted)", file=sys.stderr)
+    print(json.dumps(doc, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -189,6 +222,19 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    rt = sub.add_parser(
+        "retarget", help="pose retarget src dirs -> dst lengths")
+    rt.add_argument("source", help="image with the pose to copy")
+    rt.add_argument("target",
+                    help="image with the proportions to keep")
+    rt.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    rt.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rt.add_argument("-o", "--output",
+                    help="write the retargeted skeleton JSON")
+    rt.set_defaults(fn=_cmd_retarget)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

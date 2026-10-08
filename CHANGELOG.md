@@ -5,6 +5,10 @@
 - `slice motion <A> <B>` — motion層のCLI接続。2フレーム画像の関節移動ベクトル＋最速関節・部位別集計JSON。`--min-confidence`で低信頼関節を除外。
 
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
+- `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
+
+- `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。
+
 - `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。

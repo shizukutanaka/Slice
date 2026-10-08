@@ -30,6 +30,17 @@ class TestHandpos(unittest.TestCase):
         w.state = "predicted"
         self.assertIsNone(handpos.positions(self.skel)["r"])
 
+    def test_predicted_landmark_never_zones(self):
+        # a zone boundary built on a predicted landmark would be a
+        # prior guess, not a measurement — with every body landmark
+        # predicted the wrist is not zoned at all
+        w = self.skel.joints["wrist_r"]
+        h = self.skel.point("head")
+        w.x, w.y = h[0] + 20, h[1] + 5
+        for n in ("head", "chest", "pelvis", "knee_r", "hip_r"):
+            self.skel.joints[n].state = "predicted"
+        self.assertIsNone(handpos.positions(self.skel)["r"])
+
     def test_summary_shape(self):
         s = handpos.summary(self.skel)
         self.assertIsInstance(s["observed_hands"], int)

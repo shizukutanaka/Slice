@@ -40,9 +40,11 @@ def limb(skel: Skeleton, kind: str, side: str) -> Optional[dict]:
     if len(pts) < 2:
         return None
 
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    body_h = (lo - top[1]) if top else 0.0
+    # the normalising body span must come from observed joints only:
+    # a predicted head or foot sits at a prior guess, so a "measured"
+    # fraction divided by it inherits the guess
+    obs_pts = [j.y for j in skel.joints.values() if j.state == "observed"]
+    body_h = (max(obs_pts) - min(obs_pts)) if obs_pts else 0.0
     length = sum(_d(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
     obs = sum(1 for s in states if s == "observed")
     # a missing chain joint joins its neighbours into a chord — the

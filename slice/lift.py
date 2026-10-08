@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import OBSERVED, Skeleton
 
 # joints on a lateral side get pushed back in side view
 _LATERAL = ("shoulder", "elbow", "wrist", "hip", "knee", "ankle",
@@ -31,12 +31,15 @@ def lift(skel: Skeleton) -> Dict[str, dict]:
     ori = skel.orientation or {}
     facing = ori.get("facing", "unknown")
 
-    sl, sr = skel.point("shoulder_l"), skel.point("shoulder_r")
-    hl, hr = skel.point("hip_l"), skel.point("hip_r")
+    # depth scale comes only from observed shoulder/hip widths —
+    # a predicted endpoint is prior geometry, so borrowing it would
+    # write the model table into the z axis as if it were measured
     half = 0.0
-    for a, b in ((sl, sr), (hl, hr)):
-        if a and b:
-            half = max(half, abs(b[0] - a[0]) / 2.0)
+    for a, b in (("shoulder_l", "shoulder_r"), ("hip_l", "hip_r")):
+        ja, jb = skel.joints.get(a), skel.joints.get(b)
+        if (ja and jb and ja.state == OBSERVED
+                and jb.state == OBSERVED):
+            half = max(half, abs(jb.x - ja.x) / 2.0)
 
     out: Dict[str, dict] = {}
     far_left = facing == "side" and ori.get("side", "") == "left"

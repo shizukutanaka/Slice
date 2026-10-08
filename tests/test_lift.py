@@ -40,6 +40,15 @@ class TestLift(unittest.TestCase):
         d = lift.lift(self.skel)
         self.assertEqual(lift.depth_spread(d), 0.0)
 
+    def test_predicted_width_no_depth_scale(self):
+        # depth scale from a predicted shoulder/hip width would write
+        # prior geometry into z as if measured — stays flat instead
+        self.skel.orientation = {"facing": "side", "side": "left"}
+        for n in ("shoulder_l", "shoulder_r", "hip_l", "hip_r"):
+            self.skel.joints[n].state = "predicted"
+        d = lift.lift(self.skel)
+        self.assertEqual(lift.depth_spread(d), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

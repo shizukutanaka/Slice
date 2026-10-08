@@ -412,6 +412,18 @@ class HeuristicPoseEstimator(PoseEstimator):
                 + f"estimated on {best_deg}deg-rotated mask"
         if best.centroid is not None:
             best.centroid = _unrotate(best.centroid, best_deg, w, h)
+        # orientation cues were read in the rotated frame — disclose
+        # the rotation and, for 180°, mirror the signed left/right
+        # cues back (rotated-x flips, so "left" there is "right" here)
+        ori = dict(best.orientation or {})
+        ori["estimated_on_rotated_deg"] = best_deg
+        if best_deg == 180:
+            if ori.get("facing") == "left":
+                ori["facing"] = "right"
+            elif ori.get("facing") == "right":
+                ori["facing"] = "left"
+            ori["head_shift"] = -ori.get("head_shift", 0.0)
+        best.orientation = ori
         best.image_width, best.image_height = w, h
         return best
 
@@ -520,7 +532,8 @@ class HeuristicPoseEstimator(PoseEstimator):
         if body_h < 24:
             return sk
 
-        prior = BODY_MODELS.get(model, BODY_MODELS[DEFAULT_MODEL])
+        applied_model = model if model in BODY_MODELS else DEFAULT_MODEL
+        prior = BODY_MODELS[applied_model]
         head_h = max(4.0, body_h * prior["head_ratio"])
         sk.centroid = self._centroid(comp, w, h)
 
@@ -731,6 +744,11 @@ class HeuristicPoseEstimator(PoseEstimator):
                          "label": BODY_MODELS[mname]["label"],
                          "confidence": mconf,
                          "measured_head_ratio": round(measured_head_ratio, 3),
+                         # the prior table actually used to place the
+                         # observed joints — may differ from `name`
+                         # (measured selection) and from the table
+                         # predict.complete applies to missing joints
+                         "prior": applied_model,
                          "state": "estimated"}
         return sk
 

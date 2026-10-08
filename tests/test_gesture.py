@@ -25,6 +25,14 @@ class TestGesture(unittest.TestCase):
         self.skel.joints["wrist_r"].state = "predicted"
         self.assertEqual(gesture.detect(self.skel), [])
 
+    def test_predicted_reference_never_fires(self):
+        # the wave rule compares a measured wrist to the head line;
+        # a predicted head is a prior guess — the comparison must not
+        # run on it
+        self.skel.joints["wrist_r"].y = self.skel.point("head")[1] - 100
+        self.skel.joints["head"].state = "predicted"
+        self.assertEqual(gesture.detect(self.skel), [])
+
     def test_point_detected(self):
         s = self.skel.point("shoulder_r")
         e = self.skel.joints["elbow_r"]
@@ -33,6 +41,14 @@ class TestGesture(unittest.TestCase):
         w.x, w.y = s[0] + 118, s[1]
         g = gesture.detect(self.skel)
         self.assertIn("point", [x["gesture"] for x in g])
+
+    def test_inverted_skeleton_never_fires_wave(self):
+        # on an inverted figure every wrist is "above the head" in
+        # image space — wave must not be fabricated
+        for j in self.skel.joints.values():
+            j.y = self.skel.image_height - j.y
+        self.assertNotIn("wave",
+                         [g["gesture"] for g in gesture.detect(self.skel)])
 
     def test_summarize_shape(self):
         s = gesture.summarize(self.skel)

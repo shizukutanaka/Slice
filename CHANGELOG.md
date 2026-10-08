@@ -6,6 +6,292 @@
   減衰判定が `PREDICTED in (states)` の2値で、フレーム外に出た
   関節への骨がフル強度の連結フィールドをフレーム内に残していた。
 
+- `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
+
+- bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）
+- bundle: unpackも同様に耐性化（validate raiseのmemberをskip）＋manifestが非dictをValueErrorで明示拒否
+- bitmap: `get`の負座標がPython負インデックスで画像末尾行を
+  巻き戻り読み取り、不在画素を実データとして返していた
+  フェイルオープンを修正 — 全OOB読み取りはIndexErrorに
+- balance: 重心・支持多角形・com_spanをobserved関節のみに
+  修正。"foot below ankle"プライアのpredicted足が支持多角形
+  （projected:inside）を、predicted四肢が質量カバレッジを
+  捏造していた → predictedは欠損扱い（足が全predictedなら
+  unknown/no_feet）。
+- dominance: pelvis offset/脱荷脚キューをobserved関節のみに
+  修正。predicted膝が `unloaded` キュー（利き脚を反転させる
+  虚偽証拠）を、predicted足首が `pelvis_centered` の均衡証拠を
+  捏造していた → predictedは欠損扱いでキュー不発。
+- mutate: `crop` が負・範囲外の起点でフレーム外領域に画素を捏造
+  していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
+  反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
+  フレーム外は初期化背景を保持。
+- limbs: `delta`（左右差）は両側が完全計測の場合のみ報告 —
+  片側が中間関節欠損で弦化（partial）した肢長を完全計測値と
+  直接比較すると、弦の短縮分を「左右非対称」として捏造して
+  いた（#222のpartial開示が出揃った後の比較側の対応）。
+
+- norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
+- consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
+  cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が
+  robustプロファイルだと4バリアントだけ別プロファイルで走り、
+  median投票が未開示のプロファイル差を混入させていた欠陥を
+  解消、#333 recoverと同型）。
+
+- recover: relaxed_threshold段が呼出側のadaptive/reject_shadow/
+  cleanフラグを伝播（色ゲートだけ緩めるはずが、シャドウ棄却・
+  形態クリーンも外れた別プロファイルで沈黙回復し、開示の
+  "gate relaxed to N"より強い緩和が適用されていた欠陥を解消）。
+
+- pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
+- trust: predicted関節をoff_maskで「low」降格しない — プライアが
+  シルエット外に関節を置くのは正常（evid.unsupportedと同じ
+  OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を
+  咎めていた矛盾を解消。
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+- knowledge/migrate: exportブロックに`keypoints_state`追加。
+  フラット `keypoints_2d` は [x,y,conf] のみでpredicted関節が
+  観測と区別不能だった → keypoint_orderと整合する
+  observed/predicted/absent配列を同梱。migrateは旧docへ
+  `keypoints_state_backfilled` として開示的に補完。
+
+- selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
+- rig: predicted端点を持つ骨に state="predicted" を開示（推測構造を観測解剖学と区別不能にしていた欠陥）
+- skeleton: Joint.stateのデフォルトをpredictedに（フェイルオープン修正—state未指定で観測を捏造する穴。観測主張は明示必須）
+- audit: docの`warnings`ブロックを監査対象に追加。関節stateと
+  矛盾する警告コード（例: 観測8件以上なのに
+  `few_observed_joints`）を `stale_warning` として報告。
+  陳腐な警告申告が消費者を誤誘導する経路を遮断。
+  語彙外コードは外部語彙として据え置き（stale扱いしない）。
+
+- pipeline: `frame.source`に元画像解像度を開示（downscale作業空間の関節座標が`image_sha256`の元画像にマップ不能だった穴を解消）
+- pose: `body_model.prior`に実際に適用したプライア表を開示（測定選択名`name`と適用表が食い違う際に配置由来が不明だった穴を解消）
+- viewer: doc.warningsを表示（unknown_body_model・no_observed_torso等の注意付きdocがクリーンdocと同じ見た目になっていた欠陥を解消）
+- bvh: `report(skel)`開示サイドカー追加（BVH形式がjoint metadataを持てずpredicted骨が実測と区別不能で書き出されていた欠陥を解消）
+- analysisブロックに `consistency` 追加 — 骨格健全性監査のissuesを
+  全analyzeドキュメントに同梱（CLI/REST/Storeの全経路で可視）。
+
+- migrate: state未記入関節の由来補記が既存basisと区切りなしで
+  直結していたのを修正（"measured row 10migrated: state unknown"
+  のように既存由来を破損、recoverと同じ "; " 区切りに統一）。
+
+- knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
+- signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
+  #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
+  `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
+  混入し続けていた残件（obs版の死行も併せて除去）。
+- limbs: `of_body_h` の正規化子を観測関節のみの垂直スパンに修正 —
+  predicted の頭/足がプライア位置で身体スパンを伸縮させ、「計測
+  された」肢長比率が推測を分母にしていた欠陥を解消（全関節
+  predicted では None を返す）。
+- angles: predicted関節を含む角度を「計測値」として出力していた
+  欠陥を修正。プライア配置の四肢は構造的に~180°に伸びるため
+  elbow_flex等が捏造計測値になっていた（実測 175.8°）。
+  全端点observedの角度のみ出力、predictedは欠損扱いで省略。
+
+- ik: `solve_ik` が退化セグメント（L1/L2 が0以下）でドキュメント
+  契約通り `None` を返すよう修正。これまでは骨長ゼロのチェーンに
+  対して 1e-6px の捏造 mid/end を返していた — 「解くべきチェーンが
+  存在しない」場合に幾何をでっち上げない（誠実性契約）。
+
+- skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
+- contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）
+- rest: オーバーレイPNGをdoc隣に永続化＋メモリは上限128件の読通キャッシュ（再起動でoverlay_urlが404化＋無制限肥大の修正）
+- consistency: 監査をobserved関節のみに修正。predicted
+  head/feet（プライア補完）がbody extentを捏造し
+  `no_body_extent` を回避して虚構スケールで監査を通過
+  させていた → 部位長/対称チェックは両端observedのみ、
+  extentが全predictedなら `no_body_extent`。
+- gesture: ルールの参照点（head/pelvis/hip/shoulder）を観測関節
+  限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
+  ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
+  とhands_on_hipsの参照が推測で構成されなくなった）。
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
+- motion: predicted関節のフレーム間変位を出力しない欠陥を修正。
+  推測関節の「移動」はプライアの動きであり人の動きではない —
+  両フレームでobservedの関節のみ報告、predictedは欠損扱いで除外。
+
+- `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
+  関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
+  worst関節がベンチゲート(10px)超なら exit 1。
+- pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
+  検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
+- `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
+- cli: `slice analyze` のstderr要約にwarnings行を追加。
+  `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
+  docがCLI上ではクリーンなdocと同一表示になっていた
+  （viewer側と同型の沈黙表示）。警告がある場合のみ
+  `warnings: <code>, ...` を出力。
+
+- `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
+
+- bundle: unpackが破損zipメンバー（zlib/BadZipFile/非UTF8）をskip（1件の破損で全体が死ぬ経路を解消）
+- norm: 変換がcentroidも写像（関節だけ動かしてcentroidを旧フレーム座標のまま残し`ratio.analyze`等へ陳腐座標を流していた欠陥を解消）
+- norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
+- knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
+- basis: 先頭1語だけが一致するbasisをobservationと誤分類する穴を修正（完全な観測語彙prefixのみ許容 — 捏造由来の証拠なりすまし防止）
+- knowledge: get()がファイル名と内部idの不整合をKeyErrorで拒否（k_A.jsonが別idを名乗る破損docを誤同一視していた穴を解消）
+- framepos: bounds/headroomをobserved関節のみで計測。
+  predicted関節（"foot below ankle"プライア等）が関節クラウド
+  bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
+  （実測 footroom 0.037→0.014）。predictedは欠損扱い。
+- pose: 股より下の腕を「底行到達連結性」で脚と判別 — 従来のx重複
+  足判定は広い足（しゃがみ/開脚/足開き）に隣接する腕を脚と誤認し
+  腕を股で切断（手首が腰高に浮く計測誤差）。ランのx帯を下方向に
+  追跡し底行に届くもののみ脚とする。`tests.crouch_person`で回帰
+  ガード（wrist 197→239pxへ復帰）。
+
+- pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
+  複数人画像内の横たわり・逆さま人物が、単一推定と違って
+  直立スキャンだけで誤計測されていた経路を解消
+  （_estimate_oriented 抽出で両経路が同一判定を使用）。
+- cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
+  あった robust プロファイル（adaptive閾値・影除去・形態学
+  クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
+  実写真の一括解析が最もそれを必要とする経路だった。
+  docの `engine.profile` に "robust" と記録される。
+- track: アンカー/胴体長正規化をobserved関節のみに修正。
+  predictedのpelvisがリンク距離・jump計測の根拠になっていた
+  （推測位置での"linked"判定）。predicted pelvisはcentroidに
+  フォールバック。
+
+- mass: 身長スパンをobserved関節のみに修正。predicted足
+  （"foot below ankle"プライア）がスパンを~3%伸ばしてcm_per_px
+  を狂わせ、predicted頭でも推定値を返していた → 推測頭なら
+  測定不能として None を返す。
+
+- signature: predicted骨の方向ベクトルが指紋に混入していた欠陥を
+  修正。推測肢が観測とほぼ同一の指紋を生成し（距離0.0039）、
+  dedup/queryが「測定された一致」として誤認していた。predicted
+  端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
+  スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
+
+- spine: predictedトルソで「measured」脊柱カーブを報告していた
+  欠陥を修正。chestはプライアでneck–pelvis弦上に置かれるため
+  predictedだとカーブは構造的に「直線」に — 測定の捏造。
+  neck/chest/pelvisが全てobservedの場合のみ計測、それ以外は
+  unknownに保留。
+
+- ground: 最低点・clearance・スパンをobserved関節のみに修正。
+  "foot below ankle"プライアが観測足より下に置かれ、接地した
+  人物にclearance 7.8pxの浮遊ギャップを捏造していた。
+
+- dynamics: cues/spanをobserved関節のみに修正。docstringが
+  "all on observed joints"と謳いながらpredicted関節を含めて
+  いた — プライア位置でleg_off_axis/arm_out/com_outside_feet/
+  wide_stepが発火し得た。predictedは欠損扱い。
+
+- selfcheck: `consistency` 層を統合。ワンショット監査が骨格健全性
+  監査（肢長プライア違反・左右非対称・フレーム外・逆転検出）を
+  実行していなかった欠落を解消。issuesはadvisory重大度
+  （実在する人体はプライア範囲を正当に外れうるためfailはしない）
+  ＋`consistency:<issue>`理由コードを列挙。
+
+- smooth: observed関節の平滑位置が近傍フレームのpredicted座標に
+  引きずられる誠実性の欠陥を修正（実測: 手首が真値49px→69pxに
+  20px偏移）。observed中心はobservedサンプルのみで平均し、
+  predicted中心は従来どおり全サンプル平均（証拠は集める側）。
+
+- axis: 主軸PCAをobserved関節のみに限定。predicted関節（捏造
+  幾何）が「計測された」身体主軸をプライア方向へ引きずっていた
+  誠実性の欠陥を修正。observed<3個ならNone（unmeasured）。
+
+- calib: ビン境界の浮動小数点バグ修正 — `conf / 0.1` は 0.6 で
+  5.999... となり lookup（`conf * 10`）とビンが不一致になるのを
+  `conf * bins` に統一。`slice calib` は全ビン空（未測定）でも
+  exit 0 になっていたのを exit 1 に修正（Devin Review #206）。
+
+- reach: predicted腕でも `measured: True` を返していた欠陥を修正。
+  プライア直線腕の長さを「測定済み」作業空間半径と偽装していた
+  — observed関節のみ計測、predictedは欠損扱いでプライア
+  フォールバック（`measured: False`）、predicted肩は None。
+
+- pose: 向きリトライ（±90°/180°）— 横たわり・逆立ちの人物に対し
+  直立スキャンがゴミ骨格をobservedとして出力し、逆立ちでは監査
+  をすり抜ける完全な嘘骨格すら生成していた誠実性の穴を修正。
+  全4向きを推定し「issues減 or 頭帯幅1.3倍超」の厳格条件でのみ
+  回転を採用、座標を画像空間へ逆写像しbasisにrotated明記。
+  実測: 逆立ちで頭/足首/手首が正位置に復帰、直立・幅広手・
+  腕遮蔽は誤回転なし。`tests`反転ケースで回帰ガード。
+
+- dominance: 双側膝屈曲（スクワット）の捏造利き脚を修正。
+  unloaded_l+unloaded_r が同時発火して同票決 max() が "l" を
+  返していた（実測 conf 0.37）。双側屈曲は相殺し
+  both_legs_flexed（even）キューに変換 → even/conf 1.0。
+
+- skeleton: `body_span()` 共通ヘルパ追加（頭→最下端、逆転/欠損
+  時は胴体長、非計測時0）。contact/dynamics/ground/reach の
+  身体スパン退化を一括修正：contact は逆転骨格で閾値1pxに潰れ
+  接触を見逃し、dynamics は wide_step が常時発火、ground は
+  uneven_support が常時発火、reach は半径0の偽ワークスペースを
+  返していた。
+
+- classify: 逆さま判定追加＋スパン計測の修正。逆立ち・頭下がりの
+  骨格が「寝る」と誤分類されていた実欠陥を修正（下端を足関節
+  のみで計っていたため逆転時にspan_y=0→水平判定に誤爆）。
+  下端を全関節のmaxに変更し、全足が頭より上なら `invert`
+  （逆さま）を返す。斜め寝そべりは従来どおり `lie` 優先。
+
+- describe: ポーズ語彙の欠落修正。classifyが返す `crouch` が
+  _POSE_ENに無く説明文が生キー（"Crouch;"）になっていた。
+  `crouch`（crouching）＋将来の `invert`（upside down）を追加。
+
+- signature: body_h正規化の欠陥修正。足関節が無い骨格では
+  スカラー4要素が生px値で出力され、同じポーズ同士のsignature
+  距離が16.2に化けていた（実測）。足欠損・逆転（body_h≤0）時は
+  compare/dedupと同じ胴体長で正規化→距離0.24（骨欠損分のみ）。
+
+- gesture: 逆転骨格で wave が両腕発火していた欠陥を修正。
+  「頭上の手首」判定が画像座標のみで身体の向きを見ていなかった
+  ため、逆さま骨格では全手首が頭上に → 検出捏造。
+  wave は直立時（head 上方に pelvis）のみ発火させる。
+
+- symmetry: predicted関節を含むペアを計測対象から除外。
+  predictedは観測側のミラー複製で作られるため、含めると
+  対称スコアが構造的に1.0に — 「計測された対称性」の捏造。
+  ペアは両骨4端点が全てobservedの場合のみ比較し、それ以外は
+  missingに報告（推測しない）。実測: 右腕predicted骨格で
+  score 1.0/compared 7 → missing 3ペア報告に。
+
+- framepos: headroomを頭関節y→関節群最上端に修正。腕上げ
+  （手首が頭より上）で上端余白を過大評価し tight を portrait
+  と誤判定していた（実測 headroom 0.089→0.005）。
+
+- plumb: 逆転/退化骨格のスパン退化を修正。頭が最下端の骨格で
+  body_h=1.0に潰れ生pxを「身長比」として出力し、forward_head
+  閾値が負値で常時発火していた。胴体長フォールバック＋スケール
+  不在時は posture=unknown に。
+
+- limbs: チェーン中間関節欠損を partial として報告。肘が無い
+  腕で肩→手首の弦長を「全計測」扱いしていた誠実性の欠陥を修正
+  （欠損関節で弦化したチェーンは過小計測）。併せて body_h≤0
+  の退化時は of_body_h=None に。
+
+- bundle: packがvalidateのraiseで死なない（処理不能docをskip転換＋body_model非dict耐性）
+- diff: 不正docの関節エントリで落ちない — 非dict関節/
+  非数値座標/非dict入力をmalformedとして列挙し比較対象外に。
+
+- `slice.storechk`＋`slice audit --store DIR` — KnowledgeStore側の監査経路。selfcheckが画像を監査するのに対し、保存済みドキュメント群を監査：audit lint（invalid/flagged/cleanの文書別集計）＋近重複検出（dedup）＋関節別観測率の全ストア集計（`blind_joints`=全ドキュメントで一度も観測されなかった関節）。索引未登録ファイルも`unreadable`として失格扱い（見えない不正は最も危険なため）。verdict=pass/warn/fail＋exit codeでCIゲート可。
+- selfcheck: 関節系レイヤをエスティメータ解像度で比較（Devin Review #152修正）— >max_dim画像で骨格座標はダウンスケール済みなのにフル解像度マスクと比較していたため、全関節がoff_mask・fit=0になる誤警告を修正。`ground`も`small.height`へ。
+- selfcheck: `human`レイヤを最大成分のみで採点 — フレーム内の無関係な物体がperson-like判定を歪めていた問題を修正（推定器と同じ成分を監査）。
+- stability: probe変体が推定器の`adaptive`/`reject_shadow`/`clean`フラグを引き継ぐ — robust プロファイルのベースラインをdefault変体と比較し「プロファイル差」を「閾値感度」と誤読する問題を修正。
+
+- bundle/dataset: 手置き不正docでconsumerが落ちない。
+  unpack内corrupt/非dict memberが全体abortしていたのを
+  個別スキップに、id無しdocのstore.get(None) TypeErrorを
+  isinstance(kid,str)ガードで防止、非dict docのvalidate
+  AttributeErrorもpack/unpack/from_store全てでガード。
+
+- knowledge: `validate` がframe・normalizedブロックを検査する
+  ように。frame幅高の正数性＋normalized不変条件（pelvis=原点・
+  neck=1単位）— 陳腐/書換えブロックを拒否。
+
 - knowledge: `validate` がexportブロックを検査するように。
   keypoints_2d長の検査＋`keypoints_state`（存在する場合）の
   skeleton.jointsとの整合検査 — フラット出口で推測関節が

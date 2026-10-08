@@ -5,7 +5,7 @@ from tests import synthetic_person
 
 from slice import limbcov
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 from slice.bitmap import Bitmap
 
 
@@ -26,8 +26,8 @@ class TestLimbCov(unittest.TestCase):
     def test_gap_detected(self):
         # bone deliberately placed crossing background
         sk = Skeleton(100, 100)
-        sk.set(Joint("neck", 10, 10, 0.9, basis="t"))
-        sk.set(Joint("chest", 10, 50, 0.9, basis="t"))
+        sk.set(Joint("neck", 10, 10, 0.9, OBSERVED, basis="t"))
+        sk.set(Joint("chest", 10, 50, 0.9, OBSERVED, basis="t"))
         for j in sk.joints.values():
             j.state = "observed"
         mask = [bytearray(100) for _ in range(100)]
@@ -40,8 +40,8 @@ class TestLimbCov(unittest.TestCase):
 
     def test_predicted_bone_not_broken(self):
         sk = Skeleton(100, 100)
-        sk.set(Joint("neck", 10, 10, 0.9, basis="t"))
-        sk.set(Joint("chest", 10, 50, 0.9, basis="t"))
+        sk.set(Joint("neck", 10, 10, 0.9, OBSERVED, basis="t"))
+        sk.set(Joint("chest", 10, 50, 0.9, OBSERVED, basis="t"))
         sk.joints["chest"].state = "predicted"
         sk.joints["neck"].state = "observed"
         mask = [bytearray(100) for _ in range(100)]

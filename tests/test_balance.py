@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import balance
+from slice import balance, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -30,6 +30,25 @@ class TestBalance(unittest.TestCase):
         r = balance.assess(self.skel)
         self.assertEqual(r["projected"], "unknown")
         self.assertEqual(r["reason"], "no_feet")
+
+    def test_predicted_feet_are_not_support(self):
+        # "foot below ankle" priors must not fabricate the
+        # support polygon — unknown, not inside
+        for n in ("foot_l", "foot_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        r = balance.assess(self.skel)
+        self.assertEqual(r["support_joints"], 0)
+        self.assertEqual(r["projected"], "unknown")
+        self.assertEqual(r["reason"], "no_feet")
+
+    def test_predicted_leg_not_in_com(self):
+        # a prior-placed leg must not count toward mass coverage
+        for n in ("hip_r", "knee_r", "ankle_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        com = balance.center_of_mass(self.skel)
+        self.assertAlmostEqual(com["mass_covered"], 0.85)
 
     def test_com_outside_feet(self):
         # shove the chest far past the right foot

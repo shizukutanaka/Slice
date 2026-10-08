@@ -25,6 +25,14 @@ class TestGesture(unittest.TestCase):
         self.skel.joints["wrist_r"].state = "predicted"
         self.assertEqual(gesture.detect(self.skel), [])
 
+    def test_predicted_reference_never_fires(self):
+        # the wave rule compares a measured wrist to the head line;
+        # a predicted head is a prior guess — the comparison must not
+        # run on it
+        self.skel.joints["wrist_r"].y = self.skel.point("head")[1] - 100
+        self.skel.joints["head"].state = "predicted"
+        self.assertEqual(gesture.detect(self.skel), [])
+
     def test_point_detected(self):
         s = self.skel.point("shoulder_r")
         e = self.skel.joints["elbow_r"]

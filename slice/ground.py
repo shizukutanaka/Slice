@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
 
 Point = Tuple[float, float]
 
@@ -63,8 +63,8 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
 
 
 def _span(skel: Skeleton) -> float:
-    from .skeleton import body_span
-    return body_span(skel) or 200.0
+    # observed-only span: a predicted head/foot is prior fill
+    return observed_body_span(skel) or 200.0
 
 
 def clearance(skel: Skeleton) -> Optional[float]:

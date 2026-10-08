@@ -12,7 +12,7 @@ from __future__ import annotations
 import math
 from typing import Dict, List
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
 
 
 def _d(a, b) -> float:
@@ -65,8 +65,8 @@ def cues(skel: Skeleton) -> List[dict]:
 
 
 def _span(skel: Skeleton) -> float:
-    from .skeleton import body_span
-    return body_span(skel) or 200.0
+    # observed-only span: a predicted head/foot is prior fill
+    return observed_body_span(skel) or 200.0
 
 
 def score(skel: Skeleton) -> dict:

@@ -32,8 +32,11 @@ def _scale_into(a: Skeleton, b: Skeleton):
 
 def vectors(a: Skeleton, b: Skeleton,
             min_confidence: float = 0.0) -> Dict[str, tuple]:
-    """{joint: (dx, dy, speed)} for joints present in both frames.
+    """{joint: (dx, dy, speed)} for joints OBSERVED in both frames.
 
+    A predicted joint is prior fill: its "displacement" between
+    frames is movement of the prior, not of the person — a
+    fabricated measurement, so it is excluded like a missing one.
     When the two skeletons declare different image sizes, b's
     coordinates are first rescaled into a's frame — the displacement
     then assumes the same scene seen at two resolutions."""
@@ -42,6 +45,8 @@ def vectors(a: Skeleton, b: Skeleton,
     for name, ja in a.joints.items():
         jb = b.joints.get(name)
         if not jb:
+            continue
+        if ja.state != "observed" or jb.state != "observed":
             continue
         if min(ja.confidence, jb.confidence) < min_confidence:
             continue

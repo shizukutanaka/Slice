@@ -38,6 +38,10 @@
   （プライア直線四肢）がシルエット画素を「説明済み」に水増し
   し、全腕predictedでもfractionが0.80→0.81に改善したかのように
   報告していた → predicted骨/関節はカバレッジから除外。
+- gait: predicted関節を含む脚の位相キューをunknownに修正。
+  プライア直線脚が「stance/knee_angle ~170」として報告されて
+  いた。observed関節のみで判定、predictedは欠損扱い（step_width
+  も両足observedのみ）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

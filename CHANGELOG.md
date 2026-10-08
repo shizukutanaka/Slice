@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
+  ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
+  「通過」しswing/stanceを捏造していた欠陥を修正
+  （arm_len<=0→証拠なし、leg_len<=0→phase unknown+degenerate_leg）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

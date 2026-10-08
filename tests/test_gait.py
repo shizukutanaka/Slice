@@ -50,6 +50,18 @@ class TestGait(unittest.TestCase):
         self.assertIsNotNone(r["step_width"])
         self.assertIn("ankle_gap", r["step_width"])
 
+    def test_coincident_leg_is_unknown(self):
+        # hip/knee/ankle collapsed to one point: no phase evidence —
+        # `or 1.0` would let a zero-length leg pass the extension
+        # test and fabricate a swing/stance verdict
+        hip = self.skel.point("hip_l")
+        for n in ("knee_l", "ankle_l"):
+            self.skel.joints[n].x = hip[0]
+            self.skel.joints[n].y = hip[1]
+        p = gait.leg_phase(self.skel, "l")
+        self.assertEqual(p["phase"], "unknown")
+        self.assertIn("degenerate_leg", p["reasons"])
+
 
 if __name__ == "__main__":
     unittest.main()

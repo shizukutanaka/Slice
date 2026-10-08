@@ -42,5 +42,20 @@ class TestMotion(unittest.TestCase):
         self.assertNotIn("wrist_r", v)
 
 
+    def test_mismatched_frames_rescaled_and_disclosed(self):
+        b = motion.shifted(self.skel, 0, 0)
+        b.image_width = self.skel.image_width * 2
+        b.image_height = self.skel.image_height * 2
+        for j in b.joints.values():
+            j.x *= 2
+            j.y *= 2
+        s = motion.summarize(self.skel, b)
+        self.assertTrue(s["frame_scaled"])
+        self.assertEqual(s["frame_b"], (self.skel.image_width * 2,
+                                        self.skel.image_height * 2))
+        self.assertEqual(s["mean_speed"], 0.0)   # same pose, two scales
+        same = motion.summarize(self.skel, self.skel)
+        self.assertFalse(same["frame_scaled"])
+
 if __name__ == "__main__":
     unittest.main()

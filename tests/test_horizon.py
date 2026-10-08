@@ -67,6 +67,18 @@ class TestHorizon(unittest.TestCase):
             self.assertEqual(e["camera_height_cm"], 160.0)
         self.assertIn("upright", e["assumption"])
 
+    def test_predicted_feet_are_unknown(self):
+        # a "foot below ankle" guess is not a ground contact: with
+        # no observed contact pair the roll must not be measured
+        skel = _est()
+        for n in ("foot_l", "foot_r", "ankle_l", "ankle_r"):
+            del skel.joints[n]
+        from slice import predict
+        predict.complete(skel)
+        e = estimate(skel)
+        self.assertEqual(e["state"], "unknown")
+        self.assertIsNone(e["roll_deg"])
+
     def test_single_foot_is_unknown(self):
         skel = _est()
         del skel.joints["foot_r"]

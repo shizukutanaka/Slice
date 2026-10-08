@@ -53,8 +53,10 @@ def probe(bmp: Bitmap,
     base = est.estimate(bmp, model)
     variants = []
     for thr in (est.bg_threshold - delta, est.bg_threshold + delta):
-        v = HeuristicPoseEstimator(max_dim=est.max_dim,
-                                   bg_threshold=max(1, thr))
+        v = HeuristicPoseEstimator(
+            max_dim=est.max_dim, bg_threshold=max(1, thr),
+            adaptive=est.adaptive, reject_shadow=est.reject_shadow,
+            clean=est.clean)
         variants.append(v.estimate(bmp, model))
 
     joints: Dict[str, Dict] = {}

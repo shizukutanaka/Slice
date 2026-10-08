@@ -72,6 +72,11 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
         "export": {
             "keypoints_2d": flat,
             "keypoint_order": JOINTS,
+            # state per keypoint, same order — the flat array alone
+            # can't tell prior fill from evidence
+            "keypoints_state": [
+                joints[n].state if n in joints else "absent"
+                for n in JOINTS],
             "bones": [list(b) for b in BONES],
         },
     }
@@ -121,6 +126,28 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    skel = doc.get("skeleton") or {}
+    frame = skel.get("frame")
+    if isinstance(frame, dict):
+        for k in ("width", "height"):
+            v = frame.get(k)
+            if not isinstance(v, (int, float)) or v <= 0:
+                errors.append(f"skeleton.frame.{k} must be > 0")
+    norm = skel.get("normalized")
+    if isinstance(norm, dict):
+        # invariants of the normalized space: pelvis at the origin,
+        # neck one torso-unit away — a stale/rewritten block breaks
+        # these even when its numbers look plausible
+        nj = norm.get("joints") or {}
+        pv, nk = nj.get("pelvis"), nj.get("neck")
+        if isinstance(pv, dict) and (
+                abs(pv.get("x", 1)) > 0.01
+                or abs(pv.get("y", 1)) > 0.01):
+            errors.append("normalized pelvis not at origin")
+        if isinstance(nk, dict):
+            d = (nk.get("x", 0) ** 2 + nk.get("y", 0) ** 2) ** 0.5
+            if abs(d - 1.0) > 0.01:
+                errors.append("normalized neck not one unit away")
     export = doc.get("export") or {}
     if not isinstance(export, dict):
         errors.append("export must be a dict")
@@ -164,10 +191,11 @@ INDEX_NAME = "_index.json"
 
 
 def _list_entry(doc: dict) -> dict:
+    skel = doc.get("skeleton")
+    bm = skel.get("body_model") if isinstance(skel, dict) else None
     return {"id": doc.get("id"),
             "created_at": doc.get("created_at"),
-            "body_model": (doc.get("skeleton") or {})
-            .get("body_model", {}).get("name")}
+            "body_model": bm.get("name") if isinstance(bm, dict) else None}
 
 
 class KnowledgeStore:
@@ -198,7 +226,12 @@ class KnowledgeStore:
         if not os.path.isfile(path):
             raise KeyError(kid)
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            doc = json.load(f)
+        # a file named <kid>.json must be the document <kid> — a
+        # mismatched internal id means corruption, not the doc asked for
+        if not isinstance(doc, dict) or doc.get("id") != kid:
+            raise KeyError(kid)
+        return doc
 
     def _index_path(self) -> str:
         return os.path.join(self.root, INDEX_NAME)
@@ -233,9 +266,33 @@ class KnowledgeStore:
         indexed = self._index_load()
         out, healed = [], indexed is None
         entries = dict(indexed) if indexed else {}
+        index_mtime = 0.0
+        if indexed is not None:
+            try:
+                index_mtime = os.path.getmtime(self._index_path())
+            except OSError:
+                index_mtime = 0.0
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
+            if ent is not None and ent.get("id") != kid:
+                # a cached entry whose id disagrees with the filename
+                # names a document that can never be retrieved — drop
+                # it and let the file itself be judged below
+                healed = True
+                ent = None
+            if ent is not None:
+                # a file rewritten after the index was built leaves a
+                # stale entry — re-read it so list() never reports a
+                # document that no longer exists on disk
+                try:
+                    if os.path.getmtime(
+                            os.path.join(self.root, fn)) < index_mtime:
+                        out.append(ent)
+                        continue
+                except OSError:
+                    pass
+                ent = None
             if ent is None:
                 healed = True
                 try:
@@ -244,7 +301,9 @@ class KnowledgeStore:
                         d = json.load(f)
                 except (OSError, json.JSONDecodeError):
                     continue
-                if not isinstance(d, dict):
+                if not isinstance(d, dict) or d.get("id") != kid:
+                    # filename is the document's identity — a file that
+                    # claims another id is corruption, not a listable doc
                     continue
                 ent = _list_entry(d)
             out.append(ent)

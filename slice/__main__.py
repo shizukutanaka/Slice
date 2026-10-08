@@ -32,6 +32,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, stability, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -626,6 +628,25 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_stability(a) -> int:
+    """Perturbation probe: joint displacement at threshold +-delta."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = stability.probe(bmp, est, a.model or "adult",
+                          delta=a.delta)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    if res["state"] == "unmeasurable":
+        return 1
+    bad = stability.unstable(res)
+    return 0 if not bad else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +905,18 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    st = sub.add_parser(
+        "stability",
+        help="joint stability under threshold perturbation")
+    st.add_argument("image")
+    st.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    st.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    st.add_argument("--delta", type=int, default=10,
+                    help="threshold perturbation (default 10)")
+    st.set_defaults(fn=_cmd_stability)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

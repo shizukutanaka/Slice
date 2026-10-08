@@ -24,8 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               pipeline, render, rest, retarget, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -178,38 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_retarget(a) -> int:
-    """Pose retarget: source directions onto target proportions."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    skels = []
-    for p in (a.source, a.target):
-        try:
-            with open(p, "rb") as f:
-                skels.append(est.estimate(
-                    bitmap.decode(f.read()), a.model or "adult"))
-        except (bitmap.UnsupportedFormat, OSError) as e:
-            print(f"cannot load {p}: {e}", file=sys.stderr)
-            return 2
-    if not all(sk.joints for sk in skels):
-        print("no person in one or both images",
-              file=sys.stderr)
-        return 1
-    try:
-        out = retarget.retarget(*skels)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        return 1
-    doc = out.to_dict()
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            json.dump(doc, f, ensure_ascii=False, indent=2)
-        print(f"wrote {a.output} ({len(out.joints)} joints, "
-              f"all predicted)", file=sys.stderr)
-    print(json.dumps(doc, ensure_ascii=False, indent=2))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -288,11 +254,18 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
@@ -301,6 +274,7 @@ def _cmd_probe(a) -> int:
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
@@ -309,8 +283,14 @@ def _cmd_probe(a) -> int:
         return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
@@ -319,6 +299,7 @@ def _cmd_mirror(a) -> int:
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -769,19 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    rt = sub.add_parser(
-        "retarget", help="pose retarget src dirs -> dst lengths")
-    rt.add_argument("source", help="image with the pose to copy")
-    rt.add_argument("target",
-                    help="image with the proportions to keep")
-    rt.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    rt.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    rt.add_argument("-o", "--output",
-                    help="write the retargeted skeleton JSON")
-    rt.set_defaults(fn=_cmd_retarget)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -801,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

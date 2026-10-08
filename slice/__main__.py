@@ -41,6 +41,8 @@ from . import (describe)
 from . import (autocrop, crop)
 from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
 from . import (evid)
+from . import (imgqual)
+from . import (human)
 
 
 def _cmd_analyze(a) -> int:
@@ -628,6 +630,49 @@ def _cmd_evid(a) -> int:
     return 0 if not evid.unsupported(res) else 1
 
 
+def _cmd_imgqual(a) -> int:
+    """Image evidence adequacy before estimation."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = imgqual.assess(bmp)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] != "inadequate" else 1
+
+
+def _cmd_human(a) -> int:
+    """Person-likeness score per foreground component."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    w, h = small.width, small.height
+    m = est._mask(small)
+    labels, sizes = est._label_components(m, w, h)
+    comps = []
+    for lab in sorted(sizes, key=sizes.get, reverse=True):
+        if sizes[lab] < a.min_px:
+            continue
+        comp = est._component_mask(labels, lab, w, h)
+        res = human.assess(comp)
+        res["px"] = sizes[lab]
+        res["component"] = lab
+        comps.append(res)
+    out = {"components": comps, "n_components": len(comps)}
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    if not comps:
+        return 1
+    return 0 if any(c["person_like"] for c in comps) else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -882,6 +927,20 @@ def main(argv=None) -> int:
     ev.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     ev.set_defaults(fn=_cmd_evid)
+
+    iq = sub.add_parser(
+        "imgqual", help="image evidence adequacy")
+    iq.add_argument("image")
+    iq.set_defaults(fn=_cmd_imgqual)
+
+    hu = sub.add_parser(
+        "human", help="person-likeness per component")
+    hu.add_argument("image")
+    hu.add_argument("--min-px", type=int, default=100,
+                    help="min component pixels")
+    hu.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    hu.set_defaults(fn=_cmd_human)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

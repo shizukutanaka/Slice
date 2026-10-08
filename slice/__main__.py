@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, autocrop, bitmap, calib, crop, evaluate,
-               knowledge, limbcov, pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -41,6 +37,7 @@ from . import (oks)
 from . import (balance, classify, contrad)
 from . import (reid)
 from . import (describe)
+from . import (autocrop, crop)
 
 
 def _cmd_analyze(a) -> int:
@@ -175,36 +172,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_autocrop(a) -> int:
-    """Suggest (and optionally apply) a person-bbox crop."""
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    aspect = None
-    if a.aspect:
-        try:
-            w, h = (float(v) for v in a.aspect.split(":"))
-            aspect = w / h if h else None
-        except ValueError:
-            print("--aspect must be W:H (e.g. 3:4)",
-                  file=sys.stderr)
-            return 2
-    res = autocrop.suggest(bmp, margin=a.margin,
-                           aspect=aspect)
-    if a.output and res.get("crop"):
-        rect = tuple(res["crop"])
-        out = crop.crop(bmp, rect)
-        with open(a.output, "wb") as f:
-            f.write(bitmap.encode_png(out))
-        print(f"wrote {a.output} "
-              f"({out.width}x{out.height})", file=sys.stderr)
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0 if res.get("crop") else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -283,13 +250,23 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
@@ -299,13 +276,22 @@ def _cmd_probe(a) -> int:
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -340,6 +326,7 @@ def _cmd_mirror(a) -> int:
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
     }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
 
@@ -495,6 +482,36 @@ def _cmd_compare(a) -> int:
     return 0
 
 
+def _cmd_autocrop(a) -> int:
+    """Suggest (and optionally apply) a person-bbox crop."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    aspect = None
+    if a.aspect:
+        try:
+            w, h = (float(v) for v in a.aspect.split(":"))
+            aspect = w / h if h else None
+        except ValueError:
+            print("--aspect must be W:H (e.g. 3:4)",
+                  file=sys.stderr)
+            return 2
+    res = autocrop.suggest(bmp, margin=a.margin,
+                           aspect=aspect)
+    if a.output and res.get("crop"):
+        rect = tuple(res["crop"])
+        out = crop.crop(bmp, rect)
+        with open(a.output, "wb") as f:
+            f.write(bitmap.encode_png(out))
+        print(f"wrote {a.output} "
+              f"({out.width}x{out.height})", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("crop") else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -619,17 +636,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    ac = sub.add_parser(
-        "autocrop", help="person-bbox crop suggestion")
-    ac.add_argument("image")
-    ac.add_argument("--margin", type=float, default=0.1,
-                    help="pad fraction around the bbox")
-    ac.add_argument("--aspect",
-                    help="target aspect as W:H (e.g. 3:4)")
-    ac.add_argument("-o", "--output",
-                    help="write the cropped PNG here")
-    ac.set_defaults(fn=_cmd_autocrop)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -653,6 +659,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -716,6 +723,17 @@ def main(argv=None) -> int:
                     help="robust estimation profile")
     cp.add_argument("--min-confidence", type=float, default=0.0)
     cp.set_defaults(fn=_cmd_compare)
+
+    ac = sub.add_parser(
+        "autocrop", help="person-bbox crop suggestion")
+    ac.add_argument("image")
+    ac.add_argument("--margin", type=float, default=0.1,
+                    help="pad fraction around the bbox")
+    ac.add_argument("--aspect",
+                    help="target aspect as W:H (e.g. 3:4)")
+    ac.add_argument("-o", "--output",
+                    help="write the cropped PNG here")
+    ac.set_defaults(fn=_cmd_autocrop)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

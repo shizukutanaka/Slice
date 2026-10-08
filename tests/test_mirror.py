@@ -19,7 +19,8 @@ class TestMirror(unittest.TestCase):
         f = mirror.flip_skeleton(skel)
         j = f.joints["wrist_l"]
         orig = skel.joints["wrist_r"]
-        self.assertAlmostEqual(j.x, skel.image_width - orig.x)
+        self.assertAlmostEqual(j.x,
+                                     skel.image_width - 1 - orig.x)
         self.assertAlmostEqual(j.y, orig.y)
 
     def test_estimator_is_near_symmetric(self):
@@ -31,8 +32,8 @@ class TestMirror(unittest.TestCase):
         for name, ja in a.joints.items():
             jb = b.joints.get(name)
             self.assertIsNotNone(jb, name)
-            self.assertAlmostEqual(ja.x, jb.x, delta=3.0, msg=name)
-            self.assertAlmostEqual(ja.y, jb.y, delta=3.0, msg=name)
+            self.assertAlmostEqual(ja.x, jb.x, delta=2.0, msg=name)
+            self.assertAlmostEqual(ja.y, jb.y, delta=2.0, msg=name)
 
 
 if __name__ == "__main__":

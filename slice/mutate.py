@@ -42,12 +42,17 @@ def occlude(bmp: Bitmap, x0: int, y0: int, x1: int, y1: int,
 
 
 def crop(bmp: Bitmap, x0: int, y0: int, x1: int, y1: int) -> Bitmap:
-    """Trim to a sub-rectangle — simulates framing that cuts the body."""
+    """Trim to a sub-rectangle — simulates framing that cuts the body.
+
+    Sample positions outside the frame leave the background fill:
+    `Bitmap.get` wraps negative indices to the image tail, so reading
+    there would fabricate content where the camera saw nothing.
+    """
     w, h = max(1, x1 - x0), max(1, y1 - y0)
     out = Bitmap.new(w, h, (0, 0, 0, 255))
     for y in range(h):
         for x in range(w):
-            p = bmp.get(x0 + x, y0 + y)
-            if p:
-                out.set(x, y, p)
+            sx, sy = x0 + x, y0 + y
+            if 0 <= sx < bmp.width and 0 <= sy < bmp.height:
+                out.set(x, y, bmp.get(sx, sy))
     return out

@@ -2,11 +2,11 @@
 import unittest
 
 from slice import framefit
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 
 
 def _skel(joints, w=64, h=96):
-    return Skeleton(w, h, {k: Joint(k, x, y, 0.9) for k, (x, y) in joints.items()})
+    return Skeleton(w, h, {k: Joint(k, x, y, 0.9, OBSERVED) for k, (x, y) in joints.items()})
 
 
 class TestAssess(unittest.TestCase):

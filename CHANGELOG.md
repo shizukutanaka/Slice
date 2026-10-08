@@ -51,6 +51,10 @@
   `predicted_features`/`excluded_predicted`で開示。プライア表で
   置かれた比率は同一BODY_MODELなら誰でも一致する定数のため、
   「別人が同じプライアでsame_person」という偽陽性を生んでいた
+- handpos: ゾーン参照点（head/chest/pelvis/knee/hip）を観測関節
+  限定に修正 — 観測 wrist が predicted ランドマークのプライア位置に
+  対してゾーン判定され、推測が身体ゾーン境界を捏造していた欠陥
+  を解消（全参照が predicted ならゾーン未判定、#331 gesture と同型）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

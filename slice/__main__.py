@@ -12,26 +12,8 @@
         — confidence calibration vs ground-truth fixtures
     python -m slice consistency <image> [--model M] [--robust]
         — skeleton plausibility audit (limb lengths, symmetry, frame)
-||||||| 8b1d0d7
-    python -m slice bias
-        — per-joint systematic vs random error on fixtures
-    python -m slice serve [--port 8000] [--store DIR]
-    python -m slice list [--store DIR]
-"""
-
-from __future__ import annotations
-
-import argparse
-import json
-import math
-import os
-import sys
-
-from . import (__version__, bitmap, calib, consistency, evaluate,
+from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
-||||||| 8b1d0d7
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -171,6 +153,38 @@ def _cmd_audit(a) -> int:
     print(f"verdict: {res['verdict']} "
           f"({res['n_reasons']} reasons)", file=sys.stderr)
     return 0 if res["verdict"] != "fail" else 1
+
+
+def _diff_load(arg, store_dir, model, robust):
+    """arg = image path or k_<id> in the store."""
+    import os
+    if os.path.isfile(arg):
+        with open(arg, "rb") as f:
+            doc = pipeline.analyze(f.read(), model=model,
+                                   source_name=arg, robust=robust)
+        return pipeline.strip_runtime(doc)
+    return knowledge.KnowledgeStore(store_dir).get(arg)
+
+
+def _cmd_diff(a) -> int:
+    try:
+        da = _diff_load(a.a, a.store, a.model, a.robust)
+        db = _diff_load(a.b, a.store, a.model, a.robust)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    except (KeyError, OSError) as e:
+        print(f"cannot load: {e}", file=sys.stderr)
+        return 2
+    res = diff.diff(da, db)
+    res["pose_distance"] = compare.pose_distance(da, db)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
 
 
 def _probe_dispatch(layer, skel, mask):
@@ -447,6 +461,20 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
+    di = sub.add_parser("diff",
+                        help="diff two images or stored documents")
+    di.add_argument("a", help="image path or k_<id>")
+    di.add_argument("b", help="image path or k_<id>")
+    di.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore dir for id args")
+    di.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    di.add_argument("--robust", action="store_true",
+                    help="robust estimation profile (image args only)")
+    di.add_argument("-o", "--output",
+                    help="write the diff JSON to a file")
+    di.set_defaults(fn=_cmd_diff)
+
     pr = sub.add_parser(
         "probe", help="run one semantic layer on an image")
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
@@ -491,25 +519,3 @@ def main(argv=None) -> int:
                     help="robust estimation profile")
     co.set_defaults(fn=_cmd_consistency)
 
-||||||| 8b1d0d7
-    bi = sub.add_parser(
-        "bias", help="per-joint systematic vs random error profile")
-    bi.set_defaults(fn=_cmd_bias)
-    s = sub.add_parser("serve", help="run the REST viewer server")
-    s.add_argument("--port", type=int, default=8000)
-    s.add_argument("--store", default="knowledge")
-    s.add_argument("--token", default=None,
-                   help="require 'Authorization: Bearer TOKEN' on API "
-                        "routes (default: SLICE_TOKEN env, else open)")
-    s.set_defaults(fn=_cmd_serve)
-
-    l = sub.add_parser("list", help="list stored knowledge")
-    l.add_argument("--store", default="knowledge")
-    l.set_defaults(fn=_cmd_list)
-
-    args = p.parse_args(argv)
-    return args.fn(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -27,6 +27,20 @@ class TestAxis(unittest.TestCase):
         self.assertLess(r["angle_deg"], 30)
         self.assertGreater(axis.tilt(self.skel), 60)
 
+    def test_predicted_joints_do_not_pull_axis(self):
+        # fabricated geometry must not steer the measured axis:
+        # a predicted horizontal fan can't rotate the observed
+        # vertical axis
+        from slice.skeleton import Joint, Skeleton
+        sk = Skeleton(300, 400)
+        for i, n in enumerate(("head", "neck", "pelvis")):
+            sk.set(Joint(n, 150, 50 + i * 80, 0.9, state="observed"))
+        for i in range(10):
+            sk.set(Joint("p%d" % i, 30 + i * 25, 200, 0.2,
+                         state="predicted"))
+        r = axis.principal(sk)
+        self.assertGreater(r["angle_deg"], 60)
+
     def test_too_few_joints_none(self):
         for n in list(self.skel.joints)[2:]:
             del self.skel.joints[n]

@@ -55,9 +55,12 @@ def label_map(bmp: Bitmap, skel: Skeleton, mask: List[bytearray],
     """Per-pixel part name for every foreground pixel, else None."""
     segs = []
     for a, b in BONES:
-        pa, pb = skel.point(a), skel.point(b)
-        if pa and pb:
-            segs.append((PART_OF[(a, b)], pa, pb))
+        ja, jb = skel.joints.get(a), skel.joints.get(b)
+        if (ja and jb and ja.state == "observed"
+                and jb.state == "observed"):
+            # predicted endpoints place the bone by prior — pixels
+            # labeled off it would wear a fabricated part name
+            segs.append((PART_OF[(a, b)], (ja.x, ja.y), (jb.x, jb.y)))
     w, h = bmp.width, bmp.height
     out: List[Optional[str]] = [None] * (w * h)
     for y in range(h):

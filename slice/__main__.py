@@ -32,6 +32,12 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               selfcheck, signature as _signature)
+from . import (__version__, _signature, bitmap, knowledge, limbcov, pipeline,
+               render, rest, selfcheck, signature as _signature)
+from . import (__version__, bitmap, knowledge, limbcov, pipeline, render,
+               rest, selfcheck, signature as _signature)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -697,6 +703,31 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_signature(a) -> int:
+    """Pose fingerprint of one image, or distance between two."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.images if a.images else []):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not all(sk.joints for sk in skels):
+        print("no person detected", file=sys.stderr)
+        return 1
+    sigs = [_signature.signature(sk) for sk in skels]
+    if len(sigs) == 2:
+        print(json.dumps({"distance": _signature.distance(
+            sigs[0], sigs[1])}, indent=2))
+    else:
+        print(json.dumps({"signature": sigs[0]}, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -901,6 +932,17 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    sg = sub.add_parser(
+        "signature",
+        help="pose fingerprint of an image (or distance of two)")
+    sg.add_argument("images", nargs="+",
+                    help="one image for its signature, two for distance")
+    sg.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sg.set_defaults(fn=_cmd_signature)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

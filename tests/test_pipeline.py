@@ -20,16 +20,20 @@ class TestPipeline(unittest.TestCase):
             bitmap.encode_png(synthetic_person()))
         a = doc["analysis"]
         for key in ("angles", "symmetry", "balance", "spine",
-                    "gesture", "dynamics", "occlusion", "frame"):
+                    "gesture", "dynamics", "occlusion", "frame",
+                    "consistency"):
             self.assertIn(key, a, key)
         self.assertIsNotNone(a["frame"])
         self.assertIn("elbow_l_flex", a["angles"])
+        self.assertIsInstance(a["consistency"]["issues"], list)
 
     def test_analysis_degrades_on_empty_image(self):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertEqual(doc["analysis"]["gesture"]["count"], 0)
         self.assertNotIn("frame", doc["analysis"])
+        self.assertEqual(doc["analysis"]["consistency"]["issues"],
+                         ["no_body_extent"])
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
 

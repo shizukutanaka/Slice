@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import (__version__, angles, balance, bitmap, classify, dynamics,
-               framepos, gesture, knowledge, occlusion, pose, predict,
-               ratio, spine, style, symmetry)
+from . import (__version__, angles, balance, bitmap, classify,
+               consistency, dynamics, framepos, gesture, knowledge,
+               occlusion, pose, predict, ratio, spine, style, symmetry)
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -48,6 +48,7 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         "occlusion": occlusion.audit(skel),
         "frame": framepos.analyze(skel, skel.image_width,
                                   skel.image_height),
+        "consistency": {"issues": consistency.audit(skel, model)},
     }
     # every layer must be a dict (knowledge.validate); omit empty ones
     doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}

@@ -37,6 +37,31 @@ class TestTopology(unittest.TestCase):
         d = topology.analyze(b)
         self.assertEqual(d["components"], 2)
         self.assertEqual(d["euler"], 2)
+        self.assertEqual(d["fg_px"], 800)
+
+    def test_hole_in_smaller_blob(self):
+        # two disconnected rings: both holes must count
+        b = Bitmap.new(160, 80, (0, 0, 0, 255))
+        for ox in (10, 90):
+            for y in range(10, 50):
+                for x in range(ox, ox + 40):
+                    if not (ox + 10 <= x < ox + 30
+                            and 20 <= y < 40):
+                        b.set(x, y, (200, 200, 200, 255))
+        d = topology.analyze(b)
+        self.assertEqual(d["components"], 2)
+        self.assertEqual(d["holes"], 2)
+        self.assertEqual(d["euler"], 0)
+
+    def test_many_components_no_overflow(self):
+        # checkerboard speckle: >255 isolated fg pixels must not crash
+        b = Bitmap.new(40, 40, (0, 0, 0, 255))
+        for y in range(40):
+            for x in range(40):
+                if (x + y) % 2 == 0:
+                    b.set(x, y, (200, 200, 200, 255))
+        d = topology.analyze(b)
+        self.assertIsNotNone(d)
 
     def test_empty_none(self):
         b = Bitmap.new(50, 50, (255, 255, 255, 255))

@@ -26,6 +26,11 @@
   predicted関節（"foot below ankle"プライア等）が関節クラウド
   bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
   （実測 footroom 0.037→0.014）。predictedは欠損扱い。
+- pose: 股より下の腕を「底行到達連結性」で脚と判別 — 従来のx重複
+  足判定は広い足（しゃがみ/開脚/足開き）に隣接する腕を脚と誤認し
+  腕を股で切断（手首が腰高に浮く計測誤差）。ランのx帯を下方向に
+  追跡し底行に届くもののみ脚とする。`tests.crouch_person`で回帰
+  ガード（wrist 197→239pxへ復帰）。
 
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って

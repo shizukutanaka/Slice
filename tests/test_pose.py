@@ -1,6 +1,6 @@
 import unittest
 
-from tests import synthetic_person
+from tests import crouch_person, synthetic_person, wide_hand_person
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -57,6 +57,63 @@ class TestHeuristicPose(unittest.TestCase):
             self.assertGreater(j[f"wrist_{side}"].y, j[f"hip_{side}"].y,
                                f"wrist_{side} should hang below the hip line")
 
+    def test_wide_drifting_hand_tracked(self):
+        """A hand wider than a leg run and drifting outward must still be
+        followed: width-based leg guessing drops it, and a frozen arm
+        band truncates it before the fingertips."""
+        skel = HeuristicPoseEstimator().estimate(wide_hand_person())
+        j = skel.joints
+        self.assertEqual(j["wrist_l"].state, OBSERVED)
+        self.assertGreater(j["wrist_l"].y, 300 * 0.8)
+        self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
+
+    def test_crouch_dangling_wrist_not_amputated(self):
+        """Wide flat feet used to swallow the below-crotch arm band
+        (x-overlap classified arm pixels as leg), leaving the wrist
+        floating at hip height."""
+        skel = HeuristicPoseEstimator().estimate(crouch_person())
+        j = skel.joints
+        for side in ("l", "r"):
+            self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
+            # wrist reaches the arm bar's bottom (~80% height), not
+            # amputated at the hip line
+            self.assertGreater(j[f"wrist_{side}"].y, 300 * 0.7, side)
+
+    def test_inverted_person_180_retry(self):
+        """An upside-down figure used to yield a consistent-looking
+        but fully wrong skeleton (head found where the feet are).
+        The 180° orientation retry un-rotates joints into image space
+        and records the rotation in the joint basis."""
+        src = synthetic_person()
+        w, h = src.width, src.height
+        inv = Bitmap.new(w, h, src.get(1, 1))
+        for y in range(h):
+            for x in range(w):
+                inv.set(x, y, src.get(x, h - 1 - y))
+        j = HeuristicPoseEstimator().estimate(inv).joints
+        self.assertEqual(j["head"].state, OBSERVED)
+        self.assertGreater(j["head"].y, h * 0.7)    # head at the bottom
+        self.assertGreater(j["ankle_l"].y, 0)
+        self.assertLess(j["ankle_l"].y, h * 0.3)    # feet at the top
+        self.assertTrue(any(jt.basis and "rotated" in jt.basis
+                            for jt in j.values()))
+
+    def test_rotated_retry_discloses_and_mirrors_orientation(self):
+        """180°-flipped profile faces right in the image — but the
+        rotated scan reads its facing in the mirrored frame ("left").
+        The doc must report the image frame's facing ("right") and
+        disclose the rotation itself."""
+        src = profile_person(side=-1)   # faces left, upright
+        w, h = src.width, src.height
+        inv = Bitmap.new(w, h, src.get(1, 1))
+        for y in range(h):
+            for x in range(w):
+                inv.set(x, y, src.get(w - 1 - x, h - 1 - y))  # true 180°
+        sk = HeuristicPoseEstimator().estimate(inv)
+        ori = sk.orientation
+        self.assertEqual(ori.get("estimated_on_rotated_deg"), 180)
+        self.assertEqual(ori.get("facing"), "right")
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)
@@ -67,6 +124,17 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(self.skel.orientation["facing"], "front")
         self.assertIn(self.skel.body_model["name"],
                       ("adult", "child", "deformed"))
+        # the prior actually applied to observed placement is disclosed
+        self.assertIn(self.skel.body_model["prior"],
+                      ("adult", "child", "deformed"))
+
+    def test_prior_discloses_applied_model(self):
+        est = HeuristicPoseEstimator()
+        forced = est.estimate(synthetic_person(), model="child")
+        self.assertEqual(forced.body_model["prior"], "child")
+        # a bogus name falls back to the default table — and says so
+        bogus = est.estimate(synthetic_person(), model="nope")
+        self.assertEqual(bogus.body_model["prior"], "adult")
 
     def test_profile_facing_direction(self):
         est = HeuristicPoseEstimator()

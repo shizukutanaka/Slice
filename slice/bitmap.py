@@ -36,11 +36,19 @@ class Bitmap:
         return cls(width, height, bytearray(px * (width * height)))
 
     def get(self, x: int, y: int) -> Tuple[int, int, int, int]:
+        """Pixel at (x, y). Out-of-frame reads raise: a negative
+        index would wrap to the image's tail rows and pass those
+        pixels off as real data — loud failure is the honest read."""
+        if not (0 <= x < self.width and 0 <= y < self.height):
+            raise IndexError(
+                f"pixel ({x}, {y}) outside {self.width}x{self.height}")
         i = (y * self.width + x) * 4
         d = self.data
         return d[i], d[i + 1], d[i + 2], d[i + 3]
 
     def set(self, x: int, y: int, rgba: Tuple[int, int, int, int]) -> None:
+        if len(rgba) != 4:
+            raise ValueError("rgba must be a 4-tuple")
         if 0 <= x < self.width and 0 <= y < self.height:
             i = (y * self.width + x) * 4
             self.data[i:i + 4] = bytes(rgba)

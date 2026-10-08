@@ -36,6 +36,16 @@ class TestOcclusion(unittest.TestCase):
         self.assertEqual(r["reason"], "truncated")
         self.assertFalse(r["in_frame"])
 
+    def test_unknown_frame_is_unverifiable(self):
+        # no w/h given: the joint can't be claimed "inside the frame" —
+        # `w or 10**9` reported in_frame=True for a frame never checked
+        j = self.skel.joints["wrist_r"]
+        j.state = "predicted"
+        j.x = 5000
+        r = occlusion.reason(self.skel, "wrist_r")
+        self.assertIsNone(r["in_frame"])
+        self.assertEqual(r["reason"], "unobserved")
+
     def test_audit_counts(self):
         r = occlusion.audit(self.skel)
         self.assertEqual(sum(r["counts"].values()), len(self.skel.joints))

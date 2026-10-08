@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- occlusion: フレーム寸法未提供時の`in_frame`をNone（未検証）に修正 —
+  `w or 10**9`で任意の正座標が「フレーム内検証済み」を装っていた
+  （x=5000でもTrue）。負座標・既知frame超過のみFalse→truncated、
+  寸法なしの正座標はNone→unobservedの誠実な三値に
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

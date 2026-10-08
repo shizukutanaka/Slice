@@ -39,9 +39,17 @@ def reason(skel: Skeleton, name: str, mask=None, w: int = 0,
         out.update(reason="absent", in_frame=None, in_foreground=None)
         return out
 
-    in_frame = 0 <= j.x < (w or 10**9) and 0 <= j.y < (h or 10**9)
+    # a negative coordinate is provably outside; a positive one is
+    # inside only when the frame dims are known — without w/h,
+    # `w or 10**9` claims "verified inside" for a frame never given
+    if j.x < 0 or j.y < 0 or (w and j.x >= w) or (h and j.y >= h):
+        in_frame = False
+    elif w and h:
+        in_frame = True
+    else:
+        in_frame = None  # frame unknown — cannot verify
     out["in_frame"] = in_frame
-    if not in_frame:
+    if in_frame is False:
         out.update(reason="truncated", in_foreground=None)
         return out
     if mask is not None:

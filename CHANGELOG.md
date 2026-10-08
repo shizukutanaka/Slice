@@ -14,6 +14,10 @@
   関節位置（プライア補完）で実画素を採取し `wrist_l: covered`
   等の部位帰属ラベルを捏造していた → predictedはレポート
   から除外。
+- skeleton: `normalized()` のアンカーをobserved関節のみに
+  修正。predictedのpelvis/neckが正規化の原点・単位になり
+  推測座標がKnowledgeドキュメントに載っていた → アンカーが
+  predictedならブロックごと棄権（None）。
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 

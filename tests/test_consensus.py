@@ -57,6 +57,17 @@ class TestConsensus(unittest.TestCase):
             Bitmap.new(160, 300, (240, 240, 240, 255)), estimator=est)
         self.assertEqual(r2["state"], "failed")
 
+    def test_variants_keep_profile_flags(self):
+        # the panel jitters threshold/resolution only — a robust
+        # caller's adaptive/shadow/clean profile must be identical
+        # across variants, or the median measures undisclosed
+        # profile differences
+        est = consensus.HeuristicPoseEstimator(
+            adaptive=True, reject_shadow=True, clean=True)
+        for v in consensus._variants(est)[1:]:
+            self.assertTrue(v.adaptive)
+            self.assertTrue(v.reject_shadow)
+            self.assertTrue(v.clean)
     def test_empty_image_fails(self):
         from slice.bitmap import Bitmap
         r = consensus.consensus(Bitmap.new(160, 300, (240, 240, 240, 255)))

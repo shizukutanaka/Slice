@@ -2,7 +2,9 @@
 import unittest
 
 from slice import consensus, evaluate
-from slice.skeleton import OBSERVED, PREDICTED
+from slice.bitmap import Bitmap
+from slice.pose import HeuristicPoseEstimator
+from slice.skeleton import OBSERVED, PREDICTED, Joint, Skeleton
 
 
 class TestConsensus(unittest.TestCase):
@@ -36,6 +38,36 @@ class TestConsensus(unittest.TestCase):
             self.assertIn("runs", d)
             self.assertIn("spread_px", d)
 
+    def test_all_predicted_skeleton_not_observed(self):
+        # a consensus that only carried base-run predictions must not
+        # report state="observed" — no image evidence was found.
+        est = HeuristicPoseEstimator()
+
+        class _Pred(HeuristicPoseEstimator):
+            def estimate(self, bmp, model="adult"):
+                s = Skeleton(image_width=bmp.width,
+                             image_height=bmp.height)
+                s.set(Joint("head", 50, 20, 0.1,
+                            "predicted", "prior"))
+                return s
+        r = consensus.consensus(Bitmap.new(160, 300, (0, 0, 0, 255)),
+                                estimator=_Pred())
+        self.assertEqual(r["state"], "predicted")
+        r2 = consensus.consensus(
+            Bitmap.new(160, 300, (240, 240, 240, 255)), estimator=est)
+        self.assertEqual(r2["state"], "failed")
+
+    def test_variants_keep_profile_flags(self):
+        # the panel jitters threshold/resolution only — a robust
+        # caller's adaptive/shadow/clean profile must be identical
+        # across variants, or the median measures undisclosed
+        # profile differences
+        est = consensus.HeuristicPoseEstimator(
+            adaptive=True, reject_shadow=True, clean=True)
+        for v in consensus._variants(est)[1:]:
+            self.assertTrue(v.adaptive)
+            self.assertTrue(v.reject_shadow)
+            self.assertTrue(v.clean)
     def test_empty_image_fails(self):
         from slice.bitmap import Bitmap
         r = consensus.consensus(Bitmap.new(160, 300, (240, 240, 240, 255)))

@@ -44,9 +44,13 @@ def estimate(skel: Skeleton,
     feet = None
     used = None
     for pair in _PAIRS:
-        pl, pr = skel.point(pair[0]), skel.point(pair[1])
-        if pl and pr:
-            feet, used = (pl, pr), pair
+        jl, jr = skel.joints.get(pair[0]), skel.joints.get(pair[1])
+        # a predicted foot ("foot below ankle") is a guess, not a
+        # ground contact — a ground line through it would measure
+        # the prior's placement, not the scene
+        if (jl and jr and jl.state == "observed"
+                and jr.state == "observed"):
+            feet, used = ((jl.x, jl.y), (jr.x, jr.y)), pair
             break
     if feet is None:
         return {

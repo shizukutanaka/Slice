@@ -43,6 +43,7 @@ def build(skel: Skeleton) -> List[dict]:
             continue
         dx, dy = b[0] - a[0], b[1] - a[1]
         L = math.hypot(dx, dy)
+        pa_j, ch_j = skel.joints[pa], skel.joints[ch]
         out.append({
             "name": _NAME.get(ch, ch),
             "parent": pa,
@@ -50,8 +51,12 @@ def build(skel: Skeleton) -> List[dict]:
             "tail": [b[0], b[1]],
             "length": round(L, 2),
             "dir": [round(dx / L, 4), round(dy / L, 4)] if L else [0, 0],
-            "confidence": round(min(skel.joints[pa].confidence,
-                                    skel.joints[ch].confidence), 3),
+            # a bone over predicted endpoints is guessed structure —
+            # downstream rigs must not read it as observed anatomy
+            "state": ("predicted" if "predicted" in
+                      (pa_j.state, ch_j.state) else pa_j.state),
+            "confidence": round(min(pa_j.confidence,
+                                    ch_j.confidence), 3),
         })
     return out
 

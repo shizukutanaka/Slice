@@ -20,6 +20,8 @@
 - contour: features()に`contour_closed`を開示（トレースが反復上限で未閉鎖打ち切りの際、perimeter/compactnessが下界として完全計測値を装っていた欠陥を解消）
 - pipeline: warningsに`no_observed_torso`追加（四肢は観測でも運動学ルートの体幹が全て推測のdocを「アンカー未測定」として開示）
 - stats/dataset: `mean_observed_confidence`を開示（観測と推測を混ぜた混成mean_confidenceが証拠品質を系統的に過小評価していた欠陥を解消、混成列は互換のため据え置き）
+- predict: プライア由来のbasisにモデル名を同梱（`prior off X (child)` — どの体型モデル表で置かれたか不明だった推測関節の由来を開示）
+- motion: 異フレーム骨格の変位をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（解像度違いの生px差を運動と誤認していた欠陥）
 - pipeline: warningsに`no_observed_head`追加 — 頭関節がpredicted
   のdocは、スケールアンカーとなる最重要ランドマークを未測定の
   まま下流層（headroom/ゾーン/実寸/比率）がプライア位置に依存する

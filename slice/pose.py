@@ -522,7 +522,8 @@ class HeuristicPoseEstimator(PoseEstimator):
         if body_h < 24:
             return sk
 
-        prior = BODY_MODELS.get(model, BODY_MODELS[DEFAULT_MODEL])
+        applied_model = model if model in BODY_MODELS else DEFAULT_MODEL
+        prior = BODY_MODELS[applied_model]
         head_h = max(4.0, body_h * prior["head_ratio"])
         sk.centroid = self._centroid(comp, w, h)
 
@@ -733,6 +734,11 @@ class HeuristicPoseEstimator(PoseEstimator):
                          "label": BODY_MODELS[mname]["label"],
                          "confidence": mconf,
                          "measured_head_ratio": round(measured_head_ratio, 3),
+                         # the prior table actually used to place the
+                         # observed joints — may differ from `name`
+                         # (measured selection) and from the table
+                         # predict.complete applies to missing joints
+                         "prior": applied_model,
                          "state": "estimated"}
         return sk
 

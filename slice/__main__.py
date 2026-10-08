@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, ik, knowledge, limbcov,
-               pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -180,31 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_ik(a) -> int:
-    """2-bone IK: where does the mid joint land."""
-    try:
-        rx, ry = (float(v) for v in a.root.split(","))
-        tx, ty = (float(v) for v in a.target.split(","))
-        l1, l2 = (float(v) for v in a.lengths.split(","))
-    except ValueError:
-        print("root/target/lengths must be comma floats",
-              file=sys.stderr)
-        return 2
-    r = ik.solve_ik((rx, ry), (tx, ty), l1, l2, bend=a.bend)
-    if r is None:
-        print("degenerate segment lengths", file=sys.stderr)
-        return 1
-    mid, end = r
-    reached = math.hypot(tx - rx, ty - ry) <= l1 + l2 + 1e-6
-    res = {"mid": [round(mid[0], 3), round(mid[1], 3)],
-           "end": [round(end[0], 3), round(end[1], 3)],
-           "angle_deg": ik.bend_angle((rx, ry), mid, end),
-           "reached": reached,
-           "note": "end is clamped to reach when unreachable"}
-    print(json.dumps(res, ensure_ascii=False))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -283,38 +254,52 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
         print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
         print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -765,15 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    iks = sub.add_parser(
-        "ik", help="2-bone IK solver (root,target,lengths)")
-    iks.add_argument("--root", required=True, metavar="X,Y")
-    iks.add_argument("--target", required=True, metavar="X,Y")
-    iks.add_argument("--lengths", required=True, metavar="L1,L2")
-    iks.add_argument("--bend", type=float, default=1.0,
-                     help="bend direction +1/-1")
-    iks.set_defaults(fn=_cmd_ik)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -797,6 +773,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")

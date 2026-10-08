@@ -16,7 +16,8 @@ from typing import List, Optional, Tuple
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL, select_model
 from .bitmap import Bitmap
-from .skeleton import OBSERVED, Joint, Skeleton
+from .skeleton import (OBSERVED, Joint, Skeleton,
+                       NECK_CLAVICLE_BASIS)
 
 
 class PoseEstimator:
@@ -505,15 +506,21 @@ class HeuristicPoseEstimator(PoseEstimator):
         head_cy = top + head_h / 2
         put("head", head_cx, head_cy, 0.85, "top blob centroid")
 
-        neck_y = top + head_h
-        put("neck", head_cx, neck_y, 0.7, "head height prior")
+        neck_band = top + head_h
 
         # Shoulders: widest row in the upper body band.
-        sh_row = self._widest_row(rows, int(neck_y),
+        sh_row = self._widest_row(rows, int(neck_band),
                                   int(top + body_h * 0.35))
         sr = rows[sh_row] or (left, right, body_w)
         put("shoulder_l", sr[0], sh_row, 0.8, "widest upper row")
         put("shoulder_r", sr[1], sh_row, 0.8, "widest upper row")
+
+        # Neck = clavicle midpoint: just below the shoulder line, not
+        # the head-band bottom (that lands at the chin — a ~head-height
+        # systematic bias measured by the bias profile).
+        neck_y = sh_row + max(2, int(head_h * 0.15))
+        put("neck", (sr[0] + sr[1]) / 2, neck_y, 0.7,
+            NECK_CLAVICLE_BASIS)
 
         # Pelvis / hips: crotch split, else widest row in the hip band.
         # Torso column = the mask run under the spine at chest height;

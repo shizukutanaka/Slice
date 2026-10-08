@@ -52,6 +52,27 @@ class TestPredict(unittest.TestCase):
         # the straight prior drop would have kept x near shoulder+x
         self.assertLess(el.x, 30)
 
+    def test_predicted_extremity_does_not_inflate_prior_scale(self):
+        # A predicted head far above the observed body must not stretch
+        # the body_h that scales every prior distance — otherwise prior
+        # geometry feeds back into the table it draws from.
+        from slice.skeleton import Joint
+
+        def chest_y(skel):
+            predict.complete(skel)
+            return skel.get("chest").y
+
+        a = Skeleton(100, 200)
+        a.set(Joint("neck", 50, 40, 0.8))
+        a.set(Joint("pelvis", 50, 100, 0.8))
+
+        b = Skeleton(100, 200)
+        b.set(Joint("neck", 50, 40, 0.8))
+        b.set(Joint("pelvis", 50, 100, 0.8))
+        b.set(Joint("head", 50, -400, 0.2, PREDICTED, "prior off neck"))
+
+        self.assertEqual(chest_y(a), chest_y(b))
+
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         added = predict.complete(sk)

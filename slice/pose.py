@@ -129,22 +129,13 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     # -- segmentation ----------------------------------------------------
 
-    def _background(self, bmp: Bitmap) -> Optional[Tuple[int, int, int]]:
-        """Most common quantized color along the image border.
-
-        Returns None when the border is mostly transparent — RGB of
-        transparent pixels is meaningless, so the caller must segment
-        on alpha instead of color distance.
-        """
+    def _background(self, bmp: Bitmap) -> Tuple[int, int, int]:
+        """Most common quantized color along the image border."""
         counts: dict = {}
-        n = transparent = 0
         fallback: dict = {}
         w, h = bmp.width, bmp.height
         for x in range(0, w, 4):
             for y in (0, h - 1):
-                r, g, b, a = bmp.get(x, y)
-                n += 1
-                transparent += a < 128
                 r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
                 fallback[key] = fallback.get(key, 0) + 1
@@ -153,14 +144,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         for y in range(0, h, 4):
             for x in (0, w - 1):
                 r, g, b, a = bmp.get(x, y)
-                n += 1
-                transparent += a < 128
-                r, g, b, a = bmp.get(x, y)
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
-        if n and transparent / n > 0.5:
-            return None
-        q = max(counts, key=counts.get)
                 fallback[key] = fallback.get(key, 0) + 1
                 if a >= 128:
                     counts[key] = counts.get(key, 0) + 1
@@ -170,9 +154,6 @@ class HeuristicPoseEstimator(PoseEstimator):
         q = max(use, key=use.get)
         return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
 
-    def _mask(self, bmp: Bitmap) -> List[bytearray]:
-        bg = self._background(bmp)
-        thr = self.bg_threshold
     def _background_bands(self, bmp: Bitmap, n: int = 6
                           ) -> List[Tuple[int, int, int]]:
         """Per-band background estimates along the y axis.
@@ -240,16 +221,6 @@ class HeuristicPoseEstimator(PoseEstimator):
         n = len(bands)
         mask = [bytearray(w) for _ in range(h)]
         d = bmp.data
-        if bg is None:
-            # Transparent canvas: every opaque pixel is foreground.
-            for y in range(h):
-                row = mask[y]
-                base = y * w * 4
-                for x in range(w):
-                    if d[base + x * 4 + 3] >= 128:
-                        row[x] = 1
-            return mask
-        br, bgr, bb = bg
         for y in range(h):
             br, bg, bb = bands[min(n - 1, y * n // h)]
             row = mask[y]
@@ -258,17 +229,11 @@ class HeuristicPoseEstimator(PoseEstimator):
                 i = base + x * 4
                 if d[i + 3] < 128:
                     continue
-                if (abs(d[i] - br) > thr or abs(d[i + 1] - bgr) > thr
+                if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
                         or abs(d[i + 2] - bb) > thr):
                     row[x] = 1
         return mask
 
-    def _largest_component(self, mask: List[bytearray], w: int, h: int
-                           ) -> Tuple[List[bytearray], int]:
-        # Track pixels of the best component directly — a label-per-
-        # component array would overflow with >255 foreground islands.
-        visited = [bytearray(w) for _ in range(h)]
-        best: List[Tuple[int, int]] = []
     def _mask_adaptive(self, bmp: Bitmap,
                        bg_rgb) -> List[bytearray]:
         """Otsu-thresholded mask: per-pixel distance to background
@@ -306,30 +271,26 @@ class HeuristicPoseEstimator(PoseEstimator):
         label = 0
         for y0 in range(h):
             for x0 in range(w):
-                if not mask[y0][x0] or visited[y0][x0]:
+                if not mask[y0][x0] or labels[y0][x0]:
                     continue
-                pixels = [(x0, y0)]
-                visited[y0][x0] = 1
+                label += 1
+                size = 0
                 q = deque([(x0, y0)])
+                labels[y0][x0] = label
                 while q:
                     x, y = q.popleft()
+                    size += 1
                     for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
                         if (0 <= nx < w and 0 <= ny < h and mask[ny][nx]
-                                and not visited[ny][nx]):
-                            visited[ny][nx] = 1
-                            pixels.append((nx, ny))
+                                and not labels[ny][nx]):
+                            labels[ny][nx] = label
                             q.append((nx, ny))
-                if len(pixels) > len(best):
-                    best = pixels
                 sizes[label] = size
         return labels, sizes
 
     def _component_mask(self, labels, label: int, w: int,
                         h: int) -> List[bytearray]:
         comp = [bytearray(w) for _ in range(h)]
-        for x, y in best:
-            comp[y][x] = 1
-        return comp, len(best)
         for y in range(h):
             lr, cr = labels[y], comp[y]
             for x in range(w):
@@ -383,22 +344,9 @@ class HeuristicPoseEstimator(PoseEstimator):
         return best
 
     def _crotch_row(self, mask, w, y0: int, y1: int, torso_runs) -> Optional[int]:
-        """First row whose mask splits across the torso midline.
-
-        Side arms create multi-run rows well above the crotch, but only
-        the leg split opens a gap that contains the torso center — arm
-        gaps always sit between an arm run and the torso run, i.e. on
-        one side of the center.
-        """
-        cx = (torso_runs[0] + torso_runs[1]) / 2 if torso_runs else w / 2
-        torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
+        """First row below the torso band whose mask splits into two runs."""
         for y in range(max(0, y0), min(y1, len(mask) - 1)):
             runs = _row_runs(mask, y, w)
-            for i in range(len(runs) - 1):
-                gap = runs[i + 1][0] - runs[i][1]
-                if (runs[i][1] < cx < runs[i + 1][0]
-                        and gap >= max(2, torso_w * 0.08)):
-                    return y
             torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
             # A split is a gap between *adjacent* runs; comparing the
             # first and last run spans everything in between and calls

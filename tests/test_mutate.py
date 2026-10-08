@@ -32,6 +32,19 @@ class TestMutate(unittest.TestCase):
             self.assertTrue(0 <= j.x <= bmp.width)
             self.assertTrue(0 <= j.y <= bmp.height)
 
+    def test_crop_out_of_frame_no_wrap(self):
+        # Bitmap.get wraps negative indices to the image tail; the
+        # region beyond the frame must stay the fill, not smuggled
+        # pixels from the opposite edge
+        from slice.bitmap import Bitmap
+        src = Bitmap.new(10, 10, (10, 20, 30, 255))
+        for yy in range(10):
+            for xx in range(10):
+                src.set(xx, yy, (xx * 25, yy * 25, 7, 255))
+        out = mutate.crop(src, -5, -5, 10, 10)
+        self.assertEqual(out.get(0, 0), (0, 0, 0, 255))
+        self.assertEqual(out.get(5, 5), src.get(0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

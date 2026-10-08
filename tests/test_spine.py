@@ -44,6 +44,18 @@ class TestSpine(unittest.TestCase):
         self.assertEqual(spine.classify(self.skel),
                          {"bow": "unknown", "lean": "unknown"})
 
+    def test_degenerate_chord_not_raw_px(self):
+        # neck≈pelvis → the chord is unmeasurable; of_chord must be
+        # None, not the raw-px deflection divided by a 1px default
+        from slice.skeleton import Joint, Skeleton
+        sk = Skeleton(200, 400)
+        for n, (x, y) in {"neck": (100, 100), "chest": (130, 105),
+                          "pelvis": (100, 100)}.items():
+            sk.set(Joint(n, float(x), float(y), 0.9,
+                         state="observed"))
+        c = spine.curve(sk)
+        self.assertIsNone(c["of_chord"])
+
 
 if __name__ == "__main__":
     unittest.main()

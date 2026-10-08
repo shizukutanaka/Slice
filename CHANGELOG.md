@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

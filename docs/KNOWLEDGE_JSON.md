@@ -18,7 +18,7 @@ Slice の成果物。画像そのものではなく、画像から推論した�
 | `ratio` | object | 比率解析結果 |
 | `prediction` | object | `observed`/`predicted`/`filled` 関節名リスト |
 | `coverage` | object | `{joints_total, observed, predicted, unfilled, observed_ratio, mean_observed_confidence}` — 画像証拠への依存度 |
-| `warnings` | string[] | 証拠の薄さの警告コード（`few_observed_joints`, `no_observed_wrists`, `no_observed_feet`） |
+| `warnings` | string[] | 証拠の薄さの警告コード（`few_observed_joints`, `no_observed_wrists`, `no_observed_feet`, `no_observed_head`） |
 | `export` | object | 相互運用形式 |
 
 ## skeleton

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
+  全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
+  生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正
+  （scale未測定→0.0 = missingマーカー、骨ベクトル欠損と同じ扱い）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

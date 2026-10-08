@@ -69,7 +69,7 @@ class TestCalib(unittest.TestCase):
             def estimate(self, bmp):
                 s = Skeleton(image_width=bmp.width,
                              image_height=bmp.height)
-                s.set(Joint("nose", 80.0, 50.0, 0.6))
+                s.set(Joint("nose", 80.0, 50.0, 0.6, state="observed"))
                 return s
 
         bmp, _ = evaluate.draw_case()

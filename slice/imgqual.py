@@ -1,0 +1,122 @@
+"""Input image adequacy — is this picture evidence at all?
+
+Every downstream layer assumes the input carries usable signal, yet
+nothing checks it: a 64-pixel thumbnail, a pitch-black frame, or a
+blur so heavy the silhouette has no edge all flow through the same
+pipeline and produce a `Skeleton` whose `observed` joints look no
+different from a clean input's. `imgqual` is the precondition
+layer: four cheap measurements over the (downscaled) frame, each
+yielding a named flag, folded into one adequacy verdict.
+
+- `size`:   min dimension under `MIN_DIM` px — too little evidence
+- `dynamic`:global channel stddev under `MIN_STD` — flat/dead frame
+- `blur`:   mean |Laplacian| under `MIN_SHARP` — edges too soft to
+            locate a silhouette boundary
+- `contrast`: foreground-vs-border distance under `MIN_FG_BG` —
+            no measurable separation (the estimator's own gate will
+            starve; better to say so up front)
+
+Pure-stdlib, byte-level math on `bmp.get` — no numpy. Each flag
+carries its measured value so a caller can see *how far* off the
+input is, not just that it failed.
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Dict, List
+
+from .bitmap import Bitmap
+
+MIN_DIM = 96          # px on the short edge
+MIN_STD = 8.0         # global channel stddev
+MIN_SHARP = 2.0       # mean |laplacian| on luminance
+MIN_FG_BG = 15.0      # fg-vs-border RGB distance
+
+
+def _lum(bmp: Bitmap, x: int, y: int) -> float:
+    r, g, b, _ = bmp.get(x, y)
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def _sharpness(bmp: Bitmap) -> float:
+    """Mean absolute 4-neighbour Laplacian on luminance."""
+    total = n = 0
+    for y in range(1, bmp.height - 1, 2):
+        for x in range(1, bmp.width - 1, 2):
+            c = _lum(bmp, x, y)
+            lap = abs(4 * c - _lum(bmp, x - 1, y) - _lum(bmp, x + 1, y)
+                      - _lum(bmp, x, y - 1) - _lum(bmp, x, y + 1))
+            total += lap
+            n += 1
+    return total / n if n else 0.0
+
+
+def _stddev(bmp: Bitmap) -> float:
+    vals: List[float] = []
+    for y in range(0, bmp.height, 4):
+        for x in range(0, bmp.width, 4):
+            vals.append(_lum(bmp, x, y))
+    if not vals:
+        return 0.0
+    m = sum(vals) / len(vals)
+    return math.sqrt(sum((v - m) ** 2 for v in vals) / len(vals))
+
+
+def _border_rgb(bmp: Bitmap) -> List[int]:
+    pts = []
+    for x in (0, bmp.width - 1):
+        for y in range(0, bmp.height, max(1, bmp.height // 16)):
+            pts.append(bmp.get(x, y)[:3])
+    for y in (0, bmp.height - 1):
+        for x in range(0, bmp.width, max(1, bmp.width // 16)):
+            pts.append(bmp.get(x, y)[:3])
+    return [sum(p[i] for p in pts) / len(pts) for i in range(3)]
+
+
+def _fg_bg_dist(bmp: Bitmap, bg: List[int]) -> float:
+    """Median-ish distance of sampled pixels from border colour."""
+    best = 0.0
+    for y in range(bmp.height // 4, 3 * bmp.height // 4, 8):
+        for x in range(bmp.width // 4, 3 * bmp.width // 4, 8):
+            p = bmp.get(x, y)
+            best = max(best, math.sqrt(sum(
+                (p[i] - bg[i]) ** 2 for i in range(3))))
+    return best
+
+
+def assess(bmp: Bitmap) -> Dict:
+    """Measure the frame; return flags + verdict + every number."""
+    small = bmp.downscale(256)
+    bg = _border_rgb(small)
+    sharp = _sharpness(small)
+    sd = _stddev(small)
+    fg_bg = _fg_bg_dist(small, bg)
+    flags: List[Dict] = []
+
+    def flag(code: str, ok: bool, value: float, limit: float) -> None:
+        flags.append({"code": code, "ok": ok,
+                      "value": round(value, 2), "limit": limit})
+
+    flag("size", min(small.width, small.height) >= MIN_DIM or
+         min(bmp.width, bmp.height) >= MIN_DIM,
+         min(bmp.width, bmp.height), MIN_DIM)
+    flag("dynamic", sd >= MIN_STD, sd, MIN_STD)
+    flag("blur", sharp >= MIN_SHARP, sharp, MIN_SHARP)
+    flag("contrast", fg_bg >= MIN_FG_BG, fg_bg, MIN_FG_BG)
+
+    failed = [f["code"] for f in flags if not f["ok"]]
+    verdict = ("adequate" if not failed else
+               "marginal" if len(failed) == 1 else
+               "inadequate")
+    return {
+        "verdict": verdict,
+        "failed": failed,
+        "flags": flags,
+        "state": "measured",
+        "basis": "frame statistics vs minimum-evidence limits",
+    }
+
+
+def adequate(result: Dict) -> bool:
+    return result["verdict"] != "inadequate"

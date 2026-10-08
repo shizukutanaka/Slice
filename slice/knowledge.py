@@ -185,13 +185,19 @@ class KnowledgeStore:
         errors = validate(doc)
         if errors:
             raise ValueError("invalid knowledge: " + "; ".join(errors))
+        # `_`-prefixed keys are runtime-only by convention (pipeline's
+        # `_bitmap`/`_skeleton` overlay handles) — never part of the
+        # stored document. save() itself must honour that: a caller
+        # composing store.save(analyze(...)) must not need to know
+        # about strip_runtime to avoid a TypeError from json.dump.
+        stored = {k: v for k, v in doc.items() if not k.startswith("_")}
         path = os.path.join(self.root, doc["id"] + ".json")
         # atomic write: a crash mid-save must never leave a torn JSON
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(doc, f, ensure_ascii=False, indent=2)
+            json.dump(stored, f, ensure_ascii=False, indent=2)
         os.replace(tmp, path)
-        self._index_add(doc)
+        self._index_add(stored)
         return doc["id"]
 
     def get(self, kid: str) -> dict:

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- knowledge: `store.save()` が実行時キー（`_bitmap`/`_skeleton`等の
+  `_`始まり）を除去してから保存。`store.save(analyze(...))` という
+  自然な合成が json.dump の TypeError で落ちていた欠陥を修正 —
+  実行時限定の規約を save 側も遵守し、strip_runtime の事前呼出を
+  必須知識にしない。
+
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。

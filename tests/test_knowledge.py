@@ -193,6 +193,22 @@ class TestKnowledge(unittest.TestCase):
                       encoding="utf-8") as f:
                 self.assertEqual(json.load(f)["id"], doc["id"])
 
+    def test_save_strips_runtime_keys(self):
+        # the natural composition — store.save(analyze(...)) — must not
+        # require knowing about strip_runtime: `_`-prefixed keys are
+        # runtime-only by convention and must never reach the file
+        doc = analyze_synth()
+        self.assertIn("_bitmap", doc)
+        self.assertIn("_skeleton", doc)
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            with open(os.path.join(d, kid + ".json"),
+                      encoding="utf-8") as f:
+                stored = json.load(f)
+            self.assertFalse(any(k.startswith("_") for k in stored))
+            self.assertEqual(store.get(kid)["id"], doc["id"])
+
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))
         doc = pipeline.strip_runtime(analyze_synth())

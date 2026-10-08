@@ -40,6 +40,16 @@ class TestDynamics(unittest.TestCase):
         cues = [c["cue"] for c in dynamics.cues(self.skel)]
         self.assertNotIn("arm_out_r", cues)
 
+    def test_coincident_ankles_fires_no_com_cue(self):
+        # ankles on the same pixel are a degenerate support base —
+        # `or 1.0` turned any 1px pelvis offset into com_outside_feet
+        # with a raw-px offset dressed as a foot-span fraction
+        al = self.skel.point("ankle_l")
+        self.skel.joints["ankle_r"].x = al[0]
+        self.skel.joints["pelvis"].x = al[0] + 40
+        cues = [c["cue"] for c in dynamics.cues(self.skel)]
+        self.assertNotIn("com_outside_feet", cues)
+
     def test_empty_skeleton_zero(self):
         for n in list(self.skel.joints):
             del self.skel.joints[n]

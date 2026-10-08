@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- dynamics: 退化アンクルスパンの`or 1.0`を除去 — 踝が同画素に一致した
+  退化支持基底で、任意の1px pelvis偏移が`com_outside_feet`を発火し
+  detailが生pxを「足幅分率」と装っていた欠陥を修正（span<=0は不発火、
+  leg軸の一致ケースも明示ガード）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

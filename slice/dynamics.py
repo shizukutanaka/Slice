@@ -36,12 +36,15 @@ def cues(skel: Skeleton) -> List[dict]:
         hip = _obs(skel, f"hip_{side}")
         ankle = _obs(skel, f"ankle_{side}")
         if hip and ankle:
-            leg = _d(hip, ankle) or 1.0
-            off = abs(ankle[0] - hip[0]) / leg
-            if off > 0.3:
-                out.append({"cue": f"leg_off_axis_{side}",
-                            "weight": 0.25,
-                            "detail": round(off, 2)})
+            leg = _d(hip, ankle)
+            if leg > 0:
+                # a coincident hip/ankle is no leg-axis evidence —
+                # `or 1.0` would pass any 1px offset as "off axis"
+                off = abs(ankle[0] - hip[0]) / leg
+                if off > 0.3:
+                    out.append({"cue": f"leg_off_axis_{side}",
+                                "weight": 0.25,
+                                "detail": round(off, 2)})
         shoulder = _obs(skel, f"shoulder_{side}")
         wrist = _obs(skel, f"wrist_{side}")
         if shoulder and wrist and pelvis:
@@ -54,8 +57,11 @@ def cues(skel: Skeleton) -> List[dict]:
     al, ar = _obs(skel, "ankle_l"), _obs(skel, "ankle_r")
     if pelvis and al and ar:
         mid = (al[0] + ar[0]) / 2.0
-        span = abs(ar[0] - al[0]) or 1.0
-        if abs(pelvis[0] - mid) > 0.5 * span:
+        span = abs(ar[0] - al[0])
+        # pixel-coincident ankles are a degenerate support base, not
+        # evidence of lean — `or 1.0` made detail a raw px offset
+        # dressed as a fraction of foot span
+        if span > 0 and abs(pelvis[0] - mid) > 0.5 * span:
             out.append({"cue": "com_outside_feet", "weight": 0.35,
                         "detail": round(abs(pelvis[0] - mid) / span, 2)})
         if span > 0.5 * _span(skel):

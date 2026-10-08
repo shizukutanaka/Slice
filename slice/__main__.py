@@ -10,6 +10,8 @@
           (honesty lint, near-duplicates, joint observed-rate)
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
+    python -m slice bias
+        — per-joint systematic vs random error on fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -22,8 +24,10 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               mirror, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
+               evaluate, extjoints, framefit, ground, handpos, horizon,
+               knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
+               render, rest, rom, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 
@@ -159,6 +163,84 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _probe_dispatch(layer, skel, mask):
+    """layer name -> result dict, or None on unknown layer."""
+    if layer == "axis":
+        return {"principal": axis.principal(skel),
+                "tilt": axis.tilt(skel)}
+    if layer == "plumb":
+        return {"line": plumb.line(skel),
+                "forward_head": plumb.forward_head(skel),
+                "assess": plumb.assess(skel)}
+    if layer == "limbs":
+        return limbs.profile(skel)
+    if layer == "rom":
+        return {"check": rom.check(skel),
+                "violations": rom.violations(skel)}
+    if layer == "contact":
+        return contact.summary(skel)
+    if layer == "dominance":
+        return {"assess": dominance.assess(skel),
+                "cues": dominance.cues(skel)}
+    if layer == "handpos":
+        return {"summary": handpos.summary(skel),
+                "positions": handpos.positions(skel)}
+    if layer == "framefit":
+        return framefit.assess(skel)
+    if layer == "ground":
+        return {"estimate": ground.estimate(
+                    skel, skel.image_height),
+                "clearance": ground.clearance(skel)}
+    if layer == "reach":
+        return reach.workspace(skel)
+    if layer == "horizon":
+        return horizon.estimate(skel)
+    if layer == "mass":
+        area = sum(r.count(True) for r in mask)
+        return {"estimate": mass.estimate(skel, area),
+                "bmi": mass.bmi(skel, area),
+                "area_px": area}
+    if layer == "extjoints":
+        derived = extjoints.derive(skel)
+        return {"joints": {n: {"x": j.x, "y": j.y,
+                               "confidence": j.confidence,
+                               "state": j.state,
+                               "basis": j.basis}
+                           for n, j in derived.items()},
+                "vocabulary": extjoints.vocabulary()}
+    return None
+
+
+_PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
+                 "dominance", "handpos", "framefit", "ground",
+                 "reach", "horizon", "mass", "extjoints")
+
+
+def _cmd_probe(a) -> int:
+    """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    mask = est._mask(small)
+    res = _probe_dispatch(a.layer, skel, mask)
+    if res is None:
+        print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
+    print(json.dumps({"layer": a.layer, "result": res},
+                     ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -259,6 +341,25 @@ def _cmd_calib(a) -> int:
     return 1 if rep["overconfident_bins"] or not measured else 0
 
 
+def _cmd_bias(a) -> int:
+    """Per-joint systematic-error profile over ground-truth fixtures."""
+    est = pipeline.ESTIMATOR
+    pairs = []
+    for bmp, truth in (evaluate.draw_case(),
+                       evaluate.draw_case(width=240, height=320)):
+        pairs.append((est.estimate(bmp).joints, truth))
+    rep = bias.profile(pairs)
+    measured = bool(rep.get("joints"))
+    rep["state"] = "estimated" if measured else "unmeasured"
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    # unmeasured must not pass; a worst joint beyond the bench gate is
+    # a real estimator defect
+    worst = rep.get("worst_joint") or {}
+    if not measured or (worst.get("mean_error_px") or 0) > 10.0:
+        return 1
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -312,6 +413,16 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
+    pr = sub.add_parser(
+        "probe", help="run one semantic layer on an image")
+    pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
+    pr.add_argument("image")
+    pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -336,6 +447,10 @@ def main(argv=None) -> int:
     cb = sub.add_parser(
         "calib", help="confidence calibration vs ground truth")
     cb.set_defaults(fn=_cmd_calib)
+
+    bi = sub.add_parser(
+        "bias", help="per-joint systematic vs random error profile")
+    bi.set_defaults(fn=_cmd_bias)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

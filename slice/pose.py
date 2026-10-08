@@ -576,6 +576,24 @@ class HeuristicPoseEstimator(PoseEstimator):
             (r for r in _row_runs(comp, int(chest_y), w)
              if r[0] <= cx_spine <= r[1]),
             (min(sr[0], sr[1]), max(sr[0], sr[1])))
+        # Horizontal arms (T-pose, raised arms): when the widest row
+        # spans far beyond the torso column it is an arm strip, not
+        # shoulders. Shoulders sit at the torso edge, wrist at the
+        # strip tip, elbow at their midpoint.
+        torso_w = torso_run[1] - torso_run[0]
+        horizontal_arms = set()
+        if torso_w > 0 and sr[1] - sr[0] > torso_w * 1.6 + 4:
+            for side, sign in (("l", -1), ("r", 1)):
+                edge = torso_run[0] if sign < 0 else torso_run[1]
+                tip = sr[0] if sign < 0 else sr[1]
+                if abs(tip - edge) > torso_w * 0.5:
+                    put(f"shoulder_{side}", edge, sh_row, 0.7,
+                        "torso edge at arm strip")
+                    put(f"elbow_{side}", (edge + tip) / 2, sh_row, 0.6,
+                        "arm strip midpoint")
+                    put(f"wrist_{side}", tip, sh_row, 0.65,
+                        "arm strip tip")
+                    horizontal_arms.add(side)
         crotch = self._crotch_row(comp, w, int(top + body_h * 0.45),
                                   int(top + body_h * 0.72), torso_run)
         if crotch is None:
@@ -661,6 +679,8 @@ class HeuristicPoseEstimator(PoseEstimator):
         # x-band still reaches the bottom row — x-overlap alone wrongly
         # claims dangling arms beside wide feet (crouch/seated) as leg.
         for side, sign in (("l", -1), ("r", 1)):
+            if side in horizontal_arms:
+                continue  # strip joints already placed
             shoulder = sk.get(f"shoulder_{side}")
             tx = torso_run[0] if sign < 0 else torso_run[1]
             cand = []

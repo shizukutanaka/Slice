@@ -32,8 +32,8 @@ _RULES: Tuple[Tuple[str, str, str, float], ...] = (
 
 
 def _body_h(skel: Skeleton) -> float:
-    from .skeleton import body_span
-    return body_span(skel) or 200.0
+    from .skeleton import observed_body_span
+    return observed_body_span(skel) or 200.0
 
 
 def detect(skel: Skeleton) -> List[dict]:

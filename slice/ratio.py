@@ -16,6 +16,17 @@ def _dist(a: Optional[Tuple[float, float]],
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
+def _obs(skel: Skeleton, name: str) -> Optional[Tuple[float, float]]:
+    """Point only when the joint is observed.
+
+    Predicted limbs are placed at prior proportions (or mirrored),
+    so ratios measured on them would report the prior itself as a
+    measurement — e.g. a mirrored arm makes `limb_symmetry` read
+    a structural 1.0."""
+    j = skel.joints.get(name)
+    return (j.x, j.y) if j and j.state == "observed" else None
+
+
 def analyze(skel: Skeleton, *, centroid: Optional[Tuple[float, float]] = None
             ) -> dict:
     """Return normalized body ratios (all /body height) plus balance."""
@@ -35,27 +46,32 @@ def analyze(skel: Skeleton, *, centroid: Optional[Tuple[float, float]] = None
     ratios = {
         "body_height_px": round(body_h, 2),
         "head_to_body": round(body_h / head_px, 2) if head_px else None,
-        "shoulder_width": norm(_dist(skel.point("shoulder_l"),
-                                     skel.point("shoulder_r"))),
-        "hip_width": norm(_dist(skel.point("hip_l"), skel.point("hip_r"))),
-        "torso_length": norm(abs((skel.point("pelvis") or (0, 0))[1]
-                                 - (skel.point("neck") or (0, 0))[1])
-                             if skel.point("pelvis") and skel.point("neck")
+        "shoulder_width": norm(_dist(_obs(skel, "shoulder_l"),
+                                     _obs(skel, "shoulder_r"))),
+        "hip_width": norm(_dist(_obs(skel, "hip_l"),
+                                _obs(skel, "hip_r"))),
+        "torso_length": norm(abs((pelvis_p[1] - neck_p[1]))
+                             if (pelvis_p := _obs(skel, "pelvis"))
+                             and (neck_p := _obs(skel, "neck"))
                              else None),
-        "arm_l": norm(_dist(skel.point("shoulder_l"), skel.point("wrist_l"))),
-        "arm_r": norm(_dist(skel.point("shoulder_r"), skel.point("wrist_r"))),
-        "leg_l": norm(_dist(skel.point("hip_l"), skel.point("ankle_l"))),
-        "leg_r": norm(_dist(skel.point("hip_r"), skel.point("ankle_r"))),
+        "arm_l": norm(_dist(_obs(skel, "shoulder_l"),
+                            _obs(skel, "wrist_l"))),
+        "arm_r": norm(_dist(_obs(skel, "shoulder_r"),
+                            _obs(skel, "wrist_r"))),
+        "leg_l": norm(_dist(_obs(skel, "hip_l"),
+                            _obs(skel, "ankle_l"))),
+        "leg_r": norm(_dist(_obs(skel, "hip_r"),
+                            _obs(skel, "ankle_r"))),
         # fingertip-to-fingertip span — Vitruvian ≈ body height when the
         # arms are extended horizontally; drops for arms-down poses
-        "arm_span": norm(_dist(skel.point("wrist_l"),
-                               skel.point("wrist_r"))),
+        "arm_span": norm(_dist(_obs(skel, "wrist_l"),
+                               _obs(skel, "wrist_r"))),
     }
     torso_px = (ratios["torso_length"] or 0) * body_h
-    leg_px = [d for d in (_dist(skel.point("hip_l"),
-                               skel.point("ankle_l")),
-                        _dist(skel.point("hip_r"),
-                              skel.point("ankle_r"))) if d]
+    leg_px = [d for d in (_dist(_obs(skel, "hip_l"),
+                               _obs(skel, "ankle_l")),
+                        _dist(_obs(skel, "hip_r"),
+                              _obs(skel, "ankle_r"))) if d]
     # 脚長/胴長 — proportion cue (typical adults ≈ 1.5-1.8)
     ratios["leg_to_torso"] = (round((sum(leg_px) / len(leg_px)) / torso_px, 3)
                              if leg_px and torso_px > 0 else None)
@@ -134,6 +150,6 @@ def _symmetry(skel: Skeleton) -> Optional[float]:
 def _limb_len(skel: Skeleton, name: str) -> Optional[float]:
     if name.startswith("arm"):
         s = "shoulder_" + name[-1]
-        return _dist(skel.point(s), skel.point("wrist_" + name[-1]))
+        return _dist(_obs(skel, s), _obs(skel, "wrist_" + name[-1]))
     s = "hip_" + name[-1]
-    return _dist(skel.point(s), skel.point("ankle_" + name[-1]))
+    return _dist(_obs(skel, s), _obs(skel, "ankle_" + name[-1]))

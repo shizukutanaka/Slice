@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- dedup/framepos: 退化スケールの`or 1.0`を除去 — neck==pelvis一致で
+  torso正規化空間が未定義なのに生px比較へ沈黙切替、全関節同yの
+  0高クラウドでbody_fractionが1px分捏造されていた欠陥を修正
+  （dedup: unmeasurable→比較対象外、framepos: fraction=0）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

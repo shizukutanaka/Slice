@@ -5,6 +5,14 @@
 - human: aspectシグナルを人間範囲上限でも減衰（1.2–4.0満点、
   8.0で0 — 電柱のような人間以上に細長い形状がアスペクト
   シグナルで満点を取っていた、docstring宣言範囲と実装の乖離）
+- norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
+- consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
+  cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が
+  robustプロファイルだと4バリアントだけ別プロファイルで走り、
+  median投票が未開示のプロファイル差を混入させていた欠陥を
+  解消、#333 recoverと同型）。
+
+- pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ
   OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を
@@ -22,6 +30,23 @@
 - selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
 - rig: predicted端点を持つ骨に state="predicted" を開示（推測構造を観測解剖学と区別不能にしていた欠陥）
 - skeleton: Joint.stateのデフォルトをpredictedに（フェイルオープン修正—state未指定で観測を捏造する穴。観測主張は明示必須）
+- audit: docの`warnings`ブロックを監査対象に追加。関節stateと
+  矛盾する警告コード（例: 観測8件以上なのに
+  `few_observed_joints`）を `stale_warning` として報告。
+  陳腐な警告申告が消費者を誤誘導する経路を遮断。
+  語彙外コードは外部語彙として据え置き（stale扱いしない）。
+
+- pipeline: `frame.source`に元画像解像度を開示（downscale作業空間の関節座標が`image_sha256`の元画像にマップ不能だった穴を解消）
+- pose: `body_model.prior`に実際に適用したプライア表を開示（測定選択名`name`と適用表が食い違う際に配置由来が不明だった穴を解消）
+- viewer: doc.warningsを表示（unknown_body_model・no_observed_torso等の注意付きdocがクリーンdocと同じ見た目になっていた欠陥を解消）
+- bvh: `report(skel)`開示サイドカー追加（BVH形式がjoint metadataを持てずpredicted骨が実測と区別不能で書き出されていた欠陥を解消）
+- analysisブロックに `consistency` 追加 — 骨格健全性監査のissuesを
+  全analyzeドキュメントに同梱（CLI/REST/Storeの全経路で可視）。
+
+- migrate: state未記入関節の由来補記が既存basisと区切りなしで
+  直結していたのを修正（"measured row 10migrated: state unknown"
+  のように既存由来を破損、recoverと同じ "; " 区切りに統一）。
+
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
@@ -35,6 +60,11 @@
   欠陥を修正。プライア配置の四肢は構造的に~180°に伸びるため
   elbow_flex等が捏造計測値になっていた（実測 175.8°）。
   全端点observedの角度のみ出力、predictedは欠損扱いで省略。
+
+- ik: `solve_ik` が退化セグメント（L1/L2 が0以下）でドキュメント
+  契約通り `None` を返すよう修正。これまでは骨長ゼロのチェーンに
+  対して 1e-6px の捏造 mid/end を返していた — 「解くべきチェーンが
+  存在しない」場合に幾何をでっち上げない（誠実性契約）。
 
 - skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
 - contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）

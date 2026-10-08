@@ -40,6 +40,7 @@ from . import (describe)
 from . import (autocrop, crop)
 from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
 from . import (evid)
+from . import (imgqual)
 
 
 def _cmd_analyze(a) -> int:
@@ -581,6 +582,19 @@ def _cmd_evid(a) -> int:
     return 0 if not evid.unsupported(res) else 1
 
 
+def _cmd_imgqual(a) -> int:
+    """Image evidence adequacy before estimation."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = imgqual.assess(bmp)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] != "inadequate" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -825,6 +839,11 @@ def main(argv=None) -> int:
     ev.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     ev.set_defaults(fn=_cmd_evid)
+
+    iq = sub.add_parser(
+        "imgqual", help="image evidence adequacy")
+    iq.add_argument("image")
+    iq.set_defaults(fn=_cmd_imgqual)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

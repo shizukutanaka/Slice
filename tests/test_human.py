@@ -38,6 +38,13 @@ class TestHuman(unittest.TestCase):
         r = human.assess(_rect_mask(y0=140, y1=160))
         self.assertFalse(r["person_like"], r["signals"])
 
+    def test_too_tall_pole_loses_aspect_credit(self):
+        # a lamp post is taller than any person — the aspect signal
+        # must fade out above the human range, not score a perfect 1.0
+        r = human.assess(_rect_mask(x0=75, x1=80, y0=20, y1=280))
+        self.assertLess(r["signals"]["aspect"]["score"], 1.0)
+        self.assertFalse(r["person_like"], r["signals"])
+
     def test_empty_unmeasurable(self):
         r = human.assess([bytearray(80) for _ in range(80)])
         self.assertEqual(r["state"], "unmeasurable")

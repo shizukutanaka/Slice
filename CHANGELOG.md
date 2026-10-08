@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- human: aspectシグナルを人間範囲上限でも減衰（1.2–4.0満点、
+  8.0で0 — 電柱のような人間以上に細長い形状がアスペクト
+  シグナルで満点を取っていた、docstring宣言範囲と実装の乖離）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ
   OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を

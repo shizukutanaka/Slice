@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
+  #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
+  `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
+  混入し続けていた残件（obs版の死行も併せて除去）。
+
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
   worst関節がベンチゲート(10px)超なら exit 1。

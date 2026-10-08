@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
 
 Point = Tuple[float, float]
 
@@ -25,7 +25,11 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
     lowest = None
     lowest_name = None
     for name, j in skel.joints.items():
-        if name in _SUPPORT and j.state == "observed":
+        if j.state != "observed":
+            # predicted joints are prior fill — a "foot below
+            # ankle" guess must not mark the lowest body point
+            continue
+        if name in _SUPPORT:
             supports.append((name, j.y))
         if lowest is None or j.y > lowest:
             lowest, lowest_name = j.y, name
@@ -59,16 +63,17 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
 
 
 def _span(skel: Skeleton) -> float:
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    return (lo - top[1]) if top else 200.0
+    # observed-only span: a predicted head/foot is prior fill
+    return observed_body_span(skel) or 200.0
 
 
 def clearance(skel: Skeleton) -> Optional[float]:
-    """Vertical gap between ground line and the lowest body point
-    (0 when grounded)."""
+    """Vertical gap between ground line and the lowest OBSERVED body
+    point (0 when grounded) — a predicted joint below the line is a
+    guess, not floating body."""
     r = estimate(skel)
     if r["ground_y"] is None:
         return None
-    lo = max(j.y for j in skel.joints.values())
+    lo = max(j.y for j in skel.joints.values()
+             if j.state == "observed")
     return round(lo - r["ground_y"], 1)

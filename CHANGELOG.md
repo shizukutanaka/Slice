@@ -4,6 +4,18 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
+- consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
+  cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が
+  robustプロファイルだと4バリアントだけ別プロファイルで走り、
+  median投票が未開示のプロファイル差を混入させていた欠陥を
+  解消、#333 recoverと同型）。
+
+- recover: relaxed_threshold段が呼出側のadaptive/reject_shadow/
+  cleanフラグを伝播（色ゲートだけ緩めるはずが、シャドウ棄却・
+  形態クリーンも外れた別プロファイルで沈黙回復し、開示の
+  "gate relaxed to N"より強い緩和が適用されていた欠陥を解消）。
+
 - pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ

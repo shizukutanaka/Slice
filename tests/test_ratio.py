@@ -28,9 +28,9 @@ class TestRatio(unittest.TestCase):
         sk = HeuristicPoseEstimator().estimate(bmp)
         base = ratio.analyze(sk)["arm_span"]
         # manually spread the wrists wider
-        from slice.skeleton import Joint
-        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9)
-        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9)
+        from slice.skeleton import Joint, OBSERVED
+        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9, OBSERVED)
+        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9, OBSERVED)
         wide = ratio.analyze(sk)["arm_span"]
         self.assertGreater(wide, base)
 

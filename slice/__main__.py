@@ -205,7 +205,6 @@ def _cmd_audit_dir(a) -> int:
     return 0 if not tally["fail"] else 1
 
 
-||||||| 8b1d0d7
 def _probe_dispatch(layer, skel, mask):
     """layer name -> result dict, or None on unknown layer."""
     if layer == "axis":

@@ -56,7 +56,7 @@ def analyze(bmp: Bitmap, min_hole: int = 12) -> Optional[dict]:
         return None
     fg = _regions(mask, w, h, want_fg=True)
     holes = []
-    for region in _regions(comp, w, h, want_fg=False):
+    for region in _regions(mask, w, h, want_fg=False):
         if any(x == 0 or y == 0 or x == w - 1 or y == h - 1
                for x, y in region):
             continue  # reaches the border → outside, not a hole
@@ -66,6 +66,6 @@ def analyze(bmp: Bitmap, min_hole: int = 12) -> Optional[dict]:
             "holes": len(holes),
             "hole_areas": sorted(holes, reverse=True),
             "euler": len(fg) - len(holes),
-            "fg_px": size,
+            "fg_px": sum(len(r) for r in fg),
             "state": "observed",
             "basis": "foreground mask connected components"}

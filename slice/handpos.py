@@ -4,14 +4,21 @@ Above the head, at the face, by the chest, at the waist, near the
 knee, hanging below, or hidden behind the body — a hand's zone
 says more about intent than its raw coordinates. Zones are defined
 relative to observed landmarks (head top, chest, pelvis, knee) so
-they scale with the body, and predicted wrists are never zoned.
+they scale with the body, and predicted wrists are never zoned —
+nor is a wrist zoned against predicted landmarks, which would
+fabricate the zone's boundaries from a prior guess.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from .skeleton import Skeleton
+
+
+def _ref(skel: Skeleton, name: str) -> Optional[Tuple[float, float]]:
+    j = skel.joints.get(name)
+    return (j.x, j.y) if j and j.state == "observed" else None
 
 
 def _zone(skel: Skeleton, side: str) -> Optional[str]:
@@ -19,11 +26,13 @@ def _zone(skel: Skeleton, side: str) -> Optional[str]:
     if not j or j.state != "observed":
         return None
     w = (j.x, j.y)
-    head = skel.point("head")
-    chest = skel.point("chest")
-    pelvis = skel.point("pelvis")
-    knee = skel.point(f"knee_{side}")
-    hip = skel.point(f"hip_{side}")
+    head = _ref(skel, "head")
+    chest = _ref(skel, "chest")
+    pelvis = _ref(skel, "pelvis")
+    knee = _ref(skel, f"knee_{side}")
+    hip = _ref(skel, f"hip_{side}")
+    if not any((head, chest, pelvis, knee, hip)):
+        return None
 
     def near(p, frac_of: float, ref: float) -> bool:
         return abs(w[1] - p[1]) < frac_of * ref
@@ -47,7 +56,7 @@ def _zone(skel: Skeleton, side: str) -> Optional[str]:
 
 
 def positions(skel: Skeleton) -> Dict[str, Optional[str]]:
-    """{l: zone|None, r: zone|None} — None = not observed."""
+    """{l: zone|None, r: zone|None} — None = wrist or the landmarks it would be zoned against are not observed."""
     return {side: _zone(skel, side) for side in ("l", "r")}
 
 

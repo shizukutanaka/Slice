@@ -86,8 +86,12 @@ class Skeleton:
             "origin": "pelvis",
             "unit": "neck_pelvis_length",
             "joints": {
+                # state rides along: a normalized position built on
+                # guesses must stay distinguishable from measured
+                # evidence — same contract as export.keypoints_state
                 n: {"x": round((j.x - pelvis[0]) / unit, 4),
-                    "y": round((j.y - pelvis[1]) / unit, 4)}
+                    "y": round((j.y - pelvis[1]) / unit, 4),
+                    "state": j.state}
                 for n, j in self.joints.items()
             },
         }

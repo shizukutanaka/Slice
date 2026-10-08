@@ -18,6 +18,10 @@
   修正。predictedのpelvis/neckが正規化の原点・単位になり
   推測座標がKnowledgeドキュメントに載っていた → アンカーが
   predictedならブロックごと棄権（None）。
+- pose: 肩上腕（Vポーズ）検出 — 腕プローブの探索開始を肩行から
+  頭帯下端に拡張し、肩より上に上がった腕を捕捉（従来は範囲外で
+  肘/手首が未検出か肩近傍に誤置）。`tests.raised_arms_person`
+  フィクスチャで回帰ガード。
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 

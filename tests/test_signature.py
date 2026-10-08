@@ -25,6 +25,44 @@ class TestSignature(unittest.TestCase):
         self.assertIsNotNone(d)
         self.assertLess(d, 0.15)
 
+    def test_predicted_bones_not_evidence(self):
+        # a guessed arm must not fingerprint like a measured one:
+        # predicted endpoints drop out of the vector like missing ones
+        from slice import predict
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            other.set(Joint(n, j.x, j.y, j.confidence, state=j.state))
+        del other.joints["elbow_r"]
+        del other.joints["wrist_r"]
+        predict.complete(other)
+        d = sig.distance(self.s, sig.signature(other))
+        self.assertGreater(d, 0.05)
+
+    def test_missing_feet_stay_torso_normalised(self):
+        # without feet the scalars must not become raw pixels
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            if n.startswith("foot"):
+                continue
+            other.set(Joint(n, j.x, j.y, j.confidence, state=j.state))
+        v = sig.signature(other)
+        self.assertTrue(all(abs(s) < 2.0 for s in v[-4:]),
+                        "scalars leaked raw-pixel magnitudes")
+        d = sig.distance(self.s, v)
+        self.assertLess(d, 0.5)
+
+    def test_predicted_torso_not_in_scalars(self):
+        # predicted neck/pelvis must not write prior geometry into
+        # the lean scalar or the normaliser — same rule as the bones
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            other.set(Joint(n, j.x, j.y, j.confidence,
+                            state="predicted" if n in ("neck", "pelvis")
+                            else j.state))
+        v = sig.signature(other)
+        # torso-lean scalar = 0.0 (missing), not prior geometry
+        self.assertEqual(v[-4], 0.0)
+
     def test_bent_arm_changes_signature(self):
         other = Skeleton(self.skel.image_width, self.skel.image_height)
         for n, j in self.skel.joints.items():

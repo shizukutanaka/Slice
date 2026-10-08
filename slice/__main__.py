@@ -26,6 +26,8 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, sheet as _sheet)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -626,6 +628,35 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_sheet(a) -> int:
+    """Contact sheet of skeleton overlays for a directory of images."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for f in sorted(os.listdir(a.dir)):
+        path = os.path.join(a.dir, f)
+        if not os.path.isfile(path) or not f.endswith(
+                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
+            continue
+        try:
+            with open(path, "rb") as fh:
+                skel = est.estimate(
+                    bitmap.decode(fh.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError):
+            continue
+        if skel.joints:
+            skels.append(skel)
+    if not skels:
+        print("no person detected in any frame", file=sys.stderr)
+        return 1
+    img = _sheet.sheet(skels, cols=a.cols, cell=a.cell)
+    out = a.output or "sheet.png"
+    with open(out, "wb") as f:
+        f.write(bitmap.encode_png(img))
+    print(f"wrote {out} ({len(skels)} tiles)", file=sys.stderr)
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +915,18 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    sh = sub.add_parser(
+        "sheet", help="contact sheet of skeleton overlays")
+    sh.add_argument("dir", help="directory of frame images")
+    sh.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sh.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sh.add_argument("--cols", type=int, default=None)
+    sh.add_argument("--cell", type=int, default=128)
+    sh.add_argument("-o", "--output", help="output PNG path")
+    sh.set_defaults(fn=_cmd_sheet)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

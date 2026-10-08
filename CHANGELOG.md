@@ -4,6 +4,10 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
+
+- `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。
+
 - `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。

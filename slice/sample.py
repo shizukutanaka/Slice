@@ -60,9 +60,14 @@ def sample(bmp: Bitmap, x: float, y: float, radius: int = 4,
 def joints_report(bmp: Bitmap, skel: Skeleton,
                   mask: Optional[list] = None,
                   radius: int = 4) -> Dict[str, dict]:
-    """Sample a window around every joint; label bare vs covered."""
+    """Sample a window around every OBSERVED joint; label bare vs
+    covered. Predicted joints are skipped: their position is prior
+    fill, so the sampled pixels are real but the joint attribution
+    is a guess — "wrist_l: covered" would be a fabricated label."""
     out: Dict[str, dict] = {}
     for name, j in skel.joints.items():
+        if j.state != "observed":
+            continue
         s = sample(bmp, j.x, j.y, radius, mask)
         s = dict(s)
         if s.get("pixels", 0) == 0:

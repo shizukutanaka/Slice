@@ -34,6 +34,7 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                render, rest, rom, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
+from . import (balance, classify, contrad)
 
 
 def _cmd_analyze(a) -> int:
@@ -372,6 +373,32 @@ def _cmd_oks(a) -> int:
     return 0
 
 
+def _cmd_contrad(a) -> int:
+    """Cross-layer contradiction audit (pose/axis/ground/balance)."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    layers = {
+        "classify": classify.analyze(skel),
+        "axis": axis.principal(skel),
+        "ground": ground.estimate(skel, skel.image_height),
+        "balance": balance.assess(skel),
+    }
+    layers = {k: v for k, v in layers.items() if v}
+    res = contrad.check(layers)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "consistent" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -541,6 +568,15 @@ def main(argv=None) -> int:
     ok.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     ok.set_defaults(fn=_cmd_oks)
+
+    cd = sub.add_parser(
+        "contrad", help="cross-layer contradiction audit")
+    cd.add_argument("image")
+    cd.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    cd.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    cd.set_defaults(fn=_cmd_contrad)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

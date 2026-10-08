@@ -26,6 +26,8 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, bundle, calib, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -626,6 +628,38 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_bundle(a) -> int:
+    if a.action == "pack":
+        man = bundle.pack(knowledge.KnowledgeStore(a.dir), a.zip)
+        print(json.dumps(man, ensure_ascii=False, indent=2))
+        return 0
+    if a.action == "manifest":
+        try:
+            print(json.dumps(bundle.manifest(a.zip),
+                             ensure_ascii=False, indent=2))
+        except (OSError, KeyError) as e:
+            print(f"cannot read bundle: {e}", file=sys.stderr)
+            return 2
+        return 0
+    # unpack -> save each valid doc into the target store
+    try:
+        docs = bundle.unpack(a.zip)
+    except (OSError, KeyError) as e:
+        print(f"cannot read bundle: {e}", file=sys.stderr)
+        return 2
+    st = knowledge.KnowledgeStore(a.dir)
+    saved = skipped = 0
+    for d in docs:
+        try:
+            st.save(d)
+            saved += 1
+        except ValueError:
+            skipped += 1
+    print(f"unpacked: {saved} saved, {skipped} invalid skipped "
+          f"({a.zip} -> {a.dir})", file=sys.stderr)
+    return 0 if saved or not skipped else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +918,14 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    bu = sub.add_parser(
+        "bundle", help="pack/unpack a KnowledgeStore as a zip")
+    bu.add_argument("action", choices=["pack", "unpack", "manifest"])
+    bu.add_argument("zip", help="bundle zip path")
+    bu.add_argument("dir", nargs="?", default="knowledge",
+                    help="store dir (pack source / unpack target)")
+    bu.set_defaults(fn=_cmd_bundle)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

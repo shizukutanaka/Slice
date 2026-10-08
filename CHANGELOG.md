@@ -14,6 +14,10 @@
   （projected:inside）を、predicted四肢が質量カバレッジを
   捏造していた → predictedは欠損扱い（足が全predictedなら
   unknown/no_feet）。
+- dominance: pelvis offset/脱荷脚キューをobserved関節のみに
+  修正。predicted膝が `unloaded` キュー（利き脚を反転させる
+  虚偽証拠）を、predicted足首が `pelvis_centered` の均衡証拠を
+  捏造していた → predictedは欠損扱いでキュー不発。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

@@ -10,6 +10,8 @@
           (honesty lint, near-duplicates, joint observed-rate)
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
+    python -m slice bias
+        — per-joint systematic vs random error on fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -25,6 +28,13 @@ from . import (__version__, bitmap, calib, evaluate, imgqual, knowledge,
                limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
+||||||| 8b1d0d7
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
+               pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
+               evaluate, extjoints, framefit, ground, handpos, horizon,
+               knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
+               render, rest, rom, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 
@@ -65,6 +75,9 @@ def _cmd_analyze(a) -> int:
     print(f"pose: {pose_l} | style: {style_l} | model: "
           f"{bm.get('label', '?')} ({bm.get('state', '?')})",
           file=sys.stderr)
+    warns = out.get("warnings") or []
+    if warns:
+        print("warnings: " + ", ".join(warns), file=sys.stderr)
     return 0
 
 
@@ -170,6 +183,111 @@ def _cmd_imgqual(a) -> int:
     return 0 if res["verdict"] != "inadequate" else 1
 
 
+||||||| 8b1d0d7
+def _probe_dispatch(layer, skel, mask):
+    """layer name -> result dict, or None on unknown layer."""
+    if layer == "axis":
+        return {"principal": axis.principal(skel),
+                "tilt": axis.tilt(skel)}
+    if layer == "plumb":
+        return {"line": plumb.line(skel),
+                "forward_head": plumb.forward_head(skel),
+                "assess": plumb.assess(skel)}
+    if layer == "limbs":
+        return limbs.profile(skel)
+    if layer == "rom":
+        return {"check": rom.check(skel),
+                "violations": rom.violations(skel)}
+    if layer == "contact":
+        return contact.summary(skel)
+    if layer == "dominance":
+        return {"assess": dominance.assess(skel),
+                "cues": dominance.cues(skel)}
+    if layer == "handpos":
+        return {"summary": handpos.summary(skel),
+                "positions": handpos.positions(skel)}
+    if layer == "framefit":
+        return framefit.assess(skel)
+    if layer == "ground":
+        return {"estimate": ground.estimate(
+                    skel, skel.image_height),
+                "clearance": ground.clearance(skel)}
+    if layer == "reach":
+        return reach.workspace(skel)
+    if layer == "horizon":
+        return horizon.estimate(skel)
+    if layer == "mass":
+        area = sum(r.count(True) for r in mask)
+        return {"estimate": mass.estimate(skel, area),
+                "bmi": mass.bmi(skel, area),
+                "area_px": area}
+    if layer == "extjoints":
+        derived = extjoints.derive(skel)
+        return {"joints": {n: {"x": j.x, "y": j.y,
+                               "confidence": j.confidence,
+                               "state": j.state,
+                               "basis": j.basis}
+                           for n, j in derived.items()},
+                "vocabulary": extjoints.vocabulary()}
+    return None
+_PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
+                 "dominance", "handpos", "framefit", "ground",
+                 "reach", "horizon", "mass", "extjoints")
+def _cmd_probe(a) -> int:
+    """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    mask = est._mask(small)
+    res = _probe_dispatch(a.layer, skel, mask)
+    if res is None:
+        print(f"unknown layer: {a.layer}", file=sys.stderr)
+    print(json.dumps({"layer": a.layer, "result": res},
+                     ensure_ascii=False, indent=2))
+    return 0
+def _cmd_mirror(a) -> int:
+    """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel_a = est.estimate(bmp, a.model or "adult")
+    if not skel_a.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    expected = mirror.flip_skeleton(skel_a)
+    actual = est.estimate(mirror.flip_bitmap(bmp),
+                          a.model or "adult")
+    drift = {}
+    for name, je in expected.joints.items():
+        ja = actual.joints.get(name)
+        if ja is None:
+            drift[name] = None
+            continue
+        drift[name] = round(math.hypot(
+            ja.x - je.x, ja.y - je.y), 2)
+    vals = [v for v in drift.values() if v is not None]
+    res = {
+        "joints_compared": len(vals),
+        "missing_in_flipped": [n for n, v in drift.items()
+                               if v is None],
+        "mean_drift_px": round(
+            sum(vals) / len(vals), 2) if vals else 0.0,
+        "max_drift": ({"joint": max(drift, key=lambda n:
+                                   drift[n] or -1),
+                       "px": max(vals)} if vals else None),
+        "per_joint": drift,
+        "verdict": ("symmetric"
+                    if vals and max(vals) <= a.tolerance
+                    else "drifted"),
+        "tolerance_px": a.tolerance,
+        "state": "derived",
+        "basis": "est(flip(image)) vs flip(est(image)); "
+                 "nonzero drift = estimator left/right bias",
+    }
+    return 0 if res["verdict"] == "symmetric" else 1
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -220,6 +338,25 @@ def _cmd_calib(a) -> int:
     # An all-empty table measured nothing — fail rather than pass mute.
     measured = any(b["n"] for b in rep["bins"])
     return 1 if rep["overconfident_bins"] or not measured else 0
+
+
+def _cmd_bias(a) -> int:
+    """Per-joint systematic-error profile over ground-truth fixtures."""
+    est = pipeline.ESTIMATOR
+    pairs = []
+    for bmp, truth in (evaluate.draw_case(),
+                       evaluate.draw_case(width=240, height=320)):
+        pairs.append((est.estimate(bmp).joints, truth))
+    rep = bias.profile(pairs)
+    measured = bool(rep.get("joints"))
+    rep["state"] = "estimated" if measured else "unmeasured"
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    # unmeasured must not pass; a worst joint beyond the bench gate is
+    # a real estimator defect
+    worst = rep.get("worst_joint") or {}
+    if not measured or (worst.get("mean_error_px") or 0) > 10.0:
+        return 1
+    return 0
 
 
 def _cmd_serve(a) -> int:
@@ -280,6 +417,27 @@ def main(argv=None) -> int:
     iq.add_argument("image")
     iq.set_defaults(fn=_cmd_imgqual)
 
+||||||| 8b1d0d7
+    pr = sub.add_parser(
+        "probe", help="run one semantic layer on an image")
+    pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
+    pr.add_argument("image")
+    pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    pr.set_defaults(fn=_cmd_probe)
+    mi = sub.add_parser(
+        "mirror",
+        help="estimator left/right consistency audit")
+    mi.add_argument("image")
+    mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mi.add_argument("--tolerance", type=float, default=4.0,
+                    help="max per-joint drift px for 'symmetric'")
+    mi.set_defaults(fn=_cmd_mirror)
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")
     lc.add_argument("image")
@@ -292,6 +450,10 @@ def main(argv=None) -> int:
     cb = sub.add_parser(
         "calib", help="confidence calibration vs ground truth")
     cb.set_defaults(fn=_cmd_calib)
+
+    bi = sub.add_parser(
+        "bias", help="per-joint systematic vs random error profile")
+    bi.set_defaults(fn=_cmd_bias)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -61,7 +61,7 @@ def limb(skel: Skeleton, kind: str, side: str) -> Optional[dict]:
 
 def profile(skel: Skeleton) -> Dict[str, Optional[dict]]:
     """{arm_l, arm_r, leg_l, leg_r, delta} — delta = |L-R| px
-    asymmetry per kind."""
+    asymmetry per kind, only when both sides are fully measured."""
     out: Dict[str, Optional[dict]] = {}
     for kind in _CHAINS:
         for side in ("l", "r"):
@@ -69,7 +69,10 @@ def profile(skel: Skeleton) -> Dict[str, Optional[dict]]:
     delta = {}
     for kind in _CHAINS:
         l, r = out[f"{kind}_l"], out[f"{kind}_r"]
-        if l and r:
+        # compare only fully measured limbs — a chord across a
+        # missing or predicted joint under-measures its limb, so
+        # |partial - measured| would report a fabricated asymmetry
+        if l and r and not (l["partial"] or r["partial"]):
             delta[kind] = round(abs(l["length_px"] - r["length_px"]), 1)
     out["delta"] = delta
     return out

@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+- `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
+
+- bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）
+- bundle: unpackも同様に耐性化（validate raiseのmemberをskip）＋manifestが非dictをValueErrorで明示拒否
+- bitmap: `get`の負座標がPython負インデックスで画像末尾行を
+  巻き戻り読み取り、不在画素を実データとして返していた
+  フェイルオープンを修正 — 全OOB読み取りはIndexErrorに
+- balance: 重心・支持多角形・com_spanをobserved関節のみに
+  修正。"foot below ankle"プライアのpredicted足が支持多角形
+  （projected:inside）を、predicted四肢が質量カバレッジを
+  捏造していた → predictedは欠損扱い（足が全predictedなら
+  unknown/no_feet）。
+- dominance: pelvis offset/脱荷脚キューをobserved関節のみに
+  修正。predicted膝が `unloaded` キュー（利き脚を反転させる
+  虚偽証拠）を、predicted足首が `pelvis_centered` の均衡証拠を
+  捏造していた → predictedは欠損扱いでキュー不発。
+- mutate: `crop` が負・範囲外の起点でフレーム外領域に画素を捏造
+  していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
+  反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
+  フレーム外は初期化背景を保持。
+- limbs: `delta`（左右差）は両側が完全計測の場合のみ報告 —
+  片側が中間関節欠損で弦化（partial）した肢長を完全計測値と
+  直接比較すると、弦の短縮分を「左右非対称」として捏造して
+  いた（#222のpartial開示が出揃った後の比較側の対応）。
+- lift: z深度スケール（肩/腰幅の半分）を観測ペアのみから計測。
+  predicted端点はプライア幾何のため、借用するとモデル表の幅が
+  計測値としてz軸に書き込まれていた（#330のof_body_hと同型）
+
+- consensus: 全関節predictedの骨格を`state:observed`と虚偽報告していた欠陥を修正（1件以上observedで初めてobserved、joints有りではpredicted）
+- segment: predicted骨が前景ピクセルに部位ラベルを付けていた
+  欠陥を修正。プライア配置の骨は測定ではないため、両端点が
+  observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
+- fit: 説明済み画素の計測をobserved関節のみに修正。predicted骨
+  （プライア直線四肢）がシルエット画素を「説明済み」に水増し
+  し、全腕predictedでもfractionが0.80→0.81に改善したかのように
+  報告していた → predicted骨/関節はカバレッジから除外。
+- gait: predicted関節を含む脚の位相キューをunknownに修正。
+  プライア直線脚が「stance/knee_angle ~170」として報告されて
+  いた。observed関節のみで判定、predictedは欠損扱い（step_width
+  も両足observedのみ）。
 - stability/pose: `probe` の摂動が実効閾値に届くよう
   `threshold_offset` を追加 — adaptive(Otsu) モードでは
   `bg_threshold` を±10してもOtsu分割が不変で、3ラン同一マスクの

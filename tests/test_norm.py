@@ -15,6 +15,19 @@ class TestNorm(unittest.TestCase):
         out = norm.crop(self.skel, 10, 20, 200, 200)
         self.assertEqual(out.point("head"),
                          (head[0] - 10, head[1] - 20))
+        # the declared frame is the crop's, not the source's
+        self.assertEqual((out.image_width, out.image_height), (200, 200))
+
+    def test_resize_declares_new_frame(self):
+        out = norm.resize(self.skel, 300, 400, 150, 200)
+        self.assertEqual((out.image_width, out.image_height), (150, 200))
+
+    def test_unit_declares_unit_frame(self):
+        u = norm.to_unit(self.skel, 300, 400)
+        self.assertEqual((u.image_width, u.image_height), (1, 1))
+        back = norm.from_unit(u, 300, 400)
+        self.assertEqual((back.image_width, back.image_height),
+                         (300, 400))
 
     def test_crop_marks_out_of_frame(self):
         head = self.skel.point("head")

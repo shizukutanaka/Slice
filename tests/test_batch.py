@@ -35,6 +35,20 @@ class TestBatch(unittest.TestCase):
             self.assertEqual(len(knowledge.KnowledgeStore(store_dir)
                                  .list()), 1)
 
+    def test_batch_robust_profile(self):
+        # --robust must reach the estimator: the saved doc records the
+        # profile it was produced under
+        with tempfile.TemporaryDirectory() as imgs, \
+                tempfile.TemporaryDirectory() as store_dir:
+            with open(os.path.join(imgs, "a.png"), "wb") as f:
+                f.write(bitmap.encode_png(synthetic_person()))
+            rc = cli.main(["batch", imgs, "--store", store_dir,
+                           "--robust"])
+            self.assertEqual(rc, 0)
+            doc = knowledge.KnowledgeStore(store_dir).list()[0]
+            full = knowledge.KnowledgeStore(store_dir).get(doc["id"])
+            self.assertEqual(full["engine"]["profile"], "robust")
+
     def test_batch_empty_dir_fails(self):
         with tempfile.TemporaryDirectory() as imgs, \
                 tempfile.TemporaryDirectory() as store_dir:

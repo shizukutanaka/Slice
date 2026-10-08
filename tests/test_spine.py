@@ -34,6 +34,16 @@ class TestSpine(unittest.TestCase):
         del self.skel.joints["chest"]
         self.assertIsNone(spine.curve(self.skel))
 
+    def test_predicted_chain_not_measured(self):
+        # a predicted chest sits on the neck–pelvis chord by
+        # construction — its "curve" would always read straight
+        from slice import predict
+        del self.skel.joints["chest"]
+        predict.complete(self.skel)
+        self.assertIsNone(spine.curve(self.skel))
+        self.assertEqual(spine.classify(self.skel),
+                         {"bow": "unknown", "lean": "unknown"})
+
 
 if __name__ == "__main__":
     unittest.main()

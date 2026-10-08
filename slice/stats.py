@@ -19,6 +19,7 @@ def joint_stats(skels: Iterable[Skeleton]) -> Dict[str, dict]:
     """Per-joint observed rate / mean confidence / fill rate."""
     obs = {n: 0 for n in JOINTS}
     conf_sum = {n: 0.0 for n in JOINTS}
+    obs_conf_sum = {n: 0.0 for n in JOINTS}
     present = {n: 0 for n in JOINTS}
     total = 0
     for skel in skels:
@@ -31,13 +32,21 @@ def joint_stats(skels: Iterable[Skeleton]) -> Dict[str, dict]:
             conf_sum[n] += j.confidence
             if j.state == OBSERVED:
                 obs[n] += 1
+                obs_conf_sum[n] += j.confidence
     out: Dict[str, dict] = {}
     for n in JOINTS:
         out[n] = {
             "observed_rate": round(obs[n] / total, 3) if total else 0.0,
             "fill_rate": round(present[n] / total, 3) if total else 0.0,
+            # blends observed (evidence) and predicted (prior) joints —
+            # kept for compatibility; prefer the observed-only mean
             "mean_confidence": (round(conf_sum[n] / present[n], 3)
                                 if present[n] else 0.0),
+            # confidence measured over observed joints only — the
+            # number that actually describes evidence quality
+            "mean_observed_confidence":
+                (round(obs_conf_sum[n] / obs[n], 3)
+                 if obs[n] else 0.0),
         }
     return out
 

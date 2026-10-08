@@ -28,6 +28,10 @@
   限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
   ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
   とhands_on_hipsの参照が推測で構成されなくなった）。
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
 
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。

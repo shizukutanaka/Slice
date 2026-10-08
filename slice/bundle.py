@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import zipfile
+import zlib
 from typing import List, Optional
 
 from .knowledge import validate
@@ -104,7 +105,8 @@ def unpack(path: str) -> List[dict]:
                 continue
             try:
                 doc = json.loads(z.read(name))
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, UnicodeDecodeError,
+                    zipfile.BadZipFile, zlib.error):
                 continue  # one corrupt member must not kill the archive
             if not isinstance(doc, dict) or validate(doc):
                 continue

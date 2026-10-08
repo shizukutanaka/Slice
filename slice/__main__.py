@@ -22,6 +22,7 @@ import argparse
 import json
 import math
 import os
+import os
 import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
@@ -32,6 +33,13 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               segment, selfcheck, mask as mask_mod)
+from . import (__version__, bitmap, knowledge, limbcov, mask as mask_mod,
+               pipeline, render, rest, segment, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
+               pipeline, render, rest, segment, selfcheck, storechk)
+from . import mask as mask_mod
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -697,6 +705,57 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+_PART_COLORS = {
+    "head": (230, 60, 60, 255), "torso": (60, 160, 70, 255),
+    "upper_arm": (70, 120, 230, 255),
+    "forearm": (120, 80, 220, 255),
+    "hand": (200, 60, 200, 255),
+    "thigh": (230, 160, 40, 255),
+    "shin": (40, 190, 190, 255),
+    "foot": (160, 160, 160, 255),
+    "unlabeled": (90, 90, 90, 255)}
+
+
+def _cmd_segment(a) -> int:
+    """Body-part pixel label map + coverage summary."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    # joints and the mask both live in the estimator's
+    # downscaled frame, so segment in that space
+    small = bmp.downscale(est.max_dim)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    mask = mask_mod.foreground(small, est)
+    res = segment.summary(small, skel, mask)
+    if a.output:
+        labels = segment.label_map(small, skel, mask)
+        img = bitmap.Bitmap.new(small.width, small.height,
+                                (0, 0, 0, 255))
+        for y in range(small.height):
+            for x in range(small.width):
+                part = labels[y * small.width + x]
+                if part:
+                    base = part[:-2] if part.endswith(
+                        ("_l", "_r")) else part
+                    img.set(x, y, _PART_COLORS.get(
+                        base, _PART_COLORS["unlabeled"]))
+        with open(a.output, "wb") as f:
+            f.write(bitmap.encode_png(img))
+        print(f"wrote {a.output} "
+              f"({small.width}x{small.height})",
+              file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -901,6 +960,17 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    sg = sub.add_parser(
+        "segment", help="body-part pixel label map")
+    sg.add_argument("image")
+    sg.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sg.add_argument("-o", "--output",
+                    help="write the colored label-map PNG")
+    sg.set_defaults(fn=_cmd_segment)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

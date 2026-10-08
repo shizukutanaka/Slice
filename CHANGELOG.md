@@ -28,6 +28,7 @@
   でobservedの関節のみ比較、predictedは欠損扱いで除外。
 
 - skeleton: normalized 各関節に state を同梱（正規化空間で推測位置が観測と区別不能だった欠陥を解消、export.keypoints_state と同契約）
+- selfcheck: 無効なmodel名を`model:unknown_body_model`理由コードで開示（analyze経路と同型のサイレントフォールバックがaudit経路に残留していた欠陥を解消）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

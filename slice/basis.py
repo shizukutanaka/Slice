@@ -42,6 +42,7 @@ OBSERVED_BASES = {
     "leg run at knee height", "leg run at bottom",
     "merged leg run", "legs not separable",
     "axis midpoint", "midpoint shoulders-pelvis",
+    "clavicle midpoint below shoulder row",
     "silhouette bottom",
 }
 

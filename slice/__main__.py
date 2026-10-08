@@ -10,6 +10,8 @@
           (honesty lint, near-duplicates, joint observed-rate)
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
+    python -m slice bias
+        — per-joint systematic vs random error on fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -22,14 +24,10 @@ import math
 import os
 import sys
 
-from . import (__version__, axis, bitmap, calib, contact, dominance,
+from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
-               knowledge, limbcov, limbs, mass, pipeline, plumb, reach,
-               render, rest, rom, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               mirror, pipeline, render, rest, selfcheck, storechk)
+               knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
+               render, rest, rom, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 
@@ -343,6 +341,25 @@ def _cmd_calib(a) -> int:
     return 1 if rep["overconfident_bins"] or not measured else 0
 
 
+def _cmd_bias(a) -> int:
+    """Per-joint systematic-error profile over ground-truth fixtures."""
+    est = pipeline.ESTIMATOR
+    pairs = []
+    for bmp, truth in (evaluate.draw_case(),
+                       evaluate.draw_case(width=240, height=320)):
+        pairs.append((est.estimate(bmp).joints, truth))
+    rep = bias.profile(pairs)
+    measured = bool(rep.get("joints"))
+    rep["state"] = "estimated" if measured else "unmeasured"
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    # unmeasured must not pass; a worst joint beyond the bench gate is
+    # a real estimator defect
+    worst = rep.get("worst_joint") or {}
+    if not measured or (worst.get("mean_error_px") or 0) > 10.0:
+        return 1
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -430,6 +447,10 @@ def main(argv=None) -> int:
     cb = sub.add_parser(
         "calib", help="confidence calibration vs ground truth")
     cb.set_defaults(fn=_cmd_calib)
+
+    bi = sub.add_parser(
+        "bias", help="per-joint systematic vs random error profile")
+    bi.set_defaults(fn=_cmd_bias)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

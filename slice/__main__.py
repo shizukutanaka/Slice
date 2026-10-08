@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               pipeline, render, rest, selfcheck, smooth)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -180,57 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_smooth(a) -> int:
-    """Temporal smoothing over a directory of frame images."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    series = []
-    for f in sorted(os.listdir(a.dir)):
-        path = os.path.join(a.dir, f)
-        if not os.path.isfile(path) or not f.endswith(
-                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
-            continue
-        try:
-            with open(path, "rb") as fh:
-                series.append((f, est.estimate(
-                    bitmap.decode(fh.read()), a.model or "adult")))
-        except (bitmap.UnsupportedFormat, OSError):
-            continue
-    if not series:
-        print("no decodable frames", file=sys.stderr)
-        return 1
-    smoothed = smooth.smooth([sk for _, sk in series],
-                             radius=a.radius)
-    names = set()
-    for _, sk in series:
-        names.update(sk.joints)
-    before = {n: smooth.jitter([sk for _, sk in series], n)
-              for n in sorted(names)}
-    after = {n: smooth.jitter(smoothed, n) for n in sorted(names)}
-    res = {"frames": len(series), "radius": a.radius,
-           "joints": {n: {"jitter_before": before[n],
-                          "jitter_after": after[n],
-                          "reduction": round(
-                              before[n] - after[n], 3)}
-                      for n in sorted(names)}}
-    res["mean_jitter"] = {
-        "before": round(sum(before.values()) / len(before), 3)
-                  if before else 0.0,
-        "after": round(sum(after.values()) / len(after), 3)
-                 if after else 0.0}
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    if a.output:
-        os.makedirs(a.output, exist_ok=True)
-        for (f, _), sk in zip(series, smoothed):
-            base = os.path.splitext(f)[0] + ".json"
-            with open(os.path.join(a.output, base), "w") as fh:
-                json.dump(sk.to_dict(), fh,
-                          ensure_ascii=False, indent=2)
-        print(f"wrote {len(smoothed)} smoothed skeletons "
-              f"-> {a.output}", file=sys.stderr)
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -309,11 +254,17 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -323,6 +274,7 @@ def _cmd_probe(a) -> int:
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
@@ -331,8 +283,13 @@ def _cmd_probe(a) -> int:
         return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -342,6 +299,7 @@ def _cmd_mirror(a) -> int:
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -350,6 +308,7 @@ def _cmd_mirror(a) -> int:
         ja = actual.joints.get(name)
         if ja is None:
             drift[name] = None
+            continue
         drift[name] = round(math.hypot(
             ja.x - je.x, ja.y - je.y), 2)
     vals = [v for v in drift.values() if v is not None]
@@ -371,6 +330,7 @@ def _cmd_mirror(a) -> int:
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
     }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
 
@@ -790,19 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    sm = sub.add_parser(
-        "smooth", help="temporal smoothing of a frame series")
-    sm.add_argument("dir", help="directory of frame images")
-    sm.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    sm.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    sm.add_argument("--radius", type=int, default=1,
-                    help="moving-average radius in frames")
-    sm.add_argument("-o", "--output",
-                    help="write smoothed skeleton JSONs to this dir")
-    sm.set_defaults(fn=_cmd_smooth)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -822,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

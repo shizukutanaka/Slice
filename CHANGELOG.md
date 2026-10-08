@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `head_length_px`（skeleton）: predictedのhead/neckを「計測」していた
+  欠陥を修正。プライア配置の関節は頭長規約そのままの間隔で置かれる
+  ため、返り値はプライア自身の間隔を実測と装う循環捏造だった。
+  scale/ratioの正規化子がこの偽値をそのまま使っていた。未観測はNone。
+
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
 - `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。

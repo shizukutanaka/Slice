@@ -5,7 +5,7 @@ from tests import synthetic_person
 from slice import predict
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Joint, OBSERVED, PREDICTED, Skeleton
-from slice.skeleton import Joint, Skeleton, body_span
+from slice.skeleton import Joint, Skeleton, body_span, head_length_px
 
 
 class TestNormalized(unittest.TestCase):
@@ -82,6 +82,31 @@ class TestBodySpan(unittest.TestCase):
         skel = Skeleton(100, 100)
         skel.set(Joint("head", 50, 90, 0.5))
         self.assertEqual(body_span(skel), 0.0)
+
+
+class TestHeadLength(unittest.TestCase):
+    def test_observed_head_and_neck(self):
+        skel = Skeleton(100, 300)
+        skel.set(Joint("head", 50, 30, 0.9, OBSERVED))
+        skel.set(Joint("neck", 50, 50, 0.9, OBSERVED,
+                       basis="clavicle midpoint below shoulder row"))
+        self.assertAlmostEqual(head_length_px(skel), 20.0)
+
+    def test_predicted_neck_returns_none(self):
+        # a prior-placed neck sits exactly one (or half) head below
+        # the head — returning its distance as a "measurement"
+        # reports the prior's own spacing back as evidence.
+        skel = Skeleton(100, 300)
+        skel.set(Joint("head", 50, 30, 0.9, OBSERVED))
+        skel.set(Joint("neck", 50, 50, 0.3, PREDICTED,
+                       basis="head height prior"))
+        self.assertIsNone(head_length_px(skel))
+
+    def test_predicted_head_returns_none(self):
+        skel = Skeleton(100, 300)
+        skel.set(Joint("head", 50, 30, 0.3, PREDICTED))
+        skel.set(Joint("neck", 50, 50, 0.9, OBSERVED))
+        self.assertIsNone(head_length_px(skel))
 
 
 if __name__ == "__main__":

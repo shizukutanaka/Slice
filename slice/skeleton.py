@@ -118,9 +118,13 @@ def head_length_px(skel: Skeleton) -> Optional[float]:
     Clavicle necks sit ~one head length below the head centroid, so
     the raw distance is the head length; legacy chin necks sit ~half
     a head below and must be doubled. Returns None when head or neck
-    is missing or inverted."""
+    is missing, inverted, or not observed — a prior-placed head or
+    neck would return the prior's own spacing as a "measurement",
+    which callers then use to derive real-world scale (circular)."""
     head, neck = skel.get("head"), skel.get("neck")
-    if not head or not neck or neck.y <= head.y:
+    if (not head or not neck
+            or head.state != OBSERVED or neck.state != OBSERVED
+            or neck.y <= head.y):
         return None
     mult = 1.0 if neck.basis == NECK_CLAVICLE_BASIS else 2.0
     return (neck.y - head.y) * mult

@@ -130,6 +130,9 @@ def consensus(bmp: Bitmap,
         "disputed": disputed,
         "mean_spread_px": round(sum(spreads) / len(spreads), 2)
         if spreads else None,
-        "state": "observed" if sk.joints else "failed",
+        # an all-predicted skeleton is not observation
+        "state": ("observed" if any(j.state == OBSERVED
+                                    for j in sk.joints.values())
+                  else "predicted" if sk.joints else "failed"),
         "basis": "median over %d parameter variants" % n_runs,
     }

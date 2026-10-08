@@ -11,8 +11,9 @@ class TestRatio(unittest.TestCase):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         r = ratio.analyze(sk, centroid=sk.centroid)
         self.assertNotIn("error", r)
-        self.assertGreater(r["head_to_body"], 2)
-        self.assertLess(r["head_to_body"], 20)
+        # clavicle-neck convention: body_h/head ≈ 6 (±estimator slack)
+        self.assertGreater(r["head_to_body"], 4)
+        self.assertLess(r["head_to_body"], 12)
         for k in ("shoulder_width", "hip_width", "torso_length"):
             self.assertIsNotNone(r[k], k)
         self.assertIsNotNone(r["center_of_mass"])

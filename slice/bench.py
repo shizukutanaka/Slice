@@ -20,7 +20,7 @@ from typing import List, Optional, Tuple
 
 from . import evaluate, oks
 from .pose import HeuristicPoseEstimator
-from .skeleton import Joint, Skeleton
+from .skeleton import Joint, OBSERVED, Skeleton
 
 # gate: deterministic accuracy thresholds at *measured* current
 # levels — they pin today's accuracy as a regression detector, they
@@ -34,7 +34,9 @@ MIN_OKS = 0.5
 
 
 def _truth_skeleton(truth, w, h) -> Skeleton:
-    return Skeleton(w, h, {n: Joint(n, x, y, 1.0)
+    # truth fixtures claim to be the observed reference — say so
+    return Skeleton(w, h, {n: Joint(n, x, y, 1.0, OBSERVED,
+                                    "ground truth fixture")
                            for n, (x, y) in truth.items()})
 
 

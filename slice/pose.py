@@ -44,6 +44,26 @@ def _row_runs(mask: List[bytearray], y: int, w: int) -> List[Tuple[int, int]]:
     return runs
 
 
+def _reaches_bottom(mask: List[bytearray], y: int,
+                    run: Tuple[int, int], bottom: int, w: int) -> bool:
+    """True when the run's x-band stays connected down to the bottom row.
+
+    Legs reach the floor line; a dangling arm run ends mid-frame even
+    when it x-overlaps a foot below it (wide feet, crouch/seated poses).
+    Overlapping runs merge on the way down — an arm resting on a leg
+    honestly counts as grounded.
+    """
+    x0, x1 = run
+    for yy in range(y + 1, bottom + 1):
+        nxt = [r for r in _row_runs(mask, yy, w)
+               if r[1] >= x0 and r[0] <= x1]
+        if not nxt:
+            return False
+        x0 = min(r[0] for r in nxt)
+        x1 = max(r[1] for r in nxt)
+    return True
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -371,9 +391,14 @@ class HeuristicPoseEstimator(PoseEstimator):
             # decisively stronger head band — a sideways blob (wide
             # hand, dress hem) only looks head-sized and must not flip
             # an upright figure.
-            qualifies = (issues < base_issues
-                         or (issues == base_issues
-                             and headw > base_headw * 1.3))
+            # a rotated candidate that finds fewer joints than the
+            # upright scan is regression, not reorientation; and
+            # rotating without stronger head-band evidence just
+            # re-labels feet as head — an audit-clean fabrication on
+            # the rotated mask must not flip real upright evidence
+            qualifies = (len(cand.joints) >= len(sk.joints)
+                         and issues <= base_issues
+                         and headw > base_headw * 1.3)
             if not qualifies:
                 continue
             key = (issues, -len(cand.joints), -headw)
@@ -599,10 +624,9 @@ class HeuristicPoseEstimator(PoseEstimator):
         # Arms: silhouette protrusions beside the torso column, tracked
         # down past the hips so dangling hands are still found.
         crotch_y = crotch
-        # Feet anchor the legs: any run below the torso that x-overlaps a
-        # bottom-row run is leg, regardless of its width or how far out
-        # an arm or hip happens to reach.
-        feet = _row_runs(comp, bottom, w)
+        # Feet anchor the legs: a run below the torso is leg when its
+        # x-band still reaches the bottom row — x-overlap alone wrongly
+        # claims dangling arms beside wide feet (crouch/seated) as leg.
         for side, sign in (("l", -1), ("r", 1)):
             shoulder = sk.get(f"shoulder_{side}")
             tx = torso_run[0] if sign < 0 else torso_run[1]
@@ -616,8 +640,8 @@ class HeuristicPoseEstimator(PoseEstimator):
                                 or (sign > 0 and run[0] > tx + 2):
                             cand += [(x, y) for x in range(run[0], run[1] + 1)]
                 else:
-                    # Below the torso, legs are the runs that still have
-                    # feet under them at the bottom row; any other run on
+                    # Below the torso, legs are the runs whose band still
+                    # reaches the bottom row; any other run on
                     # the arm's side inside the arm band is a limb. The
                     # band grows with accepted runs so arms drifting
                     # outward stay tracked.
@@ -627,8 +651,8 @@ class HeuristicPoseEstimator(PoseEstimator):
                         mid = (run[0] + run[1]) / 2
                         if (sign < 0) != (mid < cx_spine):
                             continue
-                        if any(f[0] - 4 <= mid <= f[1] + 4 for f in feet):
-                            continue  # leg — centered over a foot
+                        if _reaches_bottom(comp, y, run, bottom, w):
+                            continue  # leg — connected to the floor line
                         if run[1] < band[0] - 4 or run[0] > band[1] + 4:
                             continue
                         cand += [(x, y)

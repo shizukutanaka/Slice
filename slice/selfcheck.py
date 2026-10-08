@@ -23,10 +23,6 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from . import (anatomy, axis, balance, bitmap, classify, contrad,
-               evid, fit,
-               gate, ground, human, imgqual, knowledge, limbcov,
-               mask as mask_mod, pipeline, stability)
 from . import (axis, balance, bitmap, classify, consistency, contrad,
                evid, fit, gate, ground, human, imgqual, knowledge,
                limbcov, mask as mask_mod, pipeline, stability)
@@ -74,12 +70,12 @@ def _severity(layer: str, result: Dict) -> str:
         return "advisory" if stability.unstable(result) else "ok"
     if layer == "contrad":
         return {"consistent": "ok", "contradicted": "problem"}.get(
-            result["verdict"], _unmapped(result))
+            result["verdict"], "unmeasured")
     if layer == "consistency":
         # anatomical-prior violations are advisory, not fail: real
         # bodies legitimately exceed population bounds
         return {"consistent": "ok", "issues": "advisory"}.get(
-            result["verdict"], _unmapped(result))
+            result["verdict"], "unmeasured")
     if layer == "gate":
         return {"pass": "ok", "warn": "advisory",
                 "fail": "problem"}.get(result["verdict"],

@@ -5,7 +5,26 @@ from tests import synthetic_person
 from slice import bitmap, selfcheck
 
 
+
 class TestSelfCheck(unittest.TestCase):
+    def test_unmapped_verdict_advisory_not_unmeasured(self):
+        """A verdict outside a layer's known vocabulary is
+        unrecognized evidence, not absence of evidence — it must
+        not be silently neutralized to 'unmeasured'."""
+        from slice.selfcheck import _severity
+        self.assertEqual(
+            _severity("contrad", {"verdict": "insufficient"}),
+            "unmeasured")
+        self.assertEqual(
+            _severity("limbcov", {"verdict": "unmeasurable"}),
+            "unmeasured")
+        self.assertEqual(
+            _severity("gate", {"verdict": "some_new_verdict"}),
+            "advisory")
+        self.assertEqual(
+            _severity("other_layer", {"verdict": "custom"}),
+            "advisory")
+
     def test_synth_person_passes_or_warns(self):
         raw = bitmap.encode_png(synthetic_person())
         r = selfcheck.run(raw)

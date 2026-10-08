@@ -29,6 +29,20 @@ from . import (axis, balance, bitmap, classify, consistency, contrad,
 
 _SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
 
+# verdict/state strings that legitimately mean "nothing to measure"
+_ABSENT = ("unmeasurable", "insufficient")
+
+
+def _unmapped(result: Dict) -> str:
+    """Severity for a verdict outside the layer's known vocabulary.
+
+    Absence of evidence ("unmeasurable"/"insufficient") stays
+    unmeasured; *unrecognized* evidence is not absence — map it to
+    advisory so a new verdict a layer starts emitting cannot be
+    silently neutralized into "no evidence"."""
+    v = result.get("verdict") or result.get("state")
+    return "unmeasured" if v in _ABSENT else "advisory"
+
 
 def _severity(layer: str, result: Dict) -> str:
     """Map one layer's own verdict vocabulary onto a common scale."""
@@ -46,26 +60,27 @@ def _severity(layer: str, result: Dict) -> str:
         return "advisory" if result["off_mask"] else "ok"
     if layer == "limbcov":
         return {"covered": "ok", "gaps": "advisory"}.get(
-            result["verdict"], "unmeasured")
+            result["verdict"], _unmapped(result))
     if layer == "fit":
         return {"good": "ok", "poor": "advisory"}.get(
-            fit.verdict(result), "unmeasured")
+            fit.verdict(result), _unmapped(result))
     if layer == "stability":
         if result["state"] == "unmeasurable":
             return "unmeasured"
         return "advisory" if stability.unstable(result) else "ok"
     if layer == "contrad":
         return {"consistent": "ok", "contradicted": "problem"}.get(
-            result["verdict"], "unmeasured")
+            result["verdict"], _unmapped(result))
     if layer == "consistency":
         # anatomical-prior violations are advisory, not fail: real
         # bodies legitimately exceed population bounds
         return {"consistent": "ok", "issues": "advisory"}.get(
-            result["verdict"], "unmeasured")
+            result["verdict"], _unmapped(result))
     if layer == "gate":
         return {"pass": "ok", "warn": "advisory",
-                "fail": "problem"}.get(result["verdict"], "unmeasured")
-    return "unmeasured"
+                "fail": "problem"}.get(result["verdict"],
+                                        _unmapped(result))
+    return _unmapped(result)
 
 
 def run(raw: bytes, *, model: Optional[str] = None,

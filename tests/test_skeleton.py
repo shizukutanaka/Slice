@@ -3,6 +3,7 @@ import unittest
 from tests import synthetic_person
 
 from slice.pose import HeuristicPoseEstimator
+from slice.skeleton import Joint, OBSERVED, PREDICTED, Skeleton
 from slice.skeleton import Joint, Skeleton, body_span
 
 
@@ -33,9 +34,14 @@ class TestNormalized(unittest.TestCase):
 
     def test_missing_core_omits_field(self):
         skel = Skeleton(100, 100)
-        skel.set(Joint("head", 50, 10, 0.5))
+        skel.set(Joint("head", 50, 10, 0.5, OBSERVED))
         self.assertIsNone(skel.normalized())
         self.assertNotIn("normalized", skel.to_dict())
+
+    def test_state_defaults_to_predicted(self):
+        # claiming evidence must be deliberate: a Joint built without
+        # an explicit state argues the weaker claim, never OBSERVED
+        self.assertEqual(Joint("head", 0, 0, 0.9).state, PREDICTED)
 
 
 class TestBodySpan(unittest.TestCase):

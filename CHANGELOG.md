@@ -30,6 +30,7 @@
   predicted端点はプライア幾何のため、借用するとモデル表の幅が
   計測値としてz軸に書き込まれていた（#330のof_body_hと同型）
 
+- consensus: 全関節predictedの骨格を`state:observed`と虚偽報告していた欠陥を修正（1件以上observedで初めてobserved、joints有りではpredicted）
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

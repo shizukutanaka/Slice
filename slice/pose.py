@@ -652,7 +652,11 @@ class HeuristicPoseEstimator(PoseEstimator):
             tx = torso_run[0] if sign < 0 else torso_run[1]
             cand = []
             band = None  # x-range of the arm beside the torso
-            for y in range(int(sh_row), bottom + 1):
+            # Start below the head band, not at the shoulder row —
+            # arms raised above shoulder line (V-pose) live in the
+            # rows between neck and shoulders that a shoulder-anchored
+            # scan never reaches.
+            for y in range(int(top + head_h), bottom + 1):
                 runs = _row_runs(comp, y, w)
                 if y <= crotch_y:
                     for run in runs:

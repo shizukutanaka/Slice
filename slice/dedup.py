@@ -8,7 +8,8 @@ and flags document pairs whose per-joint mean distance falls below
 
 Normalised space is shared across docs of different resolutions, so
 a 200px and an 800px render of the same stance still match. Joints
-absent from either document are skipped per pair and counted.
+absent — or `predicted`, which are prior fills, not evidence — in
+either document are skipped per pair and counted.
 """
 
 from __future__ import annotations
@@ -34,7 +35,8 @@ def _vec(doc: dict) -> Optional[dict]:
         return None
     return {n: ((j["x"] - p1["x"]) / scale,
                 (j["y"] - p1["y"]) / scale)
-            for n, j in joints.items() if n in JOINTS}
+            for n, j in joints.items()
+            if n in JOINTS and j.get("state") != "predicted"}
 
 
 def distance(a: dict, b: dict) -> Optional[float]:

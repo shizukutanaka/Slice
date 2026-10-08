@@ -38,6 +38,7 @@ from . import (balance, classify, contrad)
 from . import (reid)
 from . import (describe)
 from . import (autocrop, crop)
+from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
 
 
 def _cmd_analyze(a) -> int:
@@ -512,6 +513,52 @@ def _cmd_autocrop(a) -> int:
     return 0 if res.get("crop") else 1
 
 
+def _cmd_export(a) -> int:
+    """Render a skeleton into an external format."""
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        bmp = bitmap.decode(raw)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    binary = None
+    if a.format == "bvh":
+        text = bvh.export(skel)
+    elif a.format == "gltf":
+        text = json.dumps(gltf.to_gltf(skel), ensure_ascii=False)
+    elif a.format == "coco":
+        text = json.dumps(coco.to_coco(skel), ensure_ascii=False)
+    elif a.format == "svg":
+        text = svg.render(skel)
+    elif a.format == "ascii":
+        text = ascii.render(skel)
+    elif a.format == "paf":
+        text = json.dumps(paf.field(skel), ensure_ascii=False)
+    elif a.format == "heatmap":
+        binary = bitmap.encode_png(heatmap.render(skel))
+        text = None
+    if a.output:
+        if binary is not None:
+            with open(a.output, "wb") as f:
+                f.write(binary)
+        else:
+            with open(a.output, "w", encoding="utf-8") as f:
+                f.write(text + "\n")
+        print(f"wrote {a.output}", file=sys.stderr)
+    elif binary is not None:
+        sys.stdout.buffer.write(binary)
+    else:
+        print(text)
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -734,6 +781,19 @@ def main(argv=None) -> int:
     ac.add_argument("-o", "--output",
                     help="write the cropped PNG here")
     ac.set_defaults(fn=_cmd_autocrop)
+
+    e = sub.add_parser("export",
+                       help="render a skeleton into an external format")
+    e.add_argument("image")
+    e.add_argument("--format", required=True,
+                   choices=["bvh", "gltf", "coco", "svg", "ascii",
+                            "paf", "heatmap"])
+    e.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    e.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    e.add_argument("-o", "--output",
+                   help="output file (default: stdout)")
+    e.set_defaults(fn=_cmd_export)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- retarget: basisが骨の由来を分岐開示 — src骨欠損で方向がdst自身の
+  幾何から来た関節も「retargeted」を名乗っていた由来偽装を修正
+  （`retargeted (target dir)` / `retargeted (predicted bone)` /
+  `(source len)`。predicted骨由来の方向はpredictのpredicted anchor
+  規約と同じ開示）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

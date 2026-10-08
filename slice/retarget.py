@@ -59,7 +59,18 @@ def retarget(src: Skeleton, dst: Skeleton) -> Skeleton:
             x = pos[parent][0] + dx * length
             y = pos[parent][1] + dy * length
             pos[child] = (x, y)
+            # basis records where each half came from: a missing
+            # source bone means the direction is the target's own
+            # geometry — "retargeted" alone would hide that
+            basis = "retargeted" if sv else "retargeted (target dir)"
+            if sv and "predicted" in (src.joints[parent].state,
+                                      src.joints[child].state):
+                # direction rode on a guessed bone — same disclosure
+                # as predict's "(predicted anchor)"
+                basis = "retargeted (predicted bone)"
+            if dv is None:
+                basis += " (source len)"
             out.set(Joint(child, x, y, 0.5, state="predicted",
-                          basis="retargeted"))
+                          basis=basis))
             queue.append(child)
     return out

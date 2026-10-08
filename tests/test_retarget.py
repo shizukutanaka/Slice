@@ -26,6 +26,24 @@ class TestRetarget(unittest.TestCase):
             self.assertEqual(j.state, "predicted")
             self.assertTrue(j.basis.startswith("retargeted"))
 
+    def test_target_dir_disclosed_in_basis(self):
+        # src missing a bone: the direction comes from the target's
+        # own geometry — basis must not claim plain "retargeted"
+        del self.src.joints["elbow_l"]
+        del self.src.joints["wrist_l"]
+        dst = self.est.estimate(synthetic_person(160, 300))
+        out = retarget.retarget(self.src, dst)
+        self.assertEqual(out.joints["wrist_l"].basis,
+                         "retargeted (target dir)")
+
+    def test_predicted_src_bone_disclosed(self):
+        # a direction carried by a predicted bone is a guess riding
+        # a guess — disclosed like predict's "(predicted anchor)"
+        self.src.joints["elbow_l"].state = "predicted"
+        out = retarget.retarget(self.src, self.src)
+        self.assertEqual(out.joints["wrist_l"].basis,
+                         "retargeted (predicted bone)")
+
     def test_directions_preserved_on_bigger_body(self):
         big = self.est.estimate(synthetic_person(320, 600))
         out = retarget.retarget(self.src, big)

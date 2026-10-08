@@ -38,10 +38,31 @@ def _chg(changes: List[Dict], code: str, detail: str) -> None:
     changes.append({"code": code, "detail": detail})
 
 
+def _valid(doc) -> List:
+    """validate() as a report — never propagate an exception."""
+    try:
+        return validate(doc)
+    except Exception as e:  # a validator bug must not abort a batch
+        return ["validate raised %s" % type(e).__name__]
+
+
 def upgrade(doc: dict) -> Dict:
     """Normalize `doc` to the current schema; return doc + changes."""
+    # like validate, upgrade must report rather than raise: stores
+    # contain real old documents in every malformed shape
+    if not isinstance(doc, dict):
+        err = ["document must be a dict"]
+        return {
+            "document": doc,
+            "changes": [{"code": "document_not_dict",
+                         "detail": "cannot migrate a non-dict "
+                                   "document"}],
+            "n_changes": 1,
+            "valid_before": err,
+            "valid_after": err,
+        }
     changes: List[Dict] = []
-    before = validate(doc)
+    before = _valid(doc)
     d = copy.deepcopy(doc)
 
     if d.get("schema") != SCHEMA:
@@ -60,10 +81,20 @@ def upgrade(doc: dict) -> Dict:
         _chg(changes, "engine_missing", "empty engine block added")
 
     skel = d.setdefault("skeleton", {})
+    if not isinstance(skel, dict):
+        skel = {}
+        d["skeleton"] = skel
+        _chg(changes, "skeleton_replaced",
+             "skeleton was not a dict; replaced (contents unsalvageable)")
     joints = skel.get("joints") or {}
+    if not isinstance(joints, dict):
+        joints = {}
+        skel["joints"] = joints
+        _chg(changes, "joints_replaced",
+             "joints was not a dict; replaced (contents unsalvageable)")
     for name in list(joints):
         j = joints[name]
-        if "x" not in j or "y" not in j:
+        if not isinstance(j, dict) or "x" not in j or "y" not in j:
             del joints[name]
             _chg(changes, "joint_dropped",
                  "%s had no position; dropped (uninventable)" % name)
@@ -74,7 +105,7 @@ def upgrade(doc: dict) -> Dict:
                  "%s.confidence → 0.0 (was absent)" % name)
         if j.get("state") not in (OBSERVED, PREDICTED):
             j["state"] = PREDICTED
-            j["basis"] = (j["basis"] + "; " if j.get("basis") else "") + \
+            j["basis"] = str(j.get("basis") or "") + \
                 "migrated: state unknown"
             _chg(changes, "joint_state_fixed",
                  "%s unmarked → predicted (observed would fabricate)"
@@ -154,7 +185,7 @@ def upgrade(doc: dict) -> Dict:
         "changes": changes,
         "n_changes": len(changes),
         "valid_before": before,
-        "valid_after": validate(d),
+        "valid_after": _valid(d),
     }
 
 

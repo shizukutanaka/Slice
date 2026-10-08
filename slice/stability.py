@@ -7,9 +7,11 @@ pixel under `bg_threshold` 30, 40, and 50 is genuinely supported
 by the image; a wrist that jumps 40px when the gate wiggles was
 barely detectable and should not be trusted.
 
-`probe` re-runs the estimator at `±DELTA` around its configured
-threshold and reports, per joint, the maximum displacement across
-the perturbed runs — a measured sensitivity, not a heuristic.
+`probe` re-runs the estimator with its *effective* threshold
+shifted by `±DELTA` (the shift reaches the Otsu split in adaptive
+mode, where moving `bg_threshold` alone would perturb nothing) and
+reports, per joint, the maximum displacement across the perturbed
+runs — a measured sensitivity, not a heuristic.
 Joints absent in the baseline estimate are skipped (predicted
 positions inherit their parents' stability, which this module does
 not try to model).
@@ -52,11 +54,12 @@ def probe(bmp: Bitmap,
     est = estimator or HeuristicPoseEstimator()
     base = est.estimate(bmp, model)
     variants = []
-    for thr in (est.bg_threshold - delta, est.bg_threshold + delta):
+    for shift in (-delta, delta):
         v = HeuristicPoseEstimator(
-            max_dim=est.max_dim, bg_threshold=max(1, thr),
+            max_dim=est.max_dim, bg_threshold=est.bg_threshold,
             adaptive=est.adaptive, reject_shadow=est.reject_shadow,
-            clean=est.clean)
+            clean=est.clean,
+            threshold_offset=est.threshold_offset + shift)
         variants.append(v.estimate(bmp, model))
 
     joints: Dict[str, Dict] = {}

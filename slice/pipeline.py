@@ -129,10 +129,16 @@ def _warnings(skel) -> list:
     w = []
     if len(obs) < 8:
         w.append("few_observed_joints")
+    if not any(n in ("pelvis", "chest", "neck", "head") for n in obs):
+        # the kinematic root itself is predicted — every coordinate in
+        # the document hangs on an unmeasured anchor
+        w.append("no_observed_torso")
     if not any(n.startswith("wrist") for n in obs):
         w.append("no_observed_wrists")
     if not any(n.startswith("ankle") or n.startswith("foot") for n in obs):
         w.append("no_observed_feet")
+    if "head" not in obs:
+        w.append("no_observed_head")
     return w
 
 

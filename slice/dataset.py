@@ -28,7 +28,7 @@ from .knowledge import validate
 SUMMARY_FIELDS = [
     "id", "created_at", "body_model", "source_name", "source_sha256",
     "frame_w", "frame_h", "n_joints", "n_observed", "n_predicted",
-    "observed_ratio", "mean_confidence",
+    "observed_ratio", "mean_confidence", "mean_observed_confidence",
 ]
 
 JOINT_FIELDS = [
@@ -89,6 +89,10 @@ def summary_rows(docs: Iterable[dict]) -> List[dict]:
         confs = [j.get("confidence", 0.0) for j in joints.values()
                  if isinstance(j.get("confidence", 0.0), (int, float))]
         frame = _block(d, "skeleton", "frame")
+        confs = [j.get("confidence", 0.0) for j in joints.values()]
+        obs_confs = [j.get("confidence", 0.0) for j in joints.values()
+                     if j.get("state") == "observed"]
+        frame = (d.get("skeleton") or {}).get("frame") or {}
         rows.append({
             "id": d.get("id", "") if isinstance(d, dict) else "",
             "created_at": d.get("created_at", "")
@@ -106,6 +110,11 @@ def summary_rows(docs: Iterable[dict]) -> List[dict]:
                                if joints else ""),
             "mean_confidence": (round(sum(confs) / len(confs), 4)
                                 if confs else ""),
+            # observed joints only — confidence averaged over
+            # evidence, not blended with prior-derived joints
+            "mean_observed_confidence":
+                (round(sum(obs_confs) / len(obs_confs), 4)
+                 if obs_confs else ""),
         })
     return rows
 

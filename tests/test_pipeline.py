@@ -20,16 +20,20 @@ class TestPipeline(unittest.TestCase):
             bitmap.encode_png(synthetic_person()))
         a = doc["analysis"]
         for key in ("angles", "symmetry", "balance", "spine",
-                    "gesture", "dynamics", "occlusion", "frame"):
+                    "gesture", "dynamics", "occlusion", "frame",
+                    "consistency"):
             self.assertIn(key, a, key)
         self.assertIsNotNone(a["frame"])
         self.assertIn("elbow_l_flex", a["angles"])
+        self.assertIsInstance(a["consistency"]["issues"], list)
 
     def test_analysis_degrades_on_empty_image(self):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertEqual(doc["analysis"]["gesture"]["count"], 0)
         self.assertNotIn("frame", doc["analysis"])
+        self.assertEqual(doc["analysis"]["consistency"]["issues"],
+                         ["no_body_extent"])
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
 
@@ -38,6 +42,20 @@ class TestPipeline(unittest.TestCase):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertIn("few_observed_joints", doc["warnings"])
+
+    def test_frame_source_disclosed_on_downscale(self):
+        # joint coordinates live in the working space; the source
+        # resolution must be recorded or they cannot be mapped back
+        bmp = synthetic_person(width=900, height=1200)
+        doc = pipeline.analyze(bitmap.encode_png(bmp))
+        frame = doc["skeleton"]["frame"]
+        self.assertNotEqual((frame["width"], frame["height"]),
+                            (900, 1200))
+        self.assertEqual(frame["source"], {"width": 900, "height": 1200})
+        # at working resolution nothing extra is claimed
+        small = synthetic_person(width=100, height=200)
+        doc2 = pipeline.analyze(bitmap.encode_png(small))
+        self.assertNotIn("source", doc2["skeleton"]["frame"])
 
     def test_strip_runtime_drops_internals(self):
         doc = pipeline.analyze(bitmap.encode_png(synthetic_person()))

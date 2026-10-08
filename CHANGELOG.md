@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+- trust: predicted関節をoff_maskで「low」降格しない — プライアが
+  シルエット外に関節を置くのは正常（evid.unsupportedと同じ
+  OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を
+  咎めていた矛盾を解消。
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+- knowledge/migrate: exportブロックに`keypoints_state`追加。
+  フラット `keypoints_2d` は [x,y,conf] のみでpredicted関節が
+  観測と区別不能だった → keypoint_orderと整合する
+  observed/predicted/absent配列を同梱。migrateは旧docへ
+  `keypoints_state_backfilled` として開示的に補完。
+
+- selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
+- rig: predicted端点を持つ骨に state="predicted" を開示（推測構造を観測解剖学と区別不能にしていた欠陥）
+- skeleton: Joint.stateのデフォルトをpredictedに（フェイルオープン修正—state未指定で観測を捏造する穴。観測主張は明示必須）
+- audit: docの`warnings`ブロックを監査対象に追加。関節stateと
+  矛盾する警告コード（例: 観測8件以上なのに
+  `few_observed_joints`）を `stale_warning` として報告。
+  陳腐な警告申告が消費者を誤誘導する経路を遮断。
+  語彙外コードは外部語彙として据え置き（stale扱いしない）。
+
+- pipeline: `frame.source`に元画像解像度を開示（downscale作業空間の関節座標が`image_sha256`の元画像にマップ不能だった穴を解消）
+- pose: `body_model.prior`に実際に適用したプライア表を開示（測定選択名`name`と適用表が食い違う際に配置由来が不明だった穴を解消）
+- viewer: doc.warningsを表示（unknown_body_model・no_observed_torso等の注意付きdocがクリーンdocと同じ見た目になっていた欠陥を解消）
+- bvh: `report(skel)`開示サイドカー追加（BVH形式がjoint metadataを持てずpredicted骨が実測と区別不能で書き出されていた欠陥を解消）
+- analysisブロックに `consistency` 追加 — 骨格健全性監査のissuesを
+  全analyzeドキュメントに同梱（CLI/REST/Storeの全経路で可視）。
+
 - migrate: state未記入関節の由来補記が既存basisと区切りなしで
   直結していたのを修正（"measured row 10migrated: state unknown"
   のように既存由来を破損、recoverと同じ "; " 区切りに統一）。
@@ -20,6 +50,11 @@
   elbow_flex等が捏造計測値になっていた（実測 175.8°）。
   全端点observedの角度のみ出力、predictedは欠損扱いで省略。
 
+- ik: `solve_ik` が退化セグメント（L1/L2 が0以下）でドキュメント
+  契約通り `None` を返すよう修正。これまでは骨長ゼロのチェーンに
+  対して 1e-6px の捏造 mid/end を返していた — 「解くべきチェーンが
+  存在しない」場合に幾何をでっち上げない（誠実性契約）。
+
 - skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
 - contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）
 - rest: オーバーレイPNGをdoc隣に永続化＋メモリは上限128件の読通キャッシュ（再起動でoverlay_urlが404化＋無制限肥大の修正）
@@ -36,6 +71,9 @@
   いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
   その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
   全てpredictedならstate=unknown（roll None）を返す。
+- motion: predicted関節のフレーム間変位を出力しない欠陥を修正。
+  推測関節の「移動」はプライアの動きであり人の動きではない —
+  両フレームでobservedの関節のみ報告、predictedは欠損扱いで除外。
 
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。

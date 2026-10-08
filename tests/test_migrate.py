@@ -3,6 +3,7 @@ import unittest
 
 from slice import evaluate, knowledge, migrate
 from slice.knowledge import SCHEMA, validate
+from slice.landmarks import JOINTS
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -29,6 +30,19 @@ class TestMigrate(unittest.TestCase):
         self.assertIn("prediction_recomputed", codes)
         self.assertIn("coverage_recomputed", codes)
         self.assertEqual(r["valid_after"], [])
+
+    def test_export_state_backfilled(self):
+        doc = _doc()
+        del doc["export"]["keypoints_state"]
+        r = migrate.upgrade(doc)
+        codes = [c["code"] for c in r["changes"]]
+        self.assertIn("keypoints_state_backfilled", codes)
+        states = r["document"]["export"]["keypoints_state"]
+        self.assertEqual(len(states), len(JOINTS))
+        sk = r["document"]["skeleton"]["joints"]
+        for name, st in zip(JOINTS, states):
+            expect = sk[name]["state"] if name in sk else "absent"
+            self.assertEqual(st, expect)
 
     def test_state_fix_separates_existing_basis(self):
         d = _doc()

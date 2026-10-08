@@ -18,6 +18,12 @@
 - skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
 - contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）
 - rest: オーバーレイPNGをdoc隣に永続化＋メモリは上限128件の読通キャッシュ（再起動でoverlay_urlが404化＋無制限肥大の修正）
+- consistency: 監査をobserved関節のみに修正。predicted
+  head/feet（プライア補完）がbody extentを捏造し
+  `no_body_extent` を回避して虚構スケールで監査を通過
+  させていた → 部位長/対称チェックは両端observedのみ、
+  extentが全predictedなら `no_body_extent`。
+
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
   worst関節がベンチゲート(10px)超なら exit 1。

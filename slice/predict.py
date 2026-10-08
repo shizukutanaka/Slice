@@ -87,7 +87,7 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
             j = Joint(f"foot_{side}", a.x, min(a.y + body_h * 0.03,
                                              skel.image_height - 1),
                       0.25, PREDICTED,
-                      "foot below ankle" + (
+                      f"foot below ankle ({model_name})" + (
                           " (predicted anchor)"
                           if a.state != OBSERVED else ""))
             skel.set(j)
@@ -111,7 +111,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
         if r:
             j = Joint(name, r.x + dxr * body_h, r.y + dyr * body_h,
                       0.2, PREDICTED,
-                      f"prior off {ref}" + (
+                      f"prior off {ref} ({model_name})" + (
                           " (predicted anchor)"
                           if r.state != OBSERVED else ""))
             skel.set(j)
@@ -143,8 +143,8 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
                     name, p.x + (distal.x - p.x) * (frac / total),
                     p.y + (distal.y - p.y) * (frac / total),
                     0.3, PREDICTED,
-                    f"interpolated {parent}-{distal.name}" + (
-                        " (predicted anchor)" if guessy else ""))
+                    f"interpolated {parent}-{distal.name} ({model_name})"
+                    + (" (predicted anchor)" if guessy else ""))
                 skel.set(j)
                 return j
             # arms angle slightly outward, legs drop straight down
@@ -153,7 +153,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
             j = Joint(name, p.x + sign * out * body_h,
                       p.y + frac * body_h,
                       0.2, PREDICTED,
-                      f"prior off {parent}" + (
+                      f"prior off {parent} ({model_name})" + (
                           " (predicted anchor)"
                           if p.state != OBSERVED else ""))
             skel.set(j)

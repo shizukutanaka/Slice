@@ -412,6 +412,18 @@ class HeuristicPoseEstimator(PoseEstimator):
                 + f"estimated on {best_deg}deg-rotated mask"
         if best.centroid is not None:
             best.centroid = _unrotate(best.centroid, best_deg, w, h)
+        # orientation cues were read in the rotated frame — disclose
+        # the rotation and, for 180°, mirror the signed left/right
+        # cues back (rotated-x flips, so "left" there is "right" here)
+        ori = dict(best.orientation or {})
+        ori["estimated_on_rotated_deg"] = best_deg
+        if best_deg == 180:
+            if ori.get("facing") == "left":
+                ori["facing"] = "right"
+            elif ori.get("facing") == "right":
+                ori["facing"] = "left"
+            ori["head_shift"] = -ori.get("head_shift", 0.0)
+        best.orientation = ori
         best.image_width, best.image_height = w, h
         return best
 

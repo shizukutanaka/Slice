@@ -98,6 +98,22 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertTrue(any(jt.basis and "rotated" in jt.basis
                             for jt in j.values()))
 
+    def test_rotated_retry_discloses_and_mirrors_orientation(self):
+        """180°-flipped profile faces right in the image — but the
+        rotated scan reads its facing in the mirrored frame ("left").
+        The doc must report the image frame's facing ("right") and
+        disclose the rotation itself."""
+        src = profile_person(side=-1)   # faces left, upright
+        w, h = src.width, src.height
+        inv = Bitmap.new(w, h, src.get(1, 1))
+        for y in range(h):
+            for x in range(w):
+                inv.set(x, y, src.get(w - 1 - x, h - 1 - y))  # true 180°
+        sk = HeuristicPoseEstimator().estimate(inv)
+        ori = sk.orientation
+        self.assertEqual(ori.get("estimated_on_rotated_deg"), 180)
+        self.assertEqual(ori.get("facing"), "right")
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

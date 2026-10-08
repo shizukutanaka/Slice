@@ -34,6 +34,10 @@
 - segment: predicted骨が前景ピクセルに部位ラベルを付けていた
   欠陥を修正。プライア配置の骨は測定ではないため、両端点が
   observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
+- fit: 説明済み画素の計測をobserved関節のみに修正。predicted骨
+  （プライア直線四肢）がシルエット画素を「説明済み」に水増し
+  し、全腕predictedでもfractionが0.80→0.81に改善したかのように
+  報告していた → predicted骨/関節はカバレッジから除外。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

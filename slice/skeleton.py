@@ -75,9 +75,13 @@ class Skeleton:
     def normalized(self) -> Optional[dict]:
         """Root-relative pose in torso units: pelvis at the origin,
         one unit = neck–pelvis distance, +y downward. Resolution- and
-        framing-independent, so poses compare across images."""
-        pelvis = self.point("pelvis")
-        neck = self.point("neck")
+        framing-independent, so poses compare across images. A
+        predicted anchor is prior fill — normalising on it would put
+        guessed coordinates in the doc, so the block abstains (None)
+        instead."""
+        pj, nj = self.joints.get("pelvis"), self.joints.get("neck")
+        pelvis = (pj.x, pj.y) if pj and pj.state == "observed" else None
+        neck = (nj.x, nj.y) if nj and nj.state == "observed" else None
         if not pelvis or not neck:
             return None
         unit = ((pelvis[0] - neck[0]) ** 2 + (pelvis[1] - neck[1]) ** 2) ** 0.5
@@ -87,8 +91,12 @@ class Skeleton:
             "origin": "pelvis",
             "unit": "neck_pelvis_length",
             "joints": {
+                # state rides along: a normalized position built on
+                # guesses must stay distinguishable from measured
+                # evidence — same contract as export.keypoints_state
                 n: {"x": round((j.x - pelvis[0]) / unit, 4),
-                    "y": round((j.y - pelvis[1]) / unit, 4)}
+                    "y": round((j.y - pelvis[1]) / unit, 4),
+                    "state": j.state}
                 for n, j in self.joints.items()
             },
         }

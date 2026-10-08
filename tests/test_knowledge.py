@@ -123,6 +123,22 @@ class TestKnowledge(unittest.TestCase):
             os.remove(os.path.join(d, kid + ".json"))
             self.assertNotIn(kid, {i["id"] for i in store.list()})
 
+    def test_store_list_rereads_rewritten_doc(self):
+        # a doc overwritten after the index was built must not be
+        # reported with the stale indexed body_model
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            path = os.path.join(d, kid + ".json")
+            import time
+            time.sleep(0.05)   # ensure mtime moves past the index write
+            doc["skeleton"]["body_model"] = {"name": "child"}
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(doc, f)
+            ent = [e for e in store.list() if e["id"] == kid]
+            self.assertEqual(ent[0]["body_model"], "child")
+
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()
         self.assertEqual(doc["schema"], "slice.knowledge/v1")

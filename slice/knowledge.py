@@ -235,9 +235,27 @@ class KnowledgeStore:
         indexed = self._index_load()
         out, healed = [], indexed is None
         entries = dict(indexed) if indexed else {}
+        index_mtime = 0.0
+        if indexed is not None:
+            try:
+                index_mtime = os.path.getmtime(self._index_path())
+            except OSError:
+                index_mtime = 0.0
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
+            if ent is not None:
+                # a file rewritten after the index was built leaves a
+                # stale entry — re-read it so list() never reports a
+                # document that no longer exists on disk
+                try:
+                    if os.path.getmtime(
+                            os.path.join(self.root, fn)) < index_mtime:
+                        out.append(ent)
+                        continue
+                except OSError:
+                    pass
+                ent = None
             if ent is None:
                 healed = True
                 try:

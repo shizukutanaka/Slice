@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- trust: predicted関節をoff_maskで「low」降格しない — プライアが
+  シルエット外に関節を置くのは正常（evid.unsupportedと同じ
+  OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を
+  咎めていた矛盾を解消。
+
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが

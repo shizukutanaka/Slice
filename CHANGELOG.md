@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
+
 - cli: `slice analyze` のstderr要約にwarnings行を追加。
   `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
   docがCLI上ではクリーンなdocと同一表示になっていた

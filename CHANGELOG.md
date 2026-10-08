@@ -4,6 +4,14 @@
 
 - `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
 
+- cli: `slice analyze` のstderr要約にwarnings行を追加。
+  `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
+  docがCLI上ではクリーンなdocと同一表示になっていた
+  （viewer側と同型の沈黙表示）。警告がある場合のみ
+  `warnings: <code>, ...` を出力。
+
+- `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

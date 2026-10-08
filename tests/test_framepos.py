@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import framepos
+from slice import framepos, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -35,6 +35,19 @@ class TestFramepos(unittest.TestCase):
             j.y = self.H / 2 + (j.y - self.H / 2) * 0.3
         r = framepos.analyze(self.skel, self.W, self.H)
         self.assertLess(r["body_fraction"], 0.2)
+
+    def test_predicted_joints_do_not_stretch_bounds(self):
+        # "foot below ankle" priors placed below the observed cloud
+        # must not shrink reported footroom — they are guesses, not
+        # evidence of where the body ends
+        for n in ("foot_l", "foot_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        r = framepos.analyze(self.skel, self.W, self.H)
+        obs = [j.y for j in self.skel.joints.values()
+               if j.state == "observed"]
+        self.assertAlmostEqual(
+            r["footroom"], (self.H - max(obs)) / self.H, places=3)
 
     def test_headroom_tracks_topmost_joint(self):
         # a wrist overhead must shrink headroom, not leave it at the

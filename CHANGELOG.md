@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `track._torso`: 体幹未観測時の正規化子を `image_height*0.25` の
+  フレーム由来捏造スケールから実測スパン×プライア比（0.30）に修正。
+  フレーム内で小さく写った人物では実体幹より大きな偽スケールで
+  ジャンプ閾値が緩み、別人への誤リンクを許していた。体幹もスパンも
+  実測不能なら None を返し、リンクを「検証不能」として新トラックへ
+  （連続性の主張を捏造しない）。
+
 - `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。

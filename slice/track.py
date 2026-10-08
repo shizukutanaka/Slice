@@ -21,7 +21,11 @@ from __future__ import annotations
 import math
 from typing import List, Optional, Sequence
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
+
+# neck–pelvis torso ≈ 30% of the standing body span — the prior ratio
+# used only when the span is measured but the torso itself is not.
+_TORSO_OF_SPAN = 0.30
 
 
 def _anchor(skel: Skeleton) -> Optional[tuple]:
@@ -35,10 +39,15 @@ def _anchor(skel: Skeleton) -> Optional[tuple]:
     return skel.centroid
 
 
-def _torso(skel: Skeleton) -> float:
-    """Normalising length (pelvis<->neck); falls back to a fraction of
-    frame height when the torso is not observed — a predicted endpoint
-    is a guess, not a measurement."""
+def _torso(skel: Skeleton) -> Optional[float]:
+    """Normalising length (pelvis<->neck) in px.
+
+    Falls back to the observed body span scaled by a prior torso
+    fraction when the torso itself is not observed — a measured span
+    times a disclosed ratio, never the frame's height pretending to
+    be the person's size. Returns None when nothing observable gives
+    a scale at all: a jump in "torso units" cannot be computed then,
+    and guessing would fabricate the link evidence."""
     pj, nj = skel.joints.get("pelvis"), skel.joints.get("neck")
     p = (pj.x, pj.y) if pj and pj.state == "observed" else None
     n = (nj.x, nj.y) if nj and nj.state == "observed" else None
@@ -46,7 +55,10 @@ def _torso(skel: Skeleton) -> float:
         d = math.hypot(n[0] - p[0], n[1] - p[1])
         if d > 1e-6:
             return d
-    return max(skel.image_height, 1) * 0.25
+    span = observed_body_span(skel)
+    if span > 0:
+        return span * _TORSO_OF_SPAN
+    return None
 
 
 def track(frames: Sequence[Skeleton],
@@ -60,6 +72,10 @@ def track(frames: Sequence[Skeleton],
     (None on a track's first frame). `gap` counts frames where the
     track had no assignment between its previous hit and this one.
     Frames with no joints get `track_id: None, state: "empty"`.
+    A frame whose skeleton has no measurable scale (no observed
+    torso, no observed body span) cannot express its jump in torso
+    units — the link is unverifiable, so it starts a new track
+    rather than claiming continuity on a guessed scale.
     """
     out: List[dict] = []
     tracks: List[dict] = []  # {id, last_frame_idx, last_anchor, last_seen}
@@ -71,13 +87,17 @@ def track(frames: Sequence[Skeleton],
                         "gap": None, "jump": None, "anchor": None})
             continue
         best = None
+        torso = _torso(skel)
         for tr in tracks:
             jump = math.hypot(anchor[0] - tr["last_anchor"][0],
                               anchor[1] - tr["last_anchor"][1])
-            jump_t = jump / _torso(skel)
-            if best is None or jump_t < best[1]:
+            # no measured scale → the link cannot be verified
+            jump_t = jump / torso if torso else None
+            if best is None or (jump_t is not None
+                                and jump_t < best[1]):
                 best = (tr, jump_t)
-        if best is not None and best[1] <= max_jump_torso:
+        if (best is not None and best[1] is not None
+                and best[1] <= max_jump_torso):
             tr, jump_t = best
             gap = i - tr["last_seen"] - 1
             tr["last_anchor"], tr["last_seen"] = anchor, i

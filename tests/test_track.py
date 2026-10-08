@@ -44,6 +44,7 @@ class TestTrack(unittest.TestCase):
     def test_centroid_fallback_anchor(self):
         s = Skeleton(image_width=200, image_height=200)
         s.set(Joint("head", 100, 30, 0.9, OBSERVED))
+        s.set(Joint("ankle_l", 100, 190, 0.9, OBSERVED))
         s.centroid = (100, 100)
         out = track.track([s, s])
         self.assertEqual(out[1]["track_id"], 0)
@@ -60,11 +61,35 @@ class TestTrack(unittest.TestCase):
         self.assertEqual(out[0]["anchor"], (100, 120))
 
     def test_predicted_torso_not_normaliser(self):
-        # predicted neck/pelvis must not scale the jump metric
+        # predicted neck/pelvis must not scale the jump metric —
+        # and the frame's height must not pretend to be a torso
+        # either: only a pelvis is observed, so nothing measurable
+        # gives a scale and the torso abstains
         s = _skel(100, 120)
         s.joints["neck"].state = PREDICTED
-        self.assertEqual(track._torso(s),
-                         200 * 0.25)
+        self.assertIsNone(track._torso(s))
+
+    def test_unmeasurable_scale_does_not_link(self):
+        # with no measured scale the jump cannot be expressed in
+        # torso units — the link is unverifiable, so each frame
+        # starts a new track rather than fabricating continuity
+        s = _skel(100, 120)
+        s.joints["neck"].state = PREDICTED
+        s2 = _skel(103, 120)
+        s2.joints["neck"].state = PREDICTED
+        out = track.track([s, s2])
+        self.assertEqual(out[1]["track_id"], 1)
+        self.assertEqual(out[1]["state"], "new_track")
+
+    def test_span_fallback_normaliser(self):
+        # torso unmeasured but a body span is: scale the jump by the
+        # measured span times the prior torso fraction, not by the
+        # frame height
+        s = Skeleton(image_width=200, image_height=200)
+        s.set(Joint("head", 100, 20, 0.9, OBSERVED))
+        s.set(Joint("pelvis", 100, 120, 0.9, OBSERVED))
+        s.set(Joint("ankle_l", 100, 220, 0.9, OBSERVED))
+        self.assertAlmostEqual(track._torso(s), 200 * 0.30)
 
     def test_summarize(self):
         frames = ([_skel(50 + i, 120) for i in range(3)]

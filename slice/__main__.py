@@ -24,8 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               pipeline, render, rest, selfcheck, track, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -178,54 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_track(a) -> int:
-    """Track one person across an ordered image directory."""
-    import os
-    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
-    paths = sorted(os.path.join(a.dir, f) for f in os.listdir(a.dir)
-                   if f.lower().endswith(exts)
-                   and os.path.isfile(os.path.join(a.dir, f)))
-    if not paths:
-        print(f"no images under {a.dir}", file=sys.stderr)
-        return 1
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    frames = []
-    skipped = []
-    for p in paths:
-        try:
-            with open(p, "rb") as f:
-                frames.append((p, est.estimate(
-                    bitmap.decode(f.read()), a.model or "adult")))
-        except (bitmap.UnsupportedFormat, OSError) as e:
-            skipped.append({"image": p, "error": str(e)})
-    links = track.track([s for _, s in frames],
-                        max_jump_torso=a.max_jump)
-    for (p, _), link in zip(frames, links):
-        link["image"] = p
-    tid = [l["track_id"] for l in links if l["track_id"] is not None]
-    summary = {
-        "n_frames": len(links),
-        "n_tracks": len(set(tid)) if tid else 0,
-        "n_empty": sum(1 for l in links if l["state"] == "empty"),
-        "n_reacquired": sum(1 for l in links
-                            if l["state"] == "reacquired"),
-        "skipped": skipped,
-    }
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            json.dump({"links": links, "summary": summary}, f,
-                      ensure_ascii=False, indent=2)
-        print(f"wrote {a.output}", file=sys.stderr)
-    else:
-        for l in links:
-            tid_s = "-" if l["track_id"] is None else str(l["track_id"])
-            print(f"{l['frame']:>4}  track={tid_s:>2}  {l['state']:<9}"
-                  f"  {os.path.basename(l['image'])}")
-        print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
-    return 0 if not skipped else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -304,11 +254,17 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -318,6 +274,7 @@ def _cmd_probe(a) -> int:
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
@@ -327,8 +284,12 @@ def _cmd_probe(a) -> int:
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -338,6 +299,7 @@ def _cmd_mirror(a) -> int:
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -367,6 +329,7 @@ def _cmd_mirror(a) -> int:
         "state": "derived",
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
+    }
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
@@ -787,21 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    t = sub.add_parser("track",
-                       help="track one person across an ordered "
-                            "image directory")
-    t.add_argument("dir", help="directory of frames, sorted by name")
-    t.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
-    t.add_argument("--robust", action="store_true",
-                   help="robust estimation profile")
-    t.add_argument("--max-jump", type=float, default=0.8,
-                   dest="max_jump",
-                   help="max pelvis displacement per frame, in torso "
-                        "units (default 0.8)")
-    t.add_argument("-o", "--output",
-                   help="write the full track JSON (links + summary)")
-    t.set_defaults(fn=_cmd_track)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -825,6 +773,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")

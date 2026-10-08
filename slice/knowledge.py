@@ -72,6 +72,11 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
         "export": {
             "keypoints_2d": flat,
             "keypoint_order": JOINTS,
+            # state per keypoint, same order — the flat array alone
+            # can't tell prior fill from evidence
+            "keypoints_state": [
+                joints[n].state if n in joints else "absent"
+                for n in JOINTS],
             "bones": [list(b) for b in BONES],
         },
     }

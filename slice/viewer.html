@@ -27,6 +27,7 @@
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
     margin-right: 6px; vertical-align: -1px; }
   #info { font-size: 12px; color: #aaa; margin-top: 4px; min-height: 3.4em; }
+  #warnings .warn { font-size: 12px; color: #ffb84d; }
   label { display: block; margin-top: 10px; font-size: 12px; color: #aaa; }
 </style>
 </head>
@@ -45,6 +46,7 @@
       <option value="">自動推定</option>
     </select>
   </label>
+  <div id="warnings"></div>
   <h2>Style</h2><div id="style">—</div>
   <h2>Body Model</h2><div id="model">—</div>
   <h2>Ratios</h2><div id="ratios">—</div>
@@ -135,6 +137,18 @@ function render_side() {
   document.getElementById('info').textContent =
     `${obs} observed / ${prd} predicted — facing: ` +
     `${doc.skeleton.orientation.facing || '?'}${poseTxt}`;
+  // doc.warnings carry the thin-evidence codes the pipeline emitted
+  // (unknown_body_model, no_observed_torso, few_observed, ...) — a doc
+  // with caveats must not render identically to a clean one
+  const warns = doc.warnings || [];
+  // textContent, not innerHTML: warnings come from the stored doc
+  const wbox = document.getElementById('warnings');
+  wbox.replaceChildren(...warns.map(w => {
+    const el = document.createElement('div');
+    el.className = 'row warn';
+    el.textContent = String(w);
+    return el;
+  }));
   const st = doc.style || {};
   document.getElementById('style').innerHTML =
     `<div class="row"><span>${st.label||'—'}</span>` +
@@ -149,11 +163,14 @@ function render_side() {
   const R = doc.ratio || {};
   document.getElementById('ratios').innerHTML =
     ['head_to_body','shoulder_width','hip_width','torso_length',
-     'leg_l','leg_r','limb_symmetry']
+     'arm_l','arm_r','leg_l','leg_r','arm_span','leg_to_torso',
+     'limb_symmetry']
     .filter(k => R[k] != null)
     .map(k => `<div class="row"><span>${k}</span><b>${R[k]}</b></div>`).join('');
+  // basis = the audit string saying why each joint sits where it does
   document.getElementById('joints').innerHTML = Object.entries(J)
-    .map(([n,j]) => `<div class="row"><span>${n}</span>` +
+    .map(([n,j]) => `<div class="row" title="${(j.basis||'').replace(/"/g,'')}">` +
+      `<span>${n}</span>` +
       `<span class="tag ${j.state==='observed'?'obs':'pred'}">` +
       `${Math.round(j.confidence*100)}%</span></div>`).join('');
 }

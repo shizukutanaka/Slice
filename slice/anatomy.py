@@ -53,13 +53,17 @@ def select_model(head_to_body: float) -> Tuple[str, float]:
     """Pick the prior whose head ratio is closest to the measurement.
 
     Returns (model_name, confidence 0..1). Confidence decays as the
-    measurement deviates; a perfect match gives ~0.9, never 1.0 — model
-    selection from one silhouette is always uncertain.
+    measurement deviates from the chosen prior AND as the runner-up
+    approaches — a reading near the boundary between two models is
+    honest ambiguity, not a confident pick.
     """
-    best, best_err = DEFAULT_MODEL, float("inf")
-    for name, m in BODY_MODELS.items():
-        err = abs(head_to_body - m["head_ratio"])
-        if err < best_err:
-            best, best_err = name, err
-    conf = max(0.2, min(0.9, 0.9 - best_err * 6))
-    return best, round(conf, 3)
+    ranked = sorted(BODY_MODELS.items(),
+                    key=lambda kv: abs(head_to_body - kv[1]["head_ratio"]))
+    best_name, best = ranked[0]
+    best_err = abs(head_to_body - best["head_ratio"])
+    margin = abs(head_to_body - ranked[1][1]["head_ratio"]) - best_err
+    conf = 0.9 - best_err * 6
+    # Boundaries: halfway between the two nearest head ratios the pick
+    # is a coin flip — decay toward the ambiguity floor accordingly.
+    conf = min(conf, 0.5 + margin * 4)
+    return best_name, round(max(0.2, min(0.9, conf)), 3)

@@ -4,13 +4,13 @@ from tests import synthetic_person
 
 from slice import angles
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 
 
 def _skel(joints):
     s = Skeleton(100, 100)
     for n, xy in joints.items():
-        s.set(Joint(n, xy[0], xy[1], 0.8))
+        s.set(Joint(n, xy[0], xy[1], 0.8, OBSERVED))
     return s
 
 

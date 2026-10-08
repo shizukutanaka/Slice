@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
+  #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
+  `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
+  混入し続けていた残件（obs版の死行も併せて除去）。
+- limbs: `of_body_h` の正規化子を観測関節のみの垂直スパンに修正 —
+  predicted の頭/足がプライア位置で身体スパンを伸縮させ、「計測
+  された」肢長比率が推測を分母にしていた欠陥を解消（全関節
+  predicted では None を返す）。
+- angles: predicted関節を含む角度を「計測値」として出力していた
+  欠陥を修正。プライア配置の四肢は構造的に~180°に伸びるため
+  elbow_flex等が捏造計測値になっていた（実測 175.8°）。
+  全端点observedの角度のみ出力、predictedは欠損扱いで省略。
+
 - ik: `solve_ik` が退化セグメント（L1/L2 が0以下）でドキュメント
   契約通り `None` を返すよう修正。これまでは骨長ゼロのチェーンに
   対して 1e-6px の捏造 mid/end を返していた — 「解くべきチェーンが
@@ -26,6 +39,17 @@
 - norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
 - knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
 - basis: 先頭1語だけが一致するbasisをobservationと誤分類する穴を修正（完全な観測語彙prefixのみ許容 — 捏造由来の証拠なりすまし防止）
+- knowledge: get()がファイル名と内部idの不整合をKeyErrorで拒否（k_A.jsonが別idを名乗る破損docを誤同一視していた穴を解消）
+- framepos: bounds/headroomをobserved関節のみで計測。
+  predicted関節（"foot below ankle"プライア等）が関節クラウド
+  bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
+  （実測 footroom 0.037→0.014）。predictedは欠損扱い。
+- pose: 股より下の腕を「底行到達連結性」で脚と判別 — 従来のx重複
+  足判定は広い足（しゃがみ/開脚/足開き）に隣接する腕を脚と誤認し
+  腕を股で切断（手首が腰高に浮く計測誤差）。ランのx帯を下方向に
+  追跡し底行に届くもののみ脚とする。`tests.crouch_person`で回帰
+  ガード（wrist 197→239pxへ復帰）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

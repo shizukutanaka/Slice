@@ -4,6 +4,8 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
+
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
 
 - `slice imgqual <image>` — imgqual層のCLI接続。推定前段の画像証拠適格性（size/dynamic/blur/contrastの4計測フラグ→adequate/marginal/inadequate）。inadequateは exit 1。

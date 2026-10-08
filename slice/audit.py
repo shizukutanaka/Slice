@@ -87,6 +87,28 @@ def audit(doc: dict) -> dict:
             "detail": "pose label '%s' asserted on %.0f%% evidence"
                       % (doc["pose"]["label"], obs_frac * 100)})
 
+    # warnings-block lint: a warning code that contradicts the joint
+    # states it describes is a stale claim — consumers treat warnings
+    # as the doc's own account of its evidence, so a wrong one
+    # misleads them exactly like a stale basis.
+    obs_set = {n for n, j in joints.items()
+               if isinstance(j, dict) and j.get("state") == OBSERVED}
+    backed = {
+        "few_observed_joints": len(obs_set) < 8,
+        "no_observed_wrists":
+            not any(n.startswith("wrist") for n in obs_set),
+        "no_observed_feet":
+            not any(n.startswith(("ankle", "foot")) for n in obs_set),
+    }
+    stale = sorted(w for w in (doc.get("warnings") or [])
+                   if w in backed and not backed[w])
+    if stale:
+        warnings.append({
+            "code": "stale_warning",
+            "detail": "warning codes contradicted by joint states: "
+                      + ", ".join(stale),
+            "warnings": stale})
+
     score = 1.0 - 0.15 * len(warnings) - (0.5 if errors else 0)
     return {
         "errors": errors,

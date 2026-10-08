@@ -11,8 +11,9 @@ class TestRatio(unittest.TestCase):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         r = ratio.analyze(sk, centroid=sk.centroid)
         self.assertNotIn("error", r)
-        self.assertGreater(r["head_to_body"], 2)
-        self.assertLess(r["head_to_body"], 20)
+        # clavicle-neck convention: body_h/head ≈ 6 (±estimator slack)
+        self.assertGreater(r["head_to_body"], 4)
+        self.assertLess(r["head_to_body"], 12)
         for k in ("shoulder_width", "hip_width", "torso_length"):
             self.assertIsNotNone(r[k], k)
         self.assertIsNotNone(r["center_of_mass"])
@@ -27,9 +28,9 @@ class TestRatio(unittest.TestCase):
         sk = HeuristicPoseEstimator().estimate(bmp)
         base = ratio.analyze(sk)["arm_span"]
         # manually spread the wrists wider
-        from slice.skeleton import Joint
-        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9)
-        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9)
+        from slice.skeleton import Joint, OBSERVED
+        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9, OBSERVED)
+        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9, OBSERVED)
         wide = ratio.analyze(sk)["arm_span"]
         self.assertGreater(wide, base)
 

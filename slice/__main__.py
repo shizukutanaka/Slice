@@ -26,6 +26,9 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, evid, knowledge,
+               limbcov, mask as mask_mod, pipeline, render, rest, selfcheck,
+               stability, trust)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -626,6 +629,31 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_trust(a) -> int:
+    """Per-joint trust grades (evid + stability inputs)."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    # joints live in the estimator's downscaled frame — mask too
+    small = bmp.downscale(est.max_dim)
+    evidence = evid.locate(
+        skel, mask_mod.foreground(small, est))
+    stability_res = stability.probe(bmp, est, a.model or "adult")
+    res = trust.grade(skel, stability=stability_res,
+                      evidence=evidence)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +912,15 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    tr = sub.add_parser(
+        "trust", help="per-joint trust grades")
+    tr.add_argument("image")
+    tr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    tr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    tr.set_defaults(fn=_cmd_trust)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

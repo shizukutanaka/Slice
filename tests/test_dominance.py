@@ -3,6 +3,7 @@ import unittest
 from tests import synthetic_person
 
 from slice import dominance, skeleton
+from slice import dominance, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -32,6 +33,24 @@ class TestDominance(unittest.TestCase):
         ankle.x = hip[0] - 95
         r = dominance.assess(self.skel)
         self.assertEqual(r["dominant"], "r")
+
+    def test_predicted_knee_fires_no_unloaded_cue(self):
+        # a prior-placed knee must not fabricate an
+        # unloaded-leg cue
+        del self.skel.joints["knee_l"]
+        predict.complete(self.skel)
+        cues = {c["cue"] for c in dominance.cues(self.skel)}
+        self.assertNotIn("unloaded_l", cues)
+
+    def test_predicted_ankles_no_pelvis_cue(self):
+        # predicted ankles can't anchor the pelvis offset —
+        # no centered/shift cue at all
+        for n in ("ankle_l", "ankle_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        cues = {c["cue"] for c in dominance.cues(self.skel)}
+        self.assertNotIn("pelvis_centered", cues)
+        self.assertNotIn("pelvis_shift", cues)
 
     def test_bilateral_flexion_not_dominant(self):
         # a squat flexes both knees: unload cues on both sides must

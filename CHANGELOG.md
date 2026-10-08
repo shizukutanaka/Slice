@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。
 - plumb: plumb line・forward_head・baseをobserved関節のみに
   修正。弦配置のpredicted chestがforward_headの胴体基準を、
   predicted ankleが支持基準offsetを捏造していた → predictedは

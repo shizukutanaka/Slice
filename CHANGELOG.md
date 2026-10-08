@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- contact/dynamics/ground: `or 200.0`の生pxデフォルトを除去
+  （観測スパンが測れない骨格で「近い/幅広/不揃い」の閾値を捏造
+  していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
+  で除算してはならない」に違反していた同型3箇所を一括修正。
+  スケール未測定時は該当判定を発火しない）。
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

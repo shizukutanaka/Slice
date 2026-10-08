@@ -4,6 +4,7 @@ from tests import synthetic_person
 
 from slice import dynamics, predict
 from slice.pose import HeuristicPoseEstimator
+from slice.skeleton import Joint, Skeleton
 
 
 class TestDynamics(unittest.TestCase):
@@ -39,6 +40,17 @@ class TestDynamics(unittest.TestCase):
         self.skel.joints["wrist_r"].x = 5
         cues = [c["cue"] for c in dynamics.cues(self.skel)]
         self.assertNotIn("arm_out_r", cues)
+
+    def test_unmeasurable_scale_skips_wide_step(self):
+        # pelvis + ankles observed, nothing else: the body span is
+        # unmeasurable, so "wide" has no honest denominator — the
+        # cue must not fire on a raw-pixel default.
+        sk = Skeleton(200, 400)
+        sk.set(Joint("pelvis", 100.0, 120.0, 0.9, state="observed"))
+        sk.set(Joint("ankle_l", 40.0, 300.0, 0.9, state="observed"))
+        sk.set(Joint("ankle_r", 160.0, 300.0, 0.9, state="observed"))
+        cues = [c["cue"] for c in dynamics.cues(sk)]
+        self.assertNotIn("wide_step", cues)
 
     def test_empty_skeleton_zero(self):
         for n in list(self.skel.joints):

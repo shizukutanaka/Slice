@@ -59,6 +59,15 @@ class TestKnowledge(unittest.TestCase):
             errors = knowledge.validate(doc)
             self.assertTrue(any(pred[0] in e for e in errors))
 
+    def test_keypoints_state_aligns_with_order(self):
+        doc = analyze_synth()
+        ex = doc["export"]
+        self.assertEqual(len(ex["keypoints_state"]), len(JOINTS))
+        sk = doc["skeleton"]["joints"]
+        for name, st in zip(ex["keypoint_order"], ex["keypoints_state"]):
+            expect = sk[name]["state"] if name in sk else "absent"
+            self.assertEqual(st, expect)
+
     def test_validate_catches_stale_normalized(self):
         doc = pipeline.strip_runtime(analyze_synth())
         norm = doc["skeleton"].get("normalized")

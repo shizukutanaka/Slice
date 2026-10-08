@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+- `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
+
+- `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
+- ratio: predicted関節を含む比率を「計測値」として出力していた
+  欠陥を修正。ミラー/プライア配置の肢は構造的にプライア比率を
+  再現するため、arm_l/limb_symmetry/arm_span等が捏造計測値に
+  （ミラー肢のlimb_symmetryは構造的1.0）。全端点observedのみ
+  計測、predictedはNoneで報告。
+- sample: joints_reportをobserved関節のみに修正。predicted
+  関節位置（プライア補完）で実画素を採取し `wrist_l: covered`
+  等の部位帰属ラベルを捏造していた → predictedはレポート
+  から除外。
+- skeleton: `normalized()` のアンカーをobserved関節のみに
+  修正。predictedのpelvis/neckが正規化の原点・単位になり
+  推測座標がKnowledgeドキュメントに載っていた → アンカーが
+  predictedならブロックごと棄権（None）。
+- pose: 肩上腕（Vポーズ）検出 — 腕プローブの探索開始を肩行から
+  頭帯下端に拡張し、肩より上に上がった腕を捕捉（従来は範囲外で
+  肘/手首が未検出か肩近傍に誤置）。`tests.raised_arms_person`
+  フィクスチャで回帰ガード。
+- compare/dedup: predicted関節がポーズ距離に混入していた欠陥を
+  修正。プライア配置の推測関節を距離計算に含めるとプライアを
+  測るだけ（一致ならdup誤判定、ずれなら虚偽の差分）。両ドキュメント
+  でobservedの関節のみ比較、predictedは欠損扱いで除外。
+
+- skeleton: normalized 各関節に state を同梱（正規化空間で推測位置が観測と区別不能だった欠陥を解消、export.keypoints_state と同契約）
 - selfcheck: 無効なmodel名を`model:unknown_body_model`理由コードで開示（analyze経路と同型のサイレントフォールバックがaudit経路に残留していた欠陥を解消）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
@@ -43,6 +69,19 @@
   プライア直線脚が「stance/knee_angle ~170」として報告されて
   いた。observed関節のみで判定、predictedは欠損扱い（step_width
   も両足observedのみ）。
+- stability/pose: `probe` の摂動が実効閾値に届くよう
+  `threshold_offset` を追加 — adaptive(Otsu) モードでは
+  `bg_threshold` を±10してもOtsu分割が不変で、3ラン同一マスクの
+  「stable」判定を捏造していた欠陥を修正（robust プロファイルで
+  感度が実測されるように）。
+- reid: predicted由来の比率特徴を比較から除外し
+  `predicted_features`/`excluded_predicted`で開示。プライア表で
+  置かれた比率は同一BODY_MODELなら誰でも一致する定数のため、
+  「別人が同じプライアでsame_person」という偽陽性を生んでいた
+- handpos: ゾーン参照点（head/chest/pelvis/knee/hip）を観測関節
+  限定に修正 — 観測 wrist が predicted ランドマークのプライア位置に
+  対してゾーン判定され、推測が身体ゾーン境界を捏造していた欠陥
+  を解消（全参照が predicted ならゾーン未判定、#331 gesture と同型）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

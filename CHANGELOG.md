@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ
   OBSERVED限定ルール）。証拠を主張していない関節に証拠不在を

@@ -77,6 +77,19 @@ class TestReid(unittest.TestCase):
         self.assertEqual(f["joints"]["observed"], 0)
         self.assertGreater(f["joints"]["predicted"], 0)
 
+    def test_predicted_features_not_compared(self):
+        # prior-filled chains produce prior-table constants, not
+        # person evidence — two different skeletons sharing the same
+        # BODY_MODEL would otherwise match on the prior itself
+        skel = _est()
+        for j in skel.joints.values():
+            j.state = "predicted"
+        c = compare(features(skel), features(_est()))
+        self.assertIsNone(c["distance"])
+        self.assertIsNone(c["same_person"])
+        self.assertEqual(c["compared"], 0)
+        self.assertTrue(c["excluded_predicted"])
+
 
 if __name__ == "__main__":
     unittest.main()

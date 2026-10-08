@@ -22,6 +22,10 @@
   頭帯下端に拡張し、肩より上に上がった腕を捕捉（従来は範囲外で
   肘/手首が未検出か肩近傍に誤置）。`tests.raised_arms_person`
   フィクスチャで回帰ガード。
+- compare/dedup: predicted関節がポーズ距離に混入していた欠陥を
+  修正。プライア配置の推測関節を距離計算に含めるとプライアを
+  測るだけ（一致ならdup誤判定、ずれなら虚偽の差分）。両ドキュメント
+  でobservedの関節のみ比較、predictedは欠損扱いで除外。
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 

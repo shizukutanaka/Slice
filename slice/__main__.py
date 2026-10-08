@@ -28,9 +28,6 @@ from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
-||||||| 8b1d0d7
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
@@ -202,7 +199,6 @@ def _cmd_diff(a) -> int:
     return 0
 
 
-||||||| 8b1d0d7
 def _probe_dispatch(layer, skel, mask):
     """layer name -> result dict, or None on unknown layer."""
     if layer == "axis":
@@ -249,17 +245,23 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
         print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
@@ -269,16 +271,22 @@ def _cmd_probe(a) -> int:
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
     except (bitmap.UnsupportedFormat, OSError) as e:
         print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -315,6 +323,8 @@ def _cmd_mirror(a) -> int:
     }
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -453,25 +463,28 @@ def main(argv=None) -> int:
                     help="write the diff JSON to a file")
     di.set_defaults(fn=_cmd_diff)
 
-||||||| 8b1d0d7
     pr = sub.add_parser(
         "probe", help="run one semantic layer on an image")
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)
+
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")
     lc.add_argument("image")

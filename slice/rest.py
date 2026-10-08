@@ -14,6 +14,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -25,7 +26,11 @@ _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
 class Handler(BaseHTTPRequestHandler):
     store: "knowledge.KnowledgeStore" = None  # set by serve()
-    overlays: dict = {}                       # id -> png bytes
+    # read-through cache only — the overlay PNG itself is persisted
+    # beside the doc (see _save_overlay); the dict is bounded so a
+    # long-running server doesn't grow it forever
+    overlays: dict = {}
+    OVERLAY_CACHE_MAX = 128
     token: str = None                         # bearer token; None = open
     server_version = "Slice/" + __version__
 
@@ -92,7 +97,7 @@ class Handler(BaseHTTPRequestHandler):
             self._export(path)
         elif path.startswith("/overlay/"):
             kid = path.rsplit("/", 1)[-1].removesuffix(".png")
-            png = self.overlays.get(kid)
+            png = self._get_overlay(kid)
             if png:
                 self._bytes(png, "image/png")
             else:
@@ -171,9 +176,38 @@ class Handler(BaseHTTPRequestHandler):
             kid = self.store.save(out)
             out["overlay_url"] = f"/overlay/{kid}.png"
             if doc["_skeleton"].joints:
-                self.overlays[kid] = render.overlay_png(
-                    doc["_bitmap"], doc["_skeleton"])
+                self._save_overlay(kid, render.overlay_png(
+                    doc["_bitmap"], doc["_skeleton"]))
         self._json(out)
+
+    def _overlay_path(self, kid: str) -> str:
+        return os.path.join(self.store.root, kid + ".overlay.png")
+
+    def _cache_overlay(self, kid: str, png: bytes) -> None:
+        if len(self.overlays) >= self.OVERLAY_CACHE_MAX:
+            # insertion-ordered dict: drop the oldest entry
+            self.overlays.pop(next(iter(self.overlays)))
+        self.overlays[kid] = png
+
+    def _save_overlay(self, kid: str, png: bytes) -> None:
+        # persist beside the doc (tmp+replace, same as store.save) so
+        # overlay_url survives a restart — memory is just a cache
+        tmp = self._overlay_path(kid) + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(png)
+        os.replace(tmp, self._overlay_path(kid))
+        self._cache_overlay(kid, png)
+
+    def _get_overlay(self, kid: str):
+        png = self.overlays.get(kid)
+        if png is None and re.fullmatch(r"k_[0-9a-f]{12}", kid):
+            try:
+                with open(self._overlay_path(kid), "rb") as f:
+                    png = f.read()
+                self._cache_overlay(kid, png)
+            except OSError:
+                png = None
+        return png
 
     def _analyze_multi(self, raw, qs, model):
         try:
@@ -192,8 +226,8 @@ class Handler(BaseHTTPRequestHandler):
                 kid = self.store.save(out)
                 out["overlay_url"] = f"/overlay/{kid}.png"
                 if d["_skeleton"].joints:
-                    self.overlays[kid] = render.overlay_png(
-                        d["_bitmap"], d["_skeleton"])
+                    self._save_overlay(kid, render.overlay_png(
+                        d["_bitmap"], d["_skeleton"]))
             people.append(out)
         self._json({"people": people, "count": len(people)})
 

@@ -86,6 +86,20 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertTrue(any(jt.basis and "rotated" in jt.basis
                             for jt in j.values()))
 
+    def test_spine_sits_on_torso_axis_not_head(self):
+        """The spine joint is the mirroring axis for predictions.
+        Placing it on the head centroid pulls the axis toward the
+        faced side in profile — where mirrored prediction is needed
+        most. It must track the torso column instead."""
+        for side in (-1, 1):
+            sk = HeuristicPoseEstimator().estimate(
+                profile_person(side=side))
+            sp = sk.joints["spine"]
+            nk, pl = sk.joints["neck"], sk.joints["pelvis"]
+            axis = (nk.x + pl.x) / 2
+            head_x = sk.joints["head"].x
+            self.assertLess(abs(sp.x - axis), abs(head_x - axis))
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

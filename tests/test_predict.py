@@ -66,6 +66,22 @@ class TestPredict(unittest.TestCase):
         self.assertAlmostEqual(sl.x, 2 * 80 - 85, delta=1)
         self.assertNotAlmostEqual(sl.x, 2 * 50 - 85, delta=1)
 
+    def test_basis_names_the_prior_model(self):
+        # prior-derived joints must say which BODY_MODEL table produced
+        # them — "prior off X" alone hid the source anatomy
+        sk = Skeleton(100, 200)
+        from slice.skeleton import Joint
+        sk.set(Joint("shoulder_l", 30, 50, 0.8))
+        predict.complete(sk, model="child")
+        priors = [j for j in sk.joints.values()
+                  if j.basis and j.basis.startswith("prior")]
+        self.assertTrue(priors)
+        for j in priors:
+            self.assertIn("(child)", j.basis)
+        # the basis prefix still classifies the evidence category
+        from slice import basis
+        self.assertEqual(basis.category(sk.get("elbow_l").basis), "prior")
+
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         added = predict.complete(sk)

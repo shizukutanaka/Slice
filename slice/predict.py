@@ -44,8 +44,9 @@ def _spine_x(skel: Skeleton, y: float) -> float:
 
 def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
     """Insert predicted joints for anything missing. Returns the new joints."""
-    name = model or (skel.body_model or {}).get("name") or DEFAULT_MODEL
-    prior = BODY_MODELS.get(name, BODY_MODELS[DEFAULT_MODEL])
+    model_name = (model or (skel.body_model or {}).get("name")
+                  or DEFAULT_MODEL)
+    prior = BODY_MODELS.get(model_name, BODY_MODELS[DEFAULT_MODEL])
     added: List[Joint] = []
 
     top = min((j.y for j in skel.joints.values()), default=0.0)
@@ -62,13 +63,14 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
                       f"mirrored from {peer}")
             skel.set(j)
             return j
-        return _prior_joint(skel, name, prior, body_h)
+        return _prior_joint(skel, name, prior, body_h, model_name)
 
     # Anchors first (shoulders/hips), then distal chain.
     for base in ("shoulder_l", "shoulder_r", "hip_l", "hip_r",
                  "head", "neck", "chest", "pelvis", "spine"):
         if base not in skel.joints:
-            j = predict(base) or _prior_joint(skel, base, prior, body_h)
+            j = predict(base) or _prior_joint(skel, base, prior,
+                                               body_h, model_name)
             if j:
                 added.append(j)
     for stem, chain in _CHAIN.items():
@@ -96,7 +98,7 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
 
 
 def _prior_joint(skel: Skeleton, name: str, prior: dict,
-                 body_h: float) -> Optional[Joint]:
+                 body_h: float, model_name: str) -> Optional[Joint]:
     """Place a joint from anatomy priors when no evidence exists."""
     anchors = {
         "head": ("neck", 0, -prior["head_ratio"]),
@@ -110,7 +112,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
         r = skel.get(ref)
         if r:
             j = Joint(name, r.x + dxr * body_h, r.y + dyr * body_h,
-                      0.2, PREDICTED, f"prior off {ref}")
+                      0.2, PREDICTED, f"prior off {ref} ({model_name})")
             skel.set(j)
             return j
 
@@ -139,7 +141,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
                     name, p.x + (distal.x - p.x) * (frac / total),
                     p.y + (distal.y - p.y) * (frac / total),
                     0.3, PREDICTED,
-                    f"interpolated {parent}-{distal.name}")
+                    f"interpolated {parent}-{distal.name} ({model_name})")
                 skel.set(j)
                 return j
             # arms angle slightly outward, legs drop straight down
@@ -147,7 +149,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
             sign = -1 if side == "l" else 1
             j = Joint(name, p.x + sign * out * body_h,
                       p.y + frac * body_h,
-                      0.2, PREDICTED, f"prior off {parent}")
+                      0.2, PREDICTED, f"prior off {parent} ({model_name})")
             skel.set(j)
             return j
     return None

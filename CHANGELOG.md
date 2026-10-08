@@ -4,6 +4,7 @@
 
 - REST `GET /export/<id>.<fmt>` — 保存ドキュメントの骨格をbvh/gltf/coco/svg/ascii/paf/heatmapで直接ダウンロード。`skeleton.from_dict`（`to_dict`の逆変換）を新設し、Knowledgeドキュメント→Skeleton復元経路を共通化（エクスポート以外のdoc→Skeleton用途にも利用可能）。
 
+- knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
   `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
@@ -20,6 +21,20 @@
 - skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
 - contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）
 - rest: オーバーレイPNGをdoc隣に永続化＋メモリは上限128件の読通キャッシュ（再起動でoverlay_urlが404化＋無制限肥大の修正）
+- consistency: 監査をobserved関節のみに修正。predicted
+  head/feet（プライア補完）がbody extentを捏造し
+  `no_body_extent` を回避して虚構スケールで監査を通過
+  させていた → 部位長/対称チェックは両端observedのみ、
+  extentが全predictedなら `no_body_extent`。
+- gesture: ルールの参照点（head/pelvis/hip/shoulder）を観測関節
+  限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
+  ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
+  とhands_on_hipsの参照が推測で構成されなくなった）。
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
+
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
   worst関節がベンチゲート(10px)超なら exit 1。

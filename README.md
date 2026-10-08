@@ -63,10 +63,15 @@ python3 -m slice serve --port 8000
 Import → Pose(シルエット推定) → Skeleton
        → Prediction(対称+プライアで欠損補完)
        → Ratio(頭身/肩幅/脚長/重心/対称性)
+       → Pose Classification(立つ/座る/歩く/走る/寝る/しゃがむ)
        → Knowledge(slice.knowledge/v1 JSON) → Export
 ```
 
 ## モジュール
+
+70+モジュールが関心事で層分けされている。どれも stdlib のみ。
+
+**コア（画像→骨格→知識）**
 
 | ファイル | 責務 |
 |---|---|
@@ -76,12 +81,50 @@ Import → Pose(シルエット推定) → Skeleton
 | `slice/pose.py` | PoseEstimatorポート + シルエットヒューリスティック |
 | `slice/anatomy.py` | 統計的人体モデル（成人/子供/デフォルメ）+ 選択 |
 | `slice/predict.py` | 欠損推定（対称ミラー → プライア配置） |
-| `slice/ratio.py` | 比率解析（頭身・四肢長・重心・対称性） |
-| `slice/knowledge.py` | Knowledge JSON v1 構築・検証・ファイルストア |
-| `slice/render.py` | 骨格オーバーレイ描画 |
-| `slice/rest.py` | REST API（http.server） |
-| `slice/viewer.html` | 2Dスケルトンビューア |
+| `slice/knowledge.py` | Knowledge JSON 構築・検証・ファイルストア |
 | `slice/pipeline.py` | CLI/REST共通の解析パイプライン |
+| `slice/rest.py` / `slice/viewer.html` / `slice/__main__.py` | REST API・ビューア・CLI |
+
+**姿勢・形態の意味レイヤ（骨格ベース）**
+
+`angles`（関節角度） `axis`（体軸PCA） `balance`（重心×支持多角形）
+`classify`（姿勢分類） `contact`（自己接触） `dominance`（荷重優位側）
+`dynamics`（運動含意） `framepos`（構図） `gait`（歩行位相）
+`gesture`（ジェスチャ） `ground`（地面/接地） `handpos`（手の位置）
+`horizon`（カメラロール） `limbs`（四肢長） `occlusion`（欠損理由）
+`plumb`（鉛直整列） `reach`（リーチ包絡） `rom`（可動域監査）
+`spine`（脊柱カーブ） `symmetry`（左右対称） `ratio`（比率）
+`mass`（体重推定） `style`（スタイル推定）
+
+**シルエット形状・前処理**
+
+`contour`（輪郭） `distfield`（肢体太さ） `mask`（前景マスク）
+`topology`（穴/位相） `autocrop`（クロップ提案） `crop` / `pad`
+（画像変換） `mirror` / `mutate` / `norm`（座標・反転・変換）
+
+**時系列・同一人物・照合**
+
+`motion`（フレーム間移動） `smooth`（軌跡平滑） `reid`（人物再同定）
+`compare`（ポーズ距離） `signature`（ポーズ指紋）
+
+**評価・QA・データセット**
+
+`evaluate`（正解フィクスチャ） `oks`（COCO類似度） `bench`（回帰ゲート）
+`audit`（誠実性リント） `consistency`（骨格健全性） `stats`（死角集計）
+`diff`（ドキュメント差分） `dedup`（近重複） `dataset` / `bundle`
+（エクスポート/配布） `diag`（失敗診断）
+
+**描画・出力**
+
+`render`（PNGオーバーレイ） `svg`（ベクター） `ascii`（ターミナル）
+`heatmap` / `paf`（OpenPose式場） `sheet`（コンタクトシート）
+`describe`（自然言語説明）
+
+**3D・外部形式**
+
+`lift`（擬似3D） `rig`（骨ツリー） `retarget`（ポーズ転写）
+`ik`（2-bone IK） `scale`（実寸換算） `bvh` / `gltf` / `coco`
+（標準形式エクスポート） `sample`（部位色） `segment`（部位ラベル）
 
 ## テスト
 

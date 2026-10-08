@@ -79,6 +79,14 @@ class TestBitmap(unittest.TestCase):
         small = bmp.downscale(100)
         self.assertLessEqual(max(small.width, small.height), 100)
 
+    def test_get_out_of_frame_raises(self):
+        # negative coords used to wrap to the image tail — silent
+        # fabrication; now every out-of-frame read fails loudly
+        bmp = bitmap.Bitmap.new(8, 8, (1, 2, 3, 255))
+        for x, y in ((-1, 0), (0, -1), (8, 0), (0, 8)):
+            with self.assertRaises(IndexError):
+                bmp.get(x, y)
+
 
 if __name__ == "__main__":
     unittest.main()

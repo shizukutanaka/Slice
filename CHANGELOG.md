@@ -22,6 +22,10 @@
   していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
   反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
   フレーム外は初期化背景を保持。
+- limbs: `delta`（左右差）は両側が完全計測の場合のみ報告 —
+  片側が中間関節欠損で弦化（partial）した肢長を完全計測値と
+  直接比較すると、弦の短縮分を「左右非対称」として捏造して
+  いた（#222のpartial開示が出揃った後の比較側の対応）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

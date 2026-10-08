@@ -10,7 +10,9 @@ from the camera. `lift` assigns every joint (x, y, z):
   shoulder width (they sit behind the sagittal plane)
 
 Every z is tagged with its basis ("no_depth_cue" / "facing_side")
-so consumers know the depth is a prior, not a measurement.
+so consumers know the depth is a prior, not a measurement. Each
+entry also carries the joint's `state` — x,y of a predicted joint
+are prior fill, distinguishable from observed coordinates.
 """
 
 from __future__ import annotations
@@ -53,7 +55,8 @@ def lift(skel: Skeleton) -> Dict[str, dict]:
                 if left != far_left:
                     z, basis = half, "facing_side"
         out[name] = {"x": round(j.x, 1), "y": round(j.y, 1),
-                     "z": round(z, 1), "basis": basis}
+                     "z": round(z, 1), "basis": basis,
+                     "state": j.state}
     return out
 
 

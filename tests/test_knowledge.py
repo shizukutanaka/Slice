@@ -93,6 +93,18 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_store_list_skips_id_mismatch(self):
+        # a file k_A.json claiming {"id": "k_B"} lists a doc that get()
+        # can never return — filename is the identity, drop the phantom
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            path = os.path.join(d, "k_aaaaaaaaaaaa.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"id": "k_bbbbbbbbbbbb",
+                           "skeleton": {"body_model": {"name": "adult"}}},
+                          f)
+            self.assertEqual(store.list(), [])
+
     def test_store_get_rejects_id_mismatch(self):
         # a file named k_A.json containing {"id": "k_B"} is corruption,
         # not the document asked for — get() must not return it under

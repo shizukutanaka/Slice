@@ -5,6 +5,7 @@
 - scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
   首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
   計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+- knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
   `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
@@ -26,6 +27,14 @@
   `no_body_extent` を回避して虚構スケールで監査を通過
   させていた → 部位長/対称チェックは両端observedのみ、
   extentが全predictedなら `no_body_extent`。
+- gesture: ルールの参照点（head/pelvis/hip/shoulder）を観測関節
+  限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
+  ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
+  とhands_on_hipsの参照が推測で構成されなくなった）。
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
 
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。

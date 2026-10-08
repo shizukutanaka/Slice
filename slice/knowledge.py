@@ -170,7 +170,8 @@ def _list_entry(doc: dict) -> dict:
     bm = skel.get("body_model") if isinstance(skel, dict) else None
     return {"id": doc.get("id"),
             "created_at": doc.get("created_at"),
-            "body_model": bm.get("name") if isinstance(bm, dict) else None}
+            "body_model": bm.get("name") if isinstance(bm, dict)
+            else None}
 
 
 class KnowledgeStore:
@@ -250,24 +251,8 @@ class KnowledgeStore:
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
-            if ent is not None and ent.get("id") != kid:
-                # a cached entry whose id disagrees with the filename
-                # names a document that can never be retrieved — drop
-                # it and let the file itself be judged below
-                healed = True
-                ent = None
-            if ent is not None:
-                # a file rewritten after the index was built leaves a
-                # stale entry — re-read it so list() never reports a
-                # document that no longer exists on disk
-                try:
-                    if os.path.getmtime(
-                            os.path.join(self.root, fn)) < index_mtime:
-                        out.append(ent)
-                        continue
-                except OSError:
-                    pass
-                ent = None
+            if ent is not None and not isinstance(ent, dict):
+                ent = None  # hand-edited index row: rebuild from doc
             if ent is None:
                 healed = True
                 try:
@@ -280,10 +265,14 @@ class KnowledgeStore:
                     # filename is the document's identity — a file that
                     # claims another id is corruption, not a listable doc
                     continue
-                ent = _list_entry(d)
+                try:
+                    ent = _list_entry(d)
+                except (AttributeError, TypeError):
+                    continue
             out.append(ent)
         if healed or entries:  # index was missing/stale -> rewrite it
-            known = {e.get("id"): e for e in out if e.get("id")}
+            known = {e.get("id"): e for e in out
+                     if isinstance(e, dict) and e.get("id")}
             try:
                 with open(self._index_path(), "w", encoding="utf-8") as f:
                     json.dump({"schema": "slice.index/v1",

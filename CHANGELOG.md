@@ -15,6 +15,7 @@
 - bundle: unpackが破損zipメンバー（zlib/BadZipFile/非UTF8）をskip（1件の破損で全体が死ぬ経路を解消）
 - norm: 変換がcentroidも写像（関節だけ動かしてcentroidを旧フレーム座標のまま残し`ratio.analyze`等へ陳腐座標を流していた欠陥を解消）
 - norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
+- knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

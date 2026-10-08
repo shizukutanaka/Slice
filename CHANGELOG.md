@@ -15,6 +15,7 @@
   elbow_flex等が捏造計測値になっていた（実測 175.8°）。
   全端点observedの角度のみ出力、predictedは欠損扱いで省略。
 
+- skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
   worst関節がベンチゲート(10px)超なら exit 1。

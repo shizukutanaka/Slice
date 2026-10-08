@@ -6,6 +6,10 @@
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）
 - bundle: unpackも同様に耐性化（validate raiseのmemberをskip）＋manifestが非dictをValueErrorで明示拒否
+- bitmap: `get`の負座標がPython負インデックスで画像末尾行を
+  巻き戻り読み取り、不在画素を実データとして返していた
+  フェイルオープンを修正 — 全OOB読み取りはIndexErrorに
+
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

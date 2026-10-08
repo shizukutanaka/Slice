@@ -1,6 +1,7 @@
 import unittest
 
-from tests import crouch_person, synthetic_person, wide_hand_person
+from tests import (crouch_person, raised_arms_person,
+                   synthetic_person, wide_hand_person)
 
 from slice.bitmap import Bitmap
 from slice.pose import HeuristicPoseEstimator
@@ -66,6 +67,49 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(j["wrist_l"].state, OBSERVED)
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
+
+    def test_raised_arms_detected(self):
+        """V-pose: arms above the shoulder line must still surface —
+        the scan starts below the head band, not at the shoulder row."""
+        skel = HeuristicPoseEstimator().estimate(raised_arms_person())
+        j = skel.joints
+        for side in ("l", "r"):
+            self.assertEqual(j[f"wrist_{side}"].state, OBSERVED, side)
+            self.assertEqual(j[f"elbow_{side}"].state, OBSERVED, side)
+            # raised wrist sits above the shoulder row, not dangling
+            self.assertLess(j[f"wrist_{side}"].y,
+                            j[f"shoulder_{side}"].y, side)
+            if side == "l":
+                self.assertLess(j["wrist_l"].x, j["shoulder_l"].x)
+            else:
+                self.assertGreater(j["wrist_r"].x, j["shoulder_r"].x)
+
+    def test_asymmetric_raised_arm_partial_detection(self):
+        """One arm raised, other dangling: raised side detected above
+        the shoulder row and the dangling side stays detected."""
+        bmp = synthetic_person()
+        w, h = bmp.width, bmp.height
+        cx = w // 2
+        tw = w * 0.34
+        sh_y = h * 0.22
+        bg = bmp.get(1, 1)
+        skin = bmp.get(cx, int(sh_y) + 2)
+        for y in range(int(sh_y) + 6, int(h * 0.75)):
+            for x in range(int(cx - tw / 2 - 10), int(cx - tw / 2 - 2)):
+                bmp.set(x, y, bg)
+        tip_y = w * 0.11 + 12
+        for i in range(40):
+            t = i / 40
+            x0 = int(cx - tw / 2 - t * (cx - tw / 2 - 14))
+            y0 = int(sh_y + 6 - t * (sh_y - tip_y))
+            for dy in range(6):
+                for dx in range(6):
+                    bmp.set(x0 + dx, y0 + dy, skin)
+        j = HeuristicPoseEstimator().estimate(bmp).joints
+        self.assertEqual(j["wrist_l"].state, OBSERVED)
+        self.assertLess(j["wrist_l"].y, j["shoulder_l"].y)
+        self.assertEqual(j["wrist_r"].state, OBSERVED)
+        self.assertGreater(j["wrist_r"].y, j["shoulder_r"].y)
 
     def test_crouch_dangling_wrist_not_amputated(self):
         """Wide flat feet used to swallow the below-crotch arm band

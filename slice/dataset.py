@@ -23,6 +23,8 @@ import io
 import json
 from typing import Iterable, List
 
+from .knowledge import validate
+
 SUMMARY_FIELDS = [
     "id", "created_at", "body_model", "source_name", "source_sha256",
     "frame_w", "frame_h", "n_joints", "n_observed", "n_predicted",
@@ -38,10 +40,18 @@ def from_store(store) -> List[dict]:
     """Load every valid document a KnowledgeStore can read."""
     docs = []
     for entry in store.list():
+        kid = entry.get("id")
+        if not isinstance(kid, str):
+            continue  # hand-dropped dict without an id
         try:
-            docs.append(store.get(entry["id"]))
+            doc = store.get(kid)
         except (KeyError, OSError, json.JSONDecodeError):
             continue
+        # A file edited after save, or dropped in by hand, must not
+        # leak into exports: only schema-valid documents count.
+        if not isinstance(doc, dict) or validate(doc):
+            continue
+        docs.append(doc)
     return docs
 
 
@@ -110,5 +120,5 @@ def to_csv(docs: Iterable[dict], *, joints: bool = False) -> str:
 
 def to_jsonl(docs: Iterable[dict]) -> str:
     """Raw Knowledge docs, one JSON object per line."""
-    return "\n".join(
-        json.dumps(d, ensure_ascii=False) for d in docs) + "\n"
+    return "".join(json.dumps(d, ensure_ascii=False) + "\n"
+                   for d in docs)

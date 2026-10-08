@@ -79,7 +79,43 @@ class TestDataset(unittest.TestCase):
         text = to_csv([])
         rows = list(csv.reader(io.StringIO(text)))
         self.assertEqual(len(rows), 1)
-        self.assertEqual(to_jsonl([]), "\n")
+        self.assertEqual(to_jsonl([]), "")
+
+    def test_non_object_store_file_is_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            d = _doc()
+            store.save(d)
+            # valid JSON, wrong shape: a list, not a document
+            with open(os.path.join(tmp, "junk.json"), "w") as f:
+                f.write("[]")
+            docs = from_store(store)
+            self.assertEqual([x["id"] for x in docs], [d["id"]])
+
+    def test_no_id_doc_is_skipped_not_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            d = _doc()
+            store.save(d)
+            # hand-placed valid dict with no id: list() emits an entry
+            # whose id is None — store.get(None) would raise TypeError
+            with open(os.path.join(tmp, "k_eeeeeeeeeeee.json"),
+                      "w") as f:
+                json.dump({"skeleton": {}}, f)
+            docs = from_store(store)
+            self.assertEqual([x["id"] for x in docs], [d["id"]])
+
+    def test_invalid_schema_doc_is_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            d = _doc()
+            store.save(d)
+            # hand-placed file with a valid id but no schema fields
+            with open(os.path.join(tmp, "k_ffffffffffff.json"),
+                      "w") as f:
+                json.dump({"id": "k_ffffffffffff", "skeleton": {}}, f)
+            docs = from_store(store)
+            self.assertEqual([x["id"] for x in docs], [d["id"]])
 
 
 if __name__ == "__main__":

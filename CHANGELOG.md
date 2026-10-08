@@ -19,6 +19,12 @@
 - selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
 - rig: predicted端点を持つ骨に state="predicted" を開示（推測構造を観測解剖学と区別不能にしていた欠陥）
 - skeleton: Joint.stateのデフォルトをpredictedに（フェイルオープン修正—state未指定で観測を捏造する穴。観測主張は明示必須）
+- audit: docの`warnings`ブロックを監査対象に追加。関節stateと
+  矛盾する警告コード（例: 観測8件以上なのに
+  `few_observed_joints`）を `stale_warning` として報告。
+  陳腐な警告申告が消費者を誤誘導する経路を遮断。
+  語彙外コードは外部語彙として据え置き（stale扱いしない）。
+
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが

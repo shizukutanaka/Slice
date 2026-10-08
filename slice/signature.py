@@ -33,13 +33,13 @@ def signature(skel: Skeleton) -> List[float]:
         else:
             vec += [0.0, 0.0]
     # scalars: torso lean, arm spread (wrist span / body height),
-    # leg spread (ankle gap / body height), facing symmetry
-    head = skel.point("head")
-    feet = [p for p in (skel.point("foot_l"), skel.point("foot_r"))
-            if p]
-    body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 1.0
+    # leg spread (ankle gap / body height), facing symmetry —
+    # like the bone vectors, only observed joints may feed them:
+    # a predicted head/neck/pelvis would write prior geometry into
+    # the fingerprint as if it were measured
+    head = obs("head")
+    feet = [p for p in (obs("foot_l"), obs("foot_r")) if p]
     neck, pelvis = obs("neck"), obs("pelvis")
-    neck, pelvis = skel.point("neck"), skel.point("pelvis")
     body_h = (max(f[1] for f in feet) - head[1]) if head and feet else 0.0
     if body_h <= 1e-6:
         # feet missing or the figure is inverted — normalise by the

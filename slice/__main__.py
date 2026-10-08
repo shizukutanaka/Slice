@@ -26,6 +26,8 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, dataset, evaluate, knowledge,
+               limbcov, motion, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -626,6 +628,57 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_dataset(a) -> int:
+    """Export a KnowledgeStore as CSV or JSONL."""
+    docs = dataset.from_store(knowledge.KnowledgeStore(a.store))
+    if a.format == "csv":
+        text = dataset.to_csv(docs)
+    elif a.format == "csv-joints":
+        text = dataset.to_csv(docs, joints=True)
+    else:
+        text = dataset.to_jsonl(docs)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"wrote {a.output} ({len(docs)} docs)",
+              file=sys.stderr)
+    else:
+        print(text, end="")
+    return 0
+
+
+def _cmd_motion(a) -> int:
+    """Frame-to-frame joint motion between two images."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not (skels[0].joints and skels[1].joints):
+        print("no person in one or both frames", file=sys.stderr)
+        return 1
+    res = motion.summarize(*skels,
+                           min_confidence=a.min_confidence)
+    res["vectors"] = {
+        n: {"dx": round(v[0], 2), "dy": round(v[1], 2),
+            "speed": v[2]}
+        for n, v in motion.vectors(
+            *skels, min_confidence=a.min_confidence).items()}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +937,30 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    ds = sub.add_parser(
+        "dataset", help="export a KnowledgeStore as CSV or JSONL")
+    ds.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore directory")
+    ds.add_argument("--format", default="csv",
+                    choices=["csv", "csv-joints", "jsonl"])
+    ds.add_argument("-o", "--output",
+                    help="output file (default: stdout)")
+    ds.set_defaults(fn=_cmd_dataset)
+
+    mo = sub.add_parser(
+        "motion", help="joint motion between two frame images")
+    mo.add_argument("a")
+    mo.add_argument("b")
+    mo.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mo.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mo.add_argument("--min-confidence", type=float, default=0.0,
+                    dest="min_confidence",
+                    help="skip joints below this confidence")
+    mo.add_argument("-o", "--output", help="write the motion JSON")
+    mo.set_defaults(fn=_cmd_motion)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

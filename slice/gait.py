@@ -31,11 +31,21 @@ def _knee_angle(hip: Point, knee: Point, ankle: Point) -> float:
     return math.degrees(math.acos(cos))
 
 
+def _obs(skel: Skeleton, name: str) -> Optional[Point]:
+    """Observed-only lookup: a predicted joint is prior fill — a
+    straight-leg prior would fabricate "stance" phase cues, so it is
+    excluded like a missing joint."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def leg_phase(skel: Skeleton, side: str) -> dict:
     """{phase, knee_angle, reasons} for leg_l/leg_r."""
-    hip = skel.point(f"hip_{side}")
-    knee = skel.point(f"knee_{side}")
-    ankle = skel.point(f"ankle_{side}")
+    hip = _obs(skel, f"hip_{side}")
+    knee = _obs(skel, f"knee_{side}")
+    ankle = _obs(skel, f"ankle_{side}")
     out = {"phase": "unknown", "knee_angle": None, "reasons": []}
     if not hip or not ankle:
         out["reasons"].append("missing_joints")
@@ -72,8 +82,8 @@ def assess(skel: Skeleton) -> dict:
     legs: Dict[str, dict] = {}
     for side in ("l", "r"):
         legs[side] = leg_phase(skel, side)
-    al, ar = skel.point("ankle_l"), skel.point("ankle_r")
-    hl, hr = skel.point("hip_l"), skel.point("hip_r")
+    al, ar = _obs(skel, "ankle_l"), _obs(skel, "ankle_r")
+    hl, hr = _obs(skel, "hip_l"), _obs(skel, "hip_r")
     step = None
     if al and ar:
         hw = abs(hr[0] - hl[0]) if hl and hr else None

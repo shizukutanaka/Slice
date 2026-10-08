@@ -22,6 +22,30 @@
   していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
   反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
   フレーム外は初期化背景を保持。
+- mutate: `crop` が負・範囲外の起点でフレーム外領域に画素を捏造
+  していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
+  反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
+  フレーム外は初期化背景を保持。
+- limbs: `delta`（左右差）は両側が完全計測の場合のみ報告 —
+  片側が中間関節欠損で弦化（partial）した肢長を完全計測値と
+  直接比較すると、弦の短縮分を「左右非対称」として捏造して
+  いた（#222のpartial開示が出揃った後の比較側の対応）。
+- lift: z深度スケール（肩/腰幅の半分）を観測ペアのみから計測。
+  predicted端点はプライア幾何のため、借用するとモデル表の幅が
+  計測値としてz軸に書き込まれていた（#330のof_body_hと同型）
+
+- consensus: 全関節predictedの骨格を`state:observed`と虚偽報告していた欠陥を修正（1件以上observedで初めてobserved、joints有りではpredicted）
+- segment: predicted骨が前景ピクセルに部位ラベルを付けていた
+  欠陥を修正。プライア配置の骨は測定ではないため、両端点が
+  observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
+- fit: 説明済み画素の計測をobserved関節のみに修正。predicted骨
+  （プライア直線四肢）がシルエット画素を「説明済み」に水増し
+  し、全腕predictedでもfractionが0.80→0.81に改善したかのように
+  報告していた → predicted骨/関節はカバレッジから除外。
+- gait: predicted関節を含む脚の位相キューをunknownに修正。
+  プライア直線脚が「stance/knee_angle ~170」として報告されて
+  いた。observed関節のみで判定、predictedは欠損扱い（step_width
+  も両足observedのみ）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

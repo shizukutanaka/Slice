@@ -10,6 +10,11 @@
   （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
   左右を反転補正。回転フレームの向きを原画像座標の値として
   誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+- knowledge/migrate: exportブロックに`keypoints_state`追加。
+  フラット `keypoints_2d` は [x,y,conf] のみでpredicted関節が
+  観測と区別不能だった → keypoint_orderと整合する
+  observed/predicted/absent配列を同梱。migrateは旧docへ
+  `keypoints_state_backfilled` として開示的に補完。
 
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —

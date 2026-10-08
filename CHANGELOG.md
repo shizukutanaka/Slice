@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- predict: ミラー対称軸のフォールバックを画像中心→成分重心に変更。
+  体幹関節未観測のオフセンター人物で、画像中央に鏡像を置き
+  反対側の体を空想位置に出していた欠陥を修正（計測された
+  centroidを軸として使用）
 - pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ

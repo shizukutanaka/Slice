@@ -52,6 +52,20 @@ class TestPredict(unittest.TestCase):
         # the straight prior drop would have kept x near shoulder+x
         self.assertLess(el.x, 30)
 
+    def test_mirror_axis_uses_centroid_not_image_center(self):
+        # a right-of-centre figure with only a shoulder observed:
+        # mirroring about the IMAGE centre (x=50) would plant the
+        # counterpart in empty space; the measured component centroid
+        # is the honest axis
+        sk = Skeleton(100, 200, centroid=(80, 100))
+        from slice.skeleton import Joint
+        sk.set(Joint("shoulder_r", 85, 60, 0.8, OBSERVED))
+        predict.complete(sk)
+        sl = sk.get("shoulder_l")
+        self.assertEqual(sl.state, PREDICTED)
+        self.assertAlmostEqual(sl.x, 2 * 80 - 85, delta=1)
+        self.assertNotAlmostEqual(sl.x, 2 * 50 - 85, delta=1)
+
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         added = predict.complete(sk)

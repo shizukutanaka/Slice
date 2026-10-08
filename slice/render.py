@@ -21,20 +21,15 @@ WHITE = (255, 255, 255, 255)
 GREEN = (80, 220, 120, 255)  # facing indicator — not a state color
 
 
-def _line(bmp: Bitmap, x0, y0, x1, y1, rgba, dash=False):
+def _line(bmp: Bitmap, x0, y0, x1, y1, rgba):
     x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
     dx, dy = abs(x1 - x0), -abs(y1 - y0)
     sx, sy = (1 if x0 < x1 else -1), (1 if y0 < y1 else -1)
     err = dx + dy
-    step = 0
     while True:
-        step += 1
-        # 2-on/2-off: the 2px brush covers each skipped column's
-        # neighbor, so skipping single steps would stay solid.
-        if not dash or step % 4 < 2:
-            for ox in (-1, 0):
-                for oy in (-1, 0):
-                    bmp.set(x0 + ox, y0 + oy, rgba)
+        for ox in (-1, 0):
+            for oy in (-1, 0):
+                bmp.set(x0 + ox, y0 + oy, rgba)
         if x0 == x1 and y0 == y1:
             return
         e2 = 2 * err
@@ -118,24 +113,12 @@ def _draw(out: Bitmap, skel: Skeleton,
         pa, pb = pt(a), pt(b)
         if not pa or not pb:
             continue
-        ja, jb = skel.get(a), skel.get(b)
-        color = (BLUE if ja.state == OBSERVED
-                 and jb.state == OBSERVED else ORANGE)
-        # Low-confidence links get dashed — the picture carries the
-        # same uncertainty the JSON records.
-        _line(out, pa[0], pa[1], pb[0], pb[1], color,
-              dash=min(ja.confidence, jb.confidence) < 0.55)
-    base = max(2, bmp.width // 160)
         both_obs = (skel.get(a).state == OBSERVED
                     and skel.get(b).state == OBSERVED)
         color = strong if both_obs else faint
         draw = _line if both_obs else _line_dashed
         draw(out, pa[0], pa[1], pb[0], pb[1], color)
     for j in skel.joints.values():
-        color = BLUE if j.state == OBSERVED else ORANGE
-        r = max(2, round(base * (0.5 + j.confidence)))
-        _disc(out, j.x * sx, j.y * sy, r, color)
-        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
         r = max(2, out.width // 160)
         if j.state == OBSERVED:
             _disc(out, j.x * sx, j.y * sy, r, strong)

@@ -4,6 +4,10 @@
 
 - `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
 
+- `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
+
+- `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
+
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）
@@ -28,6 +32,35 @@
   片側が中間関節欠損で弦化（partial）した肢長を完全計測値と
   直接比較すると、弦の短縮分を「左右非対称」として捏造して
   いた（#222のpartial開示が出揃った後の比較側の対応）。
+- lift: z深度スケール（肩/腰幅の半分）を観測ペアのみから計測。
+  predicted端点はプライア幾何のため、借用するとモデル表の幅が
+  計測値としてz軸に書き込まれていた（#330のof_body_hと同型）
+
+- consensus: 全関節predictedの骨格を`state:observed`と虚偽報告していた欠陥を修正（1件以上observedで初めてobserved、joints有りではpredicted）
+- segment: predicted骨が前景ピクセルに部位ラベルを付けていた
+  欠陥を修正。プライア配置の骨は測定ではないため、両端点が
+  observedの骨のみラベル付け（predicted端点の骨は欠損扱い）。
+- fit: 説明済み画素の計測をobserved関節のみに修正。predicted骨
+  （プライア直線四肢）がシルエット画素を「説明済み」に水増し
+  し、全腕predictedでもfractionが0.80→0.81に改善したかのように
+  報告していた → predicted骨/関節はカバレッジから除外。
+- gait: predicted関節を含む脚の位相キューをunknownに修正。
+  プライア直線脚が「stance/knee_angle ~170」として報告されて
+  いた。observed関節のみで判定、predictedは欠損扱い（step_width
+  も両足observedのみ）。
+- stability/pose: `probe` の摂動が実効閾値に届くよう
+  `threshold_offset` を追加 — adaptive(Otsu) モードでは
+  `bg_threshold` を±10してもOtsu分割が不変で、3ラン同一マスクの
+  「stable」判定を捏造していた欠陥を修正（robust プロファイルで
+  感度が実測されるように）。
+- reid: predicted由来の比率特徴を比較から除外し
+  `predicted_features`/`excluded_predicted`で開示。プライア表で
+  置かれた比率は同一BODY_MODELなら誰でも一致する定数のため、
+  「別人が同じプライアでsame_person」という偽陽性を生んでいた
+- handpos: ゾーン参照点（head/chest/pelvis/knee/hip）を観測関節
+  限定に修正 — 観測 wrist が predicted ランドマークのプライア位置に
+  対してゾーン判定され、推測が身体ゾーン境界を捏造していた欠陥
+  を解消（全参照が predicted ならゾーン未判定、#331 gesture と同型）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

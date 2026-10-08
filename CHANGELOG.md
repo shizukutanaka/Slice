@@ -3,17 +3,34 @@
 ## [Unreleased]
 
 - pipeline: `frame.source`に元画像解像度を開示（downscale作業空間の関節座標が`image_sha256`の元画像にマップ不能だった穴を解消）
+- `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
+  関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
+  worst関節がベンチゲート(10px)超なら exit 1。
+- pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
+  検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
+- `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
+- cli: `slice analyze` のstderr要約にwarnings行を追加。
+  `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
+  docがCLI上ではクリーンなdocと同一表示になっていた
+  （viewer側と同型の沈黙表示）。警告がある場合のみ
+  `warnings: <code>, ...` を出力。
+
+- `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
+
+- bundle: unpackが破損zipメンバー（zlib/BadZipFile/非UTF8）をskip（1件の破損で全体が死ぬ経路を解消）
+- norm: 変換がcentroidも写像（関節だけ動かしてcentroidを旧フレーム座標のまま残し`ratio.analyze`等へ陳腐座標を流していた欠陥を解消）
+- norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
+- knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
+- basis: 先頭1語だけが一致するbasisをobservationと誤分類する穴を修正（完全な観測語彙prefixのみ許容 — 捏造由来の証拠なりすまし防止）
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消
   （_estimate_oriented 抽出で両経路が同一判定を使用）。
-
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
   実写真の一括解析が最もそれを必要とする経路だった。
   docの `engine.profile` に "robust" と記録される。
-
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import (__version__, angles, balance, bitmap, classify, dynamics,
-               framepos, gesture, knowledge, occlusion, pose, predict,
-               ratio, spine, style, symmetry)
+from . import (__version__, angles, balance, bitmap, classify,
+               consistency, dynamics, framepos, gesture, knowledge,
+               occlusion, pose, predict, ratio, spine, style, symmetry)
+from .anatomy import BODY_MODELS
 from .skeleton import OBSERVED, PREDICTED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
@@ -56,10 +57,21 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         "occlusion": occlusion.audit(skel),
         "frame": framepos.analyze(skel, skel.image_width,
                                   skel.image_height),
+        "consistency": {"issues": consistency.audit(skel, model)},
     }
     # every layer must be a dict (knowledge.validate); omit empty ones
     doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}
+    if (bmp.width, bmp.height) != (skel.image_width, skel.image_height):
+        # joints live in the estimator's downscaled working space —
+        # record the source resolution so coordinates can be mapped
+        # back onto the image named by image_sha256
+        doc["skeleton"]["frame"]["source"] = {
+            "width": bmp.width, "height": bmp.height}
     doc["warnings"] = _warnings(skel)
+    if model and model not in BODY_MODELS:
+        # an unrecognized model name silently used the default prior in
+        # both pose priors and predict.complete — the doc must say so
+        doc["warnings"].append("unknown_body_model")
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only
     return doc

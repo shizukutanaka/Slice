@@ -94,6 +94,26 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertGreater(j["wrist_l"].y, 300 * 0.8)
         self.assertLess(j["wrist_l"].x, 80 - 160 * 0.17 - 15)
 
+    def test_tpose_horizontal_arms(self):
+        """Arms spread horizontally (T-pose): shoulders sit at the torso
+        edge (not the arm tips), elbow at strip midpoint, wrist at the
+        strip tip."""
+        from slice.evaluate import draw_case
+        bmp, truth = draw_case(width=320, height=240, pose="t")
+        skel = HeuristicPoseEstimator().estimate(bmp)
+        j = skel.joints
+        for side in ("l", "r"):
+            for name in ("shoulder", "elbow", "wrist"):
+                self.assertEqual(j[f"{name}_{side}"].state, OBSERVED,
+                                 f"{name}_{side}")
+            self.assertLess(
+                abs(j[f"shoulder_{side}"].x
+                    - truth[f"shoulder_{side}"][0]), 8,
+                f"shoulder_{side} must sit at the torso edge")
+            self.assertLess(
+                abs(j[f"wrist_{side}"].x - truth[f"wrist_{side}"][0]), 8,
+                f"wrist_{side} must reach the strip tip")
+
     def test_raised_arms_detected(self):
         """V-pose: arms above the shoulder line must still surface —
         the scan starts below the head band, not at the shoulder row."""

@@ -12,7 +12,7 @@ from __future__ import annotations
 import math
 from typing import Dict, List
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
 
 
 def _d(a, b) -> float:
@@ -65,17 +65,8 @@ def cues(skel: Skeleton) -> List[dict]:
 
 
 def _span(skel: Skeleton) -> float:
-    # observed-only span with the torso-length fallback of
-    # skeleton.body_span: a predicted head/foot is prior fill
-    top = _obs(skel, "head")
-    lo = max((j.y for j in skel.joints.values()
-              if j.state == "observed"), default=0.0)
-    if top and lo - top[1] > 0:
-        return lo - top[1]
-    n, p = _obs(skel, "neck"), _obs(skel, "pelvis")
-    if n and p:
-        return _d(n, p) or 200.0
-    return 200.0
+    # observed-only span: a predicted head/foot is prior fill
+    return observed_body_span(skel) or 200.0
 
 
 def score(skel: Skeleton) -> dict:

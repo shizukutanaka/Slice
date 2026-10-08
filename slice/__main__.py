@@ -24,8 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               norm, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -178,46 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_norm(a) -> int:
-    """Estimate, then emit the skeleton in another coord frame."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    skel = est.estimate(bmp, a.model or "adult")
-    if not skel.joints:
-        print("no person detected", file=sys.stderr)
-        return 1
-    w, h = skel.image_width, skel.image_height
-    if a.unit:
-        out = norm.to_unit(skel, w, h)
-        mode = "unit (0-1 per frame side)"
-    elif a.resize:
-        try:
-            nw, nh = (int(v) for v in a.resize.split("x"))
-        except ValueError:
-            print("--resize must be WxH", file=sys.stderr)
-            return 2
-        out = norm.resize(skel, w, h, nw, nh)
-        mode = f"resize {w}x{h} -> {nw}x{nh}"
-    else:
-        print("specify --unit or --resize WxH", file=sys.stderr)
-        return 2
-    doc = out.to_dict()
-    doc["norm"] = {"mode": mode,
-                   "from": [w, h]}
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            json.dump(doc, f, ensure_ascii=False, indent=2)
-        print(f"wrote {a.output}", file=sys.stderr)
-    print(json.dumps(doc, ensure_ascii=False, indent=2))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -296,22 +254,52 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -762,21 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    no = sub.add_parser(
-        "norm", help="skeleton in another coordinate frame")
-    no.add_argument("image")
-    no.add_argument("--unit", action="store_true",
-                    help="emit 0-1 normalized coordinates")
-    no.add_argument("--resize", metavar="WxH",
-                    help="emit joints scaled to WxH")
-    no.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    no.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    no.add_argument("-o", "--output",
-                    help="write the skeleton JSON")
-    no.set_defaults(fn=_cmd_norm)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -796,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

@@ -38,6 +38,7 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
+from . import (reid)
 
 
 def _cmd_analyze(a) -> int:
@@ -412,6 +413,31 @@ def _cmd_contrad(a) -> int:
     return 0 if res["verdict"] == "consistent" else 1
 
 
+def _cmd_reid(a) -> int:
+    """Same-person check between two images (bone-ratio matching)."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    feats = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skel = est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+        if not skel.joints:
+            print(f"no person in {p}", file=sys.stderr)
+            return 1
+        feats.append(reid.features(skel))
+    res = reid.compare(feats[0], feats[1],
+                       threshold=a.threshold)
+    res["features_a"] = feats[0]["vector"]
+    res["features_b"] = feats[1]["vector"]
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("same_person") else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -596,6 +622,19 @@ def main(argv=None) -> int:
     cd.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     cd.set_defaults(fn=_cmd_contrad)
+
+    ri = sub.add_parser(
+        "reid", help="same-person check between two images")
+    ri.add_argument("a")
+    ri.add_argument("b")
+    ri.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ri.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ri.add_argument("--threshold", type=float,
+                    default=reid.DEFAULT_THRESHOLD,
+                    help="mean |feature diff| below this = same person")
+    ri.set_defaults(fn=_cmd_reid)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

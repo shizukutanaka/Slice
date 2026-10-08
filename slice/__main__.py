@@ -26,6 +26,8 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, consensus, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -626,6 +628,31 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_consensus(a) -> int:
+    """Median-vote consensus skeleton over a parameter panel."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = consensus.consensus(bmp, est, a.model or "adult")
+    sk = res.pop("skeleton")
+    out = dict(res)
+    out["joints"] = len(sk.joints)
+    out["n_observed"] = sum(
+        1 for j in sk.joints.values() if j.state == "observed")
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(sk.to_dict(), f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if sk.joints else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +911,18 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    co = sub.add_parser(
+        "consensus",
+        help="median-vote skeleton over a parameter panel")
+    co.add_argument("image")
+    co.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    co.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    co.add_argument("-o", "--output",
+                    help="write the consensus skeleton JSON")
+    co.set_defaults(fn=_cmd_consensus)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

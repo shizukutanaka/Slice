@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+- `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
+  関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
+  worst関節がベンチゲート(10px)超なら exit 1。
+- pose: neckを頭帯下端（顎）から肩行直下の鎖骨中点へ修正 — bias層が
+  検出した系統誤差26pxを1pxへ解消（bench err 3.5→2.05px, OKS 0.92→0.975）。
 - `slice probe <layer> <image>` — 未接続13層の汎用CLI接続。axis/plumb/limbs/rom/contact/dominance/handpos/framefit/ground/reach/horizon/mass/extjoints を `{layer, result}` JSONで直接呼出。`doc["analysis"]` に入らない層も単体検査可能に。
-
 - cli: `slice analyze` のstderr要約にwarnings行を追加。
   `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
   docがCLI上ではクリーンなdocと同一表示になっていた

@@ -23,17 +23,17 @@ class TestLimbcovCli(unittest.TestCase):
         self.addCleanup(lambda: os.path.exists(self.p)
                         and os.unlink(self.p))
 
-    def test_gap_detection(self):
-        # The synthetic person exposes the known neck->shoulder
-        # trapezius crossing — an audit finding, so rc=1.
+    def test_covered_detection(self):
+        # Neck moved to the clavicle (shoulder line): the trapezius
+        # crossing the audit used to flag was that bug, now fixed —
+        # a correctly-placed skeleton reports covered, rc=0.
         buf = io.StringIO()
         with redirect_stdout(buf):
             self.assertEqual(
-                main(["limbcov", self.p]), 1)
+                main(["limbcov", self.p]), 0)
         res = json.loads(buf.getvalue())
-        self.assertEqual(res["verdict"], "gaps")
-        self.assertTrue(any(
-            "neck" in b for b in res["broken"]))
+        self.assertEqual(res["verdict"], "covered")
+        self.assertFalse(res["broken"])
         for b in res["bones"].values():
             self.assertIn("covered_fraction", b)
             self.assertIn("gaps", b)

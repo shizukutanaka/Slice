@@ -75,7 +75,7 @@ def upgrade(doc: dict) -> Dict:
         if j.get("state") not in (OBSERVED, PREDICTED,
                                   OUT_OF_FRAME):
             j["state"] = PREDICTED
-            j["basis"] = (j.get("basis") or "") + \
+            j["basis"] = (j["basis"] + "; " if j.get("basis") else "") + \
                 "migrated: state unknown"
             _chg(changes, "joint_state_fixed",
                  "%s unmarked → predicted (observed would fabricate)"
@@ -133,10 +133,22 @@ def upgrade(doc: dict) -> Dict:
         d["export"] = {
             "keypoints_2d": flat,
             "keypoint_order": list(JOINTS),
+            "keypoints_state": [
+                joints[n].get("state", OBSERVED) if n in joints
+                else "absent" for n in JOINTS],
             "bones": [list(b) for b in BONES],
         }
         _chg(changes, "export_rebuilt",
              "export block rebuilt from joints")
+    elif "keypoints_state" not in d["export"]:
+        # old docs carry per-joint state only in skeleton.joints —
+        # the flat export loses it; backfill from the same source
+        # so flat-array consumers can also tell fill from evidence
+        d["export"]["keypoints_state"] = [
+            joints[n].get("state", OBSERVED) if n in joints
+            else "absent" for n in JOINTS]
+        _chg(changes, "keypoints_state_backfilled",
+             "per-keypoint state added to export block")
 
     if "frame" not in skel:
         _chg(changes, "frame_missing",

@@ -32,6 +32,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, retarget, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -626,6 +628,38 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_retarget(a) -> int:
+    """Pose retarget: source directions onto target proportions."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.source, a.target):
+        try:
+            with open(p, "rb") as f:
+                skels.append(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult"))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not all(sk.joints for sk in skels):
+        print("no person in one or both images",
+              file=sys.stderr)
+        return 1
+    try:
+        out = retarget.retarget(*skels)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    doc = out.to_dict()
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output} ({len(out.joints)} joints, "
+              f"all predicted)", file=sys.stderr)
+    print(json.dumps(doc, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +918,19 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    rt = sub.add_parser(
+        "retarget", help="pose retarget src dirs -> dst lengths")
+    rt.add_argument("source", help="image with the pose to copy")
+    rt.add_argument("target",
+                    help="image with the proportions to keep")
+    rt.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    rt.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rt.add_argument("-o", "--output",
+                    help="write the retargeted skeleton JSON")
+    rt.set_defaults(fn=_cmd_retarget)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

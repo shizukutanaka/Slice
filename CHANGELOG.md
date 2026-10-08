@@ -9,6 +9,11 @@
 - bitmap: `get`の負座標がPython負インデックスで画像末尾行を
   巻き戻り読み取り、不在画素を実データとして返していた
   フェイルオープンを修正 — 全OOB読み取りはIndexErrorに
+- balance: 重心・支持多角形・com_spanをobserved関節のみに
+  修正。"foot below ankle"プライアのpredicted足が支持多角形
+  （projected:inside）を、predicted四肢が質量カバレッジを
+  捏造していた → predictedは欠損扱い（足が全predictedなら
+  unknown/no_feet）。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

@@ -2,7 +2,7 @@
 import copy
 import unittest
 
-from slice import evaluate, fit, mask
+from slice import evaluate, fit, mask, predict
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Skeleton
 
@@ -52,6 +52,19 @@ class TestFit(unittest.TestCase):
         r = fit.fit(sk, m)
         if r["unexplained_centroid"]:
             self.assertLess(r["unexplained_centroid"][0], 80)
+
+    def test_predicted_arm_does_not_explain(self):
+        # a prior-placed arm must not "explain" silhouette
+        # pixels — evidence the skeleton never observed
+        bmp, est, m = _setup()
+        sk = est.estimate(bmp)
+        for n in ("shoulder_l", "elbow_l", "wrist_l"):
+            del sk.joints[n]
+        predict.complete(sk)
+        r = fit.fit(sk, m)
+        sk2 = est.estimate(bmp)
+        base = fit.fit(sk2, m)
+        self.assertLess(r["fraction"], base["fraction"])
 
     def test_fields_honest(self):
         bmp, est, m = _setup()

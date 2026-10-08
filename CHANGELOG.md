@@ -18,6 +18,10 @@
   修正。predicted膝が `unloaded` キュー（利き脚を反転させる
   虚偽証拠）を、predicted足首が `pelvis_centered` の均衡証拠を
   捏造していた → predictedは欠損扱いでキュー不発。
+- mutate: `crop` が負・範囲外の起点でフレーム外領域に画素を捏造
+  していた欠陥を修正（`Bitmap.get` の負インデックス巻き戻りで
+  反対端の画素を混入 — 頑健性テスト変換自身が偽証拠を生成）。
+  フレーム外は初期化背景を保持。
 
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/

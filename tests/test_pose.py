@@ -112,6 +112,22 @@ class TestHeuristicPose(unittest.TestCase):
             head_x = sk.joints["head"].x
             self.assertLess(abs(sp.x - axis), abs(head_x - axis))
 
+    def test_rotated_retry_discloses_and_mirrors_orientation(self):
+        """180°-flipped profile faces right in the image — but the
+        rotated scan reads its facing in the mirrored frame ("left").
+        The doc must report the image frame's facing ("right") and
+        disclose the rotation itself."""
+        src = profile_person(side=-1)   # faces left, upright
+        w, h = src.width, src.height
+        inv = Bitmap.new(w, h, src.get(1, 1))
+        for y in range(h):
+            for x in range(w):
+                inv.set(x, y, src.get(w - 1 - x, h - 1 - y))  # true 180°
+        sk = HeuristicPoseEstimator().estimate(inv)
+        ori = sk.orientation
+        self.assertEqual(ori.get("estimated_on_rotated_deg"), 180)
+        self.assertEqual(ori.get("facing"), "right")
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)
@@ -122,6 +138,17 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(self.skel.orientation["facing"], "front")
         self.assertIn(self.skel.body_model["name"],
                       ("adult", "child", "deformed"))
+        # the prior actually applied to observed placement is disclosed
+        self.assertIn(self.skel.body_model["prior"],
+                      ("adult", "child", "deformed"))
+
+    def test_prior_discloses_applied_model(self):
+        est = HeuristicPoseEstimator()
+        forced = est.estimate(synthetic_person(), model="child")
+        self.assertEqual(forced.body_model["prior"], "child")
+        # a bogus name falls back to the default table — and says so
+        bogus = est.estimate(synthetic_person(), model="nope")
+        self.assertEqual(bogus.body_model["prior"], "adult")
 
     def test_profile_facing_direction(self):
         est = HeuristicPoseEstimator()

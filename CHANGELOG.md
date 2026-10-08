@@ -32,6 +32,10 @@
 - analysisブロックに `consistency` 追加 — 骨格健全性監査のissuesを
   全analyzeドキュメントに同梱（CLI/REST/Storeの全経路で可視）。
 
+- migrate: state未記入関節の由来補記が既存basisと区切りなしで
+  直結していたのを修正（"measured row 10migrated: state unknown"
+  のように既存由来を破損、recoverと同じ "; " 区切りに統一）。
+
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが

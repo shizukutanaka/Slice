@@ -32,6 +32,15 @@ class TestMotion(unittest.TestCase):
         self.assertGreater(s["by_part"]["wrist"], 0)
         self.assertEqual(s["by_part"].get("knee", 0), 0)
 
+    def test_predicted_joint_not_motion(self):
+        # predicted in frame B → its "displacement" is prior
+        # movement, not the person's: excluded like a missing joint
+        b = motion.shifted(self.skel, 0, 0)
+        b.joints["wrist_r"].state = "predicted"
+        b.joints["wrist_r"].x += 50
+        v = motion.vectors(self.skel, b)
+        self.assertNotIn("wrist_r", v)
+
 
 if __name__ == "__main__":
     unittest.main()

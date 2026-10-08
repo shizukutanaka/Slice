@@ -85,3 +85,24 @@ def export(skel: Skeleton, name: str = "SliceFigure") -> str:
     vals += ["0.00"] * (3 * n_joints)
     lines.append(" ".join(vals))
     return "\n".join(lines) + "\n"
+
+
+def report(skel: Skeleton) -> dict:
+    """Provenance for the export BVH cannot carry.
+
+    The BVH format has no per-joint metadata channel, so `export`
+    writes predicted joints as ordinary offsets — indistinguishable
+    from measured ones downstream. This sidecar lists which joints
+    in the exported tree rest on prediction rather than evidence.
+    """
+    names = _walk(ROOT, skel)
+    predicted = sorted(n for n in names
+                       if skel.joints[n].state != "observed")
+    return {
+        "joints": names,
+        "n_joints": len(names),
+        "predicted": predicted,
+        "state": "estimated",
+        "basis": "joints listed under `predicted` have BVH offsets "
+                 "computed from inferred, not measured, positions",
+    }

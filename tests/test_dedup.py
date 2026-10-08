@@ -55,6 +55,15 @@ class TestDedup(unittest.TestCase):
         r = dedup([a, b])
         self.assertEqual(r["n_pairs"], 0)
 
+    def test_predicted_joint_is_not_evidence(self):
+        # a predicted wrist moved far must not count as a difference
+        # — the guess is prior fill, not a measurement
+        a, b = _doc(), _doc()
+        w = b["skeleton"]["joints"]["wrist_l"]
+        w["x"] += 800
+        w["state"] = "predicted"
+        self.assertEqual(distance(a, b), 0.0)
+
     def test_many_docs_unique_pairs(self):
         docs = []
         for i in range(4):

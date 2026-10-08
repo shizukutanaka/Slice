@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import sample
+from slice import sample, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -27,6 +27,14 @@ class TestSample(unittest.TestCase):
         rep = sample.joints_report(bmp, skel, mask)
         summ = sample.body_cover_summary(rep)
         self.assertGreater(summ["skin_like_joints"], 5)
+
+    def test_predicted_joint_not_sampled(self):
+        # a prior-placed joint must not get a cover label —
+        # the pixels are real but the attribution is a guess
+        del self.skel.joints["wrist_l"]
+        predict.complete(self.skel)
+        rep = sample.joints_report(self.bmp, self.skel, self.mask)
+        self.assertNotIn("wrist_l", rep)
 
     def test_empty_window_no_pixels(self):
         s = sample.sample(self.bmp, 2, 2, 2, self.mask)

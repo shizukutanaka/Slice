@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               pipeline, recover, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -180,27 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_recover(a) -> int:
-    """Staged-fallback estimation for hard inputs."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    res = recover.recover(bmp, est, a.model or "adult")
-    out = dict(res)
-    out.pop("skeleton")
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
-        print(f"wrote {a.output}", file=sys.stderr)
-    print(json.dumps(out, ensure_ascii=False, indent=2))
-    return 0 if res["state"] == "observed" else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -279,11 +254,23 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
@@ -293,11 +280,22 @@ def _cmd_probe(a) -> int:
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -752,17 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    rc = sub.add_parser(
-        "recover", help="staged-fallback estimation")
-    rc.add_argument("image")
-    rc.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    rc.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    rc.add_argument("-o", "--output",
-                    help="also write the result JSON here")
-    rc.set_defaults(fn=_cmd_recover)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -782,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import segment
+from slice import predict, segment
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -34,6 +34,17 @@ class TestSegment(unittest.TestCase):
         for p, d in s["parts"].items():
             if d["pixels"]:
                 self.assertGreater(d["fraction"], 0)
+
+    def test_predicted_bone_labels_nothing(self):
+        # a predicted forearm bone is prior geometry — pixels near
+        # it must not wear a fabricated "forearm" label
+        for name in ("elbow_r", "wrist_r"):
+            del self.skel.joints[name]
+        predict.complete(self.skel)
+        self.assertEqual(self.skel.joints["wrist_r"].state,
+                         "predicted")
+        labels = segment.label_map(self.bmp, self.skel, self.mask)
+        self.assertNotIn("forearm_r", labels)
 
     def test_missing_wrist_gives_no_forearm(self):
         for name in ("wrist_l", "wrist_r"):

@@ -43,6 +43,14 @@ class TestLift(unittest.TestCase):
         self.assertGreater(d["wrist_r"]["z"], 0.0)
         self.assertEqual(d["wrist_l"]["z"], 0.0)
 
+    def test_predicted_joints_keep_their_state(self):
+        # x,y of a predicted joint is prior fill — the output must
+        # say so, not present it indistinguishably from observed
+        self.skel.joints["wrist_r"].state = "predicted"
+        d = lift.lift(self.skel)
+        self.assertEqual(d["wrist_r"]["state"], "predicted")
+        self.assertEqual(d["wrist_l"]["state"], "observed")
+
     def test_unknown_facing_flat(self):
         self.skel.orientation = {}
         d = lift.lift(self.skel)

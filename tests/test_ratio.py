@@ -11,12 +11,28 @@ class TestRatio(unittest.TestCase):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())
         r = ratio.analyze(sk, centroid=sk.centroid)
         self.assertNotIn("error", r)
-        self.assertGreater(r["head_to_body"], 2)
-        self.assertLess(r["head_to_body"], 20)
+        # clavicle-neck convention: body_h/head ≈ 6 (±estimator slack)
+        self.assertGreater(r["head_to_body"], 4)
+        self.assertLess(r["head_to_body"], 12)
         for k in ("shoulder_width", "hip_width", "torso_length"):
             self.assertIsNotNone(r[k], k)
         self.assertIsNotNone(r["center_of_mass"])
         self.assertTrue(0 < r["center_of_mass"]["y_ratio"] < 1)
+        self.assertIsNotNone(r["arm_span"])
+        self.assertIsNotNone(r["leg_to_torso"])
+        self.assertGreater(r["leg_to_torso"], 0.5)
+
+    def test_arm_span_distinguishes_pose(self):
+        # arms spread wide -> span approaches/exceeds a dangling-arms span
+        bmp = synthetic_person()
+        sk = HeuristicPoseEstimator().estimate(bmp)
+        base = ratio.analyze(sk)["arm_span"]
+        # manually spread the wrists wider
+        from slice.skeleton import Joint, OBSERVED
+        sk.joints["wrist_l"] = Joint("wrist_l", 10, 80, 0.9, OBSERVED)
+        sk.joints["wrist_r"] = Joint("wrist_r", 150, 80, 0.9, OBSERVED)
+        wide = ratio.analyze(sk)["arm_span"]
+        self.assertGreater(wide, base)
 
     def test_empty_skeleton(self):
         from slice.skeleton import Skeleton

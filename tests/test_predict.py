@@ -11,11 +11,11 @@ class TestPredict(unittest.TestCase):
     def test_mirror_completion(self):
         sk = Skeleton(100, 200)
         from slice.skeleton import Joint
-        sk.set(Joint("spine", 50, 100, 0.8))
-        sk.set(Joint("hip_l", 40, 120, 0.8))
-        sk.set(Joint("hip_r", 60, 120, 0.8))
-        sk.set(Joint("knee_l", 38, 160, 0.8))
-        sk.set(Joint("ankle_l", 36, 195, 0.8))
+        sk.set(Joint("spine", 50, 100, 0.8, OBSERVED))
+        sk.set(Joint("hip_l", 40, 120, 0.8, OBSERVED))
+        sk.set(Joint("hip_r", 60, 120, 0.8, OBSERVED))
+        sk.set(Joint("knee_l", 38, 160, 0.8, OBSERVED))
+        sk.set(Joint("ankle_l", 36, 195, 0.8, OBSERVED))
         added = predict.complete(sk)
         names = {j.name for j in added}
         self.assertIn("knee_r", names)
@@ -27,13 +27,30 @@ class TestPredict(unittest.TestCase):
     def test_prior_completion_when_nothing_visible(self):
         sk = Skeleton(100, 200)
         from slice.skeleton import Joint
-        sk.set(Joint("shoulder_l", 30, 50, 0.8))
+        sk.set(Joint("shoulder_l", 30, 50, 0.8, OBSERVED))
         added = predict.complete(sk)
         names = {j.name for j in added}
         self.assertIn("elbow_l", names)
         el = sk.get("elbow_l")
         self.assertEqual(el.state, PREDICTED)
         self.assertGreater(el.y, 50)
+
+    def test_mid_chain_interpolation(self):
+        # elbow missing but shoulder and wrist known -> elbow sits on the
+        # segment between them, not on a straight prior drop
+        sk = Skeleton(100, 200)
+        from slice.skeleton import Joint
+        sk.set(Joint("shoulder_l", 30, 60, 0.8, OBSERVED))
+        sk.set(Joint("wrist_l", 10, 120, 0.8, OBSERVED))
+        predict.complete(sk)
+        el = sk.get("elbow_l")
+        self.assertEqual(el.state, PREDICTED)
+        self.assertIn("interpolated", el.basis)
+        # adult prior: upper/(upper+fore) ≈ .545 -> el ≈ lerp(sh, wr, .545)
+        self.assertAlmostEqual(el.x, 30 + (10 - 30) * 0.545, delta=3)
+        self.assertAlmostEqual(el.y, 60 + (120 - 60) * 0.545, delta=3)
+        # the straight prior drop would have kept x near shoulder+x
+        self.assertLess(el.x, 30)
 
     def test_full_pipeline_needs_no_prior_fallback_for_missing(self):
         sk = HeuristicPoseEstimator().estimate(synthetic_person())

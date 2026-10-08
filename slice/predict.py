@@ -71,17 +71,13 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
             parent = f"{stem}_{side}"
             if parent not in skel.joints:
                 continue
-            cursor = skel.joints[parent]
-            acc = 0.0
             for child, key in chain:
                 cname = f"{child}_{side}"
-                acc += prior[key]
                 if cname not in skel.joints:
                     j = predict(cname)
                     if j is None:
                         continue
                     added.append(j)
-                cursor = skel.joints[cname]
     for side in ("l", "r"):
         ankle = f"ankle_{side}"
         if f"foot_{side}" not in skel.joints and ankle in skel.joints:
@@ -125,6 +121,22 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
             p = skel.joints[parent]
             idx = names.index(child)
             frac = sum(prior[chain[i][1]] for i in range(idx + 1))
+            total = sum(prior[k] for _, k in chain)
+            distal = next(
+                (skel.joints[f"{chain[i][0]}_{side}"]
+                 for i in range(idx + 1, len(chain))
+                 if f"{chain[i][0]}_{side}" in skel.joints), None)
+            if distal:
+                # An endpoint further down the chain is known: place the
+                # joint between parent and it, at the prior fraction of
+                # the whole chain. Better than a blind straight drop.
+                j = Joint(
+                    name, p.x + (distal.x - p.x) * (frac / total),
+                    p.y + (distal.y - p.y) * (frac / total),
+                    0.3, PREDICTED,
+                    f"interpolated {parent}-{distal.name}")
+                skel.set(j)
+                return j
             # arms angle slightly outward, legs drop straight down
             out = prior["shoulder_ratio"] * 0.4 if stem == "shoulder" else 0
             sign = -1 if side == "l" else 1

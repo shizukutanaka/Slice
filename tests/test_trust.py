@@ -29,6 +29,18 @@ class TestTrust(unittest.TestCase):
         self.assertIn("off_mask", r["joints"]["wrist_l"]["factors"])
         self.assertNotIn("wrist_l", trust.trusted(r, "medium"))
 
+    def test_predicted_off_mask_stays_medium(self):
+        # a predicted joint sitting off the mask is expected
+        # (priors legitimately place joints outside the silhouette)
+        # — off_mask must not accuse a claim that was never made
+        sk = Skeleton(160, 300)
+        sk.set(Joint("nose", 80, 40, 0.9,
+                     state="predicted", basis="fill"))
+        ev = {"joints": {"nose": {"zone": "off_mask"}}}
+        r = trust.grade(sk, evidence=ev)
+        self.assertEqual(r["joints"]["nose"]["grade"], "medium")
+        self.assertNotIn("off_mask", r["joints"]["nose"]["factors"])
+
     def test_unstable_low_sensitive_medium(self):
         sk = _skel()
         stab = {"joints": {"head": {"verdict": "unstable"},

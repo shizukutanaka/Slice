@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import plumb
+from slice import plumb, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -56,6 +56,21 @@ class TestPlumb(unittest.TestCase):
             self.assertIsNone(v["of_body_h"])
         out = plumb.assess(skel)
         self.assertIsNone(out["stack_score"])
+
+    def test_predicted_chest_no_forward_head(self):
+        # a chord-placed chest can't anchor the torso line —
+        # forward_head must abstain, not measure a prior
+        del self.skel.joints["chest"]
+        predict.complete(self.skel)
+        self.assertIsNone(plumb.forward_head(self.skel))
+        r = plumb.line(self.skel)
+        self.assertNotIn("chest", r["offsets"])
+
+    def test_predicted_ankle_no_base(self):
+        for n in ("ankle_l", "ankle_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        self.assertNotIn("base", plumb.line(self.skel)["offsets"])
 
 
 if __name__ == "__main__":

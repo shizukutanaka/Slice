@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               mirror, pipeline, render, rest, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 
 
@@ -158,6 +159,54 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_mirror(a) -> int:
+    """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel_a = est.estimate(bmp, a.model or "adult")
+    if not skel_a.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    expected = mirror.flip_skeleton(skel_a)
+    actual = est.estimate(mirror.flip_bitmap(bmp),
+                          a.model or "adult")
+    drift = {}
+    for name, je in expected.joints.items():
+        ja = actual.joints.get(name)
+        if ja is None:
+            drift[name] = None
+            continue
+        drift[name] = round(math.hypot(
+            ja.x - je.x, ja.y - je.y), 2)
+    vals = [v for v in drift.values() if v is not None]
+    res = {
+        "joints_compared": len(vals),
+        "missing_in_flipped": [n for n, v in drift.items()
+                               if v is None],
+        "mean_drift_px": round(
+            sum(vals) / len(vals), 2) if vals else 0.0,
+        "max_drift": ({"joint": max(drift, key=lambda n:
+                                   drift[n] or -1),
+                       "px": max(vals)} if vals else None),
+        "per_joint": drift,
+        "verdict": ("symmetric"
+                    if vals and max(vals) <= a.tolerance
+                    else "drifted"),
+        "tolerance_px": a.tolerance,
+        "state": "derived",
+        "basis": "est(flip(image)) vs flip(est(image)); "
+                 "nonzero drift = estimator left/right bias",
+    }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "symmetric" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -262,6 +311,18 @@ def main(argv=None) -> int:
     au.add_argument("-o", "--output",
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
+
+    mi = sub.add_parser(
+        "mirror",
+        help="estimator left/right consistency audit")
+    mi.add_argument("image")
+    mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mi.add_argument("--tolerance", type=float, default=4.0,
+                    help="max per-joint drift px for 'symmetric'")
+    mi.set_defaults(fn=_cmd_mirror)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

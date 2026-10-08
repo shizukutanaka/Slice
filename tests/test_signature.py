@@ -51,6 +51,18 @@ class TestSignature(unittest.TestCase):
         d = sig.distance(self.s, v)
         self.assertLess(d, 0.5)
 
+    def test_predicted_torso_not_in_scalars(self):
+        # predicted neck/pelvis must not write prior geometry into
+        # the lean scalar or the normaliser — same rule as the bones
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        for n, j in self.skel.joints.items():
+            other.set(Joint(n, j.x, j.y, j.confidence,
+                            state="predicted" if n in ("neck", "pelvis")
+                            else j.state))
+        v = sig.signature(other)
+        # torso-lean scalar = 0.0 (missing), not prior geometry
+        self.assertEqual(v[-4], 0.0)
+
     def test_bent_arm_changes_signature(self):
         other = Skeleton(self.skel.image_width, self.skel.image_height)
         for n, j in self.skel.joints.items():

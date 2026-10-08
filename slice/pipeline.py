@@ -141,9 +141,6 @@ def observed_count(doc: dict) -> int:
     return len(doc["prediction"]["observed"])
 
 
-def predicted_count(doc: dict) -> int:
-    return len(doc["prediction"]["predicted"])
-
 
 def people_count(doc_or_docs) -> int:
     """How many person documents an analysis produced (1 for `analyze`)."""

@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 - stats/dataset: `mean_observed_confidence`を開示（観測と推測を混ぜた混成mean_confidenceが証拠品質を系統的に過小評価していた欠陥を解消、混成列は互換のため据え置き）
+- norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
+- consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
+  cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が
+  robustプロファイルだと4バリアントだけ別プロファイルで走り、
+  median投票が未開示のプロファイル差を混入させていた欠陥を
+  解消、#333 recoverと同型）。
+
+- recover: relaxed_threshold段が呼出側のadaptive/reject_shadow/
+  cleanフラグを伝播（色ゲートだけ緩めるはずが、シャドウ棄却・
+  形態クリーンも外れた別プロファイルで沈黙回復し、開示の
+  "gate relaxed to N"より強い緩和が適用されていた欠陥を解消）。
+
 - pipeline: warningsに`unknown_body_model`追加（無効なmodel名が黙ってadultプライアにフォールバックし推測関節の根拠が記録されない穴を開示）
 - trust: predicted関節をoff_maskで「low」降格しない — プライアが
   シルエット外に関節を置くのは正常（evid.unsupportedと同じ

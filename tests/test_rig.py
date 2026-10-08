@@ -33,6 +33,16 @@ class TestRig(unittest.TestCase):
     def test_lengths_positive(self):
         self.assertGreater(rig.total_bone_length(self.rig), 50)
 
+    def test_predicted_endpoint_marks_bone(self):
+        from slice.skeleton import Joint, PREDICTED
+        # a bone over predicted endpoints is guessed structure —
+        # the rig must disclose it, not ship it as observed
+        self.skel.set(Joint("wrist_l", 10, 10, 0.5,
+                            state=PREDICTED, basis="prior"))
+        r = {b["name"]: b for b in rig.build(self.skel)}
+        self.assertEqual(r["forearm_l"]["state"], "predicted")
+        self.assertEqual(r["thigh_l"]["state"], "observed")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,8 @@
 
 - `slice stats <dir>` — stats層のCLI接続。フレーム列の関節別観測率・平均confidence・fill率＋weakest_joints（死角関節）を集計報告。`--weakest`で上位N件調整。
 
+- デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
+
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
 
 - `slice imgqual <image>` — imgqual層のCLI接続。推定前段の画像証拠適格性（size/dynamic/blur/contrastの4計測フラグ→adequate/marginal/inadequate）。inadequateは exit 1。

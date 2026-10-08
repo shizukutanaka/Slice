@@ -30,11 +30,15 @@ Segment = Tuple[Tuple[float, float], Tuple[float, float]]
 
 
 def _segments(skel: Skeleton) -> List[Segment]:
+    """Bones between OBSERVED joints — a predicted bone is prior
+    fill; letting it cover silhouette pixels would inflate the
+    explained fraction with geometry no evidence supports."""
     segs: List[Segment] = []
     for a, b in BONES:
-        pa, pb = skel.point(a), skel.point(b)
-        if pa and pb:
-            segs.append((pa, pb))
+        ja, jb = skel.joints.get(a), skel.joints.get(b)
+        if (ja and jb and ja.state == "observed"
+                and jb.state == "observed"):
+            segs.append(((ja.x, ja.y), (jb.x, jb.y)))
     return segs
 
 
@@ -70,7 +74,8 @@ def fit(skel: Skeleton, mask: List[bytearray],
     is not a perfect fit.
     """
     segs = _segments(skel)
-    joints = [(j.x, j.y) for j in skel.joints.values()]
+    joints = [(j.x, j.y) for j in skel.joints.values()
+              if j.state == "observed"]
     if not segs and not joints:
         return {"state": "unmeasurable",
                 "basis": "skeleton has no joints or bones",

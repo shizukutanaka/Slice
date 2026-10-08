@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import gait
+from slice import gait, predict
 from slice.pose import HeuristicPoseEstimator
 
 
@@ -31,6 +31,19 @@ class TestGait(unittest.TestCase):
             del self.skel.joints[n]
         self.assertEqual(gait.leg_phase(self.skel, "l")["phase"],
                          "unknown")
+
+    def test_predicted_leg_is_unknown(self):
+        # a predicted leg is a straight-leg prior — reporting "stance"
+        # off it fabricates the phase cue; treat it like a missing leg
+        for n in ("hip_r", "knee_r", "ankle_r"):
+            del self.skel.joints[n]
+        predict.complete(self.skel)
+        p = gait.leg_phase(self.skel, "r")
+        self.assertEqual(p["phase"], "unknown")
+        self.assertIsNone(p["knee_angle"])
+        r = gait.assess(self.skel)
+        self.assertFalse(r["double_support"])
+        self.assertIsNone(r["step_width"])
 
     def test_step_width_reported(self):
         r = gait.assess(self.skel)

@@ -10,8 +10,11 @@ arranged in the frame.
 Honesty contract: every reported number is `state: "estimated"` — a
 2D projection makes true bone lengths pose-dependent in reality, so
 this is a soft cue for triage, not biometric proof. Features whose
-source joints were predicted rather than observed are counted and
-disclosed; comparison only uses features present on both sides.
+source joints were predicted rather than observed are counted,
+named in `predicted_features`, and excluded from comparison — a
+ratio placed by the anatomy prior is the *same table constant* for
+every person, so it adds zero identity signal while pretending to
+be evidence.
 """
 
 from __future__ import annotations
@@ -82,11 +85,14 @@ def features(skel: Skeleton) -> dict:
     """Pose-invariant proportion vector for one skeleton.
 
     Returns {"vector": {name: ratio}, "joints": {"observed": n,
-    "predicted": n}, "basis": str}. Missing chains leave the feature
-    out entirely — never imputed.
+    "predicted": n}, "predicted_features": [names], "basis": str}.
+    Missing chains leave the feature out entirely — never imputed;
+    prior-derived features stay in the vector but are named for
+    exclusion from comparison.
     """
     vec: Dict[str, float] = {}
     obs_total = pred_total = 0
+    pred_features: List[str] = []
     for name, (num, den) in _FEATURES.items():
         n = _chain(skel, num)
         d = _chain(skel, den)
@@ -96,9 +102,12 @@ def features(skel: Skeleton) -> dict:
         o, p = _joint_states(skel, (num, den))
         obs_total += o
         pred_total += p
+        if p:
+            pred_features.append(name)
     return {
         "vector": {k: round(v, 4) for k, v in vec.items()},
         "joints": {"observed": obs_total, "predicted": pred_total},
+        "predicted_features": sorted(pred_features),
         "basis": "bone-length ratios (pose-invariant to first order)",
     }
 
@@ -109,11 +118,19 @@ def compare(a: dict, b: dict,
 
     Returns {"distance": mean |diff| over shared features or None,
     "same_person": bool|None, "compared": n, "per_feature": {name: diff},
-    "state": "estimated", "basis": str}. With no shared features the
-    verdict is honestly None rather than a guess.
+    "excluded_predicted": [names], "state": "estimated",
+    "basis": str}. With no shared observed features the verdict is
+    honestly None rather than a guess.
     """
     va, vb = a.get("vector", {}), b.get("vector", {})
     shared = sorted(set(va) & set(vb))
+    # a feature predicted on either side is prior-table geometry,
+    # not person evidence — excluding it is what keeps `distance`
+    # an identity cue instead of a body-model similarity check
+    excluded = sorted(
+        set(shared) & (set(a.get("predicted_features") or [])
+                       | set(b.get("predicted_features") or [])))
+    shared = [k for k in shared if k not in excluded]
     per = {k: round(abs(va[k] - vb[k]), 4) for k in shared}
     if not shared:
         return {
@@ -121,6 +138,7 @@ def compare(a: dict, b: dict,
             "same_person": None,
             "compared": 0,
             "per_feature": {},
+            "excluded_predicted": excluded,
             "state": "estimated",
             "basis": "no proportion features shared by both skeletons",
         }
@@ -130,6 +148,7 @@ def compare(a: dict, b: dict,
         "same_person": dist <= threshold,
         "compared": len(shared),
         "per_feature": per,
+        "excluded_predicted": excluded,
         "state": "estimated",
         "basis": ("mean |ratio diff| over %d shared proportions; "
                   "a 2D cue, not biometric proof" % len(shared)),

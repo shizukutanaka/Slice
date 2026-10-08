@@ -30,12 +30,23 @@ def _centroid(points: List[Tuple[float, float]]) -> Tuple[float, float]:
     return (sum(p[0] for p in points) / n, sum(p[1] for p in points) / n)
 
 
+def _obs(skel: Skeleton, name: str):
+    """Observed-only lookup: a predicted joint is prior fill — a
+    "foot below ankle" foot or straight-limb prior would fabricate
+    the support polygon and the COM, so it is excluded like a
+    missing joint."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def center_of_mass(skel: Skeleton) -> Optional[dict]:
     """{x, y, mass_covered, state} — None if fewer than 30% of the
     mass can be located. Estimated, not measured."""
     mx = my = covered = 0.0
     for _, frac, names in _SEGMENTS:
-        pts = [skel.point(n) for n in names]
+        pts = [_obs(skel, n) for n in names]
         pts = [p for p in pts if p]
         if not pts:
             continue
@@ -65,7 +76,7 @@ def assess(skel: Skeleton) -> dict:
     support region = stable. Margins are horizontal distance to the
     support boundary."""
     com = center_of_mass(skel)
-    feet = [skel.point("foot_l"), skel.point("foot_r")]
+    feet = [_obs(skel, "foot_l"), _obs(skel, "foot_r")]
     feet = [f for f in feet if f]
     out = {"com": com, "support_joints": len(feet),
            "state": "estimated"}
@@ -98,7 +109,7 @@ def assess(skel: Skeleton) -> dict:
 
 def com_span(skel: Skeleton) -> float:
     """Typical tolerable offset: half the hip width when known."""
-    hl, hr = skel.point("hip_l"), skel.point("hip_r")
+    hl, hr = _obs(skel, "hip_l"), _obs(skel, "hip_r")
     if hl and hr:
         return abs(hr[0] - hl[0]) / 2.0
     return 20.0

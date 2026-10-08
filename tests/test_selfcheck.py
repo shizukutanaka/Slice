@@ -63,6 +63,15 @@ class TestSelfCheck(unittest.TestCase):
         self.assertEqual(r["doc"]["engine"]["profile"], "robust")
         self.assertIn(r["verdict"], ("pass", "warn", "fail"))
 
+    def test_unknown_model_disclosed(self):
+        raw = bitmap.encode_png(synthetic_person())
+        r = selfcheck.run(raw, model="no-such-model")
+        self.assertIn("model:unknown_body_model", r["reasons"])
+        r = selfcheck.run(raw, model="adult")
+        self.assertNotIn("model:unknown_body_model", r["reasons"])
+        r = selfcheck.run(raw)
+        self.assertNotIn("model:unknown_body_model", r["reasons"])
+
     def test_large_image_compared_at_estimator_resolution(self):
         # skeleton coords are downscaled; a full-res mask would flag
         # every joint as off-mask — regression for >max_dim inputs

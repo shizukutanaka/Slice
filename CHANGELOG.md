@@ -4,6 +4,8 @@
 
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
+- デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
+
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
 
 - `slice imgqual <image>` — imgqual層のCLI接続。推定前段の画像証拠適格性（size/dynamic/blur/contrastの4計測フラグ→adequate/marginal/inadequate）。inadequateは exit 1。

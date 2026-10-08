@@ -18,6 +18,13 @@ class TestDescribe(unittest.TestCase):
         text = desc.describe(skel).lower()
         self.assertNotIn("standing", text)
 
+    def test_crouch_pose_phrased(self):
+        # classify emits "crouch" — the table must phrase it, not
+        # leak the raw key
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        text = desc.describe(skel, pose="crouch").lower()
+        self.assertIn("crouching", text)
+
     def test_unobserved_limb_reported(self):
         skel = HeuristicPoseEstimator().estimate(synthetic_person())
         for n in ("wrist_l", "elbow_l"):

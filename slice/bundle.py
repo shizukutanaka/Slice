@@ -47,10 +47,17 @@ def pack(store, path: str) -> dict:
         # validate raises on malformed internals — an unprocessable
         # doc counts as skipped, it must not kill the pack
         try:
-            bad = isinstance(doc, dict) and bool(validate(doc))
+            bad = not isinstance(doc, dict) or bool(validate(doc))
         except Exception:
             bad = True
         if bad:
+            skipped += 1
+            continue
+        # validate does not type-check body_model — a malformed one
+        # would ship and crash downstream consumers
+        skel = doc.get("skeleton")
+        bm = skel.get("body_model") if isinstance(skel, dict) else None
+        if bm is not None and not isinstance(bm, dict):
             skipped += 1
             continue
         docs.append(doc)
@@ -78,7 +85,10 @@ def pack(store, path: str) -> dict:
 def manifest(path: str) -> dict:
     """Read just the manifest from a bundle."""
     with zipfile.ZipFile(path) as z:
-        return json.loads(z.read("manifest.json"))
+        m = json.loads(z.read("manifest.json"))
+    if not isinstance(m, dict):
+        raise ValueError("manifest.json is not an object")
+    return m
 
 
 def unpack(path: str) -> List[dict]:
@@ -93,7 +103,13 @@ def unpack(path: str) -> List[dict]:
             except (json.JSONDecodeError, UnicodeDecodeError,
                     zipfile.BadZipFile, zlib.error):
                 continue  # one corrupt member must not kill the archive
-            if not isinstance(doc, dict) or validate(doc):
+            # validate raises on malformed internals — an unprocessable
+            # member is skipped, it must not kill the archive
+            try:
+                bad = not isinstance(doc, dict) or bool(validate(doc))
+            except Exception:
+                bad = True
+            if bad:
                 continue
             docs.append(doc)
     return docs

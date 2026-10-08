@@ -15,6 +15,12 @@ PREDICTED = "predicted"
 
 Point = Tuple[float, float]
 
+# The neck moved from the chin (basis "head height prior", ~half a
+# head below the head centroid) to the clavicle (~one head below).
+# Stored skeletons disagree about which convention their neck uses —
+# only the joint's recorded basis disambiguates.
+NECK_CLAVICLE_BASIS = "clavicle midpoint below shoulder row"
+
 
 @dataclass
 class Joint:
@@ -95,6 +101,20 @@ class Skeleton:
         return d
 
 
+def head_length_px(skel: Skeleton) -> Optional[float]:
+    """Head length in px via the neck joint's recorded convention.
+
+    Clavicle necks sit ~one head length below the head centroid, so
+    the raw distance is the head length; legacy chin necks sit ~half
+    a head below and must be doubled. Returns None when head or neck
+    is missing or inverted."""
+    head, neck = skel.get("head"), skel.get("neck")
+    if not head or not neck or neck.y <= head.y:
+        return None
+    mult = 1.0 if neck.basis == NECK_CLAVICLE_BASIS else 2.0
+    return (neck.y - head.y) * mult
+
+
 def body_span(skel: Skeleton) -> float:
     """Head-to-lowest-joint body span in px.
 
@@ -112,6 +132,33 @@ def body_span(skel: Skeleton) -> float:
             return s
     n = skel.point("neck")
     p = skel.point("pelvis")
+    if n and p:
+        return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
+    return 0.0
+
+
+def observed_body_span(skel: Skeleton) -> float:
+    """`body_span` measured over observed joints only.
+
+    A predicted head or foot is prior fill: letting it extend the
+    span fabricates the scale that thresholds and reach envelopes
+    are derived from. Same torso-length fallback, 0.0 when nothing
+    observable gives a scale.
+    """
+    obs = [j for j in skel.joints.values() if j.state == OBSERVED]
+
+    def pt(name: str):
+        j = skel.joints.get(name)
+        return (j.x, j.y) if j and j.state == OBSERVED else None
+
+    top = pt("head")
+    lo = max((j.y for j in obs), default=0.0)
+    if top:
+        s = lo - top[1]
+        if s > 0:
+            return s
+    n = pt("neck")
+    p = pt("pelvis")
     if n and p:
         return ((n[0] - p[0]) ** 2 + (n[1] - p[1]) ** 2) ** 0.5
     return 0.0

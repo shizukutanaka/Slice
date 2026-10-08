@@ -32,8 +32,36 @@ class TestNorm(unittest.TestCase):
     def test_crop_marks_out_of_frame(self):
         head = self.skel.point("head")
         out = norm.crop(self.skel, head[0] + 100, 0, 300, 300)
-        self.assertEqual(out.joints["head"].state, "out_of_frame")
+        # demoted to a legal state (predicted) — "out_of_frame" was
+        # outside the validate() vocabulary and made the doc unsavable
+        self.assertEqual(out.joints["head"].state, "predicted")
         self.assertIn("lost to transform", out.joints["head"].basis)
+        self.assertIn("was observed", out.joints["head"].basis)
+
+    def test_cropped_skeleton_validates(self):
+        # a joint lost to the transform must not make the document
+        # fail validate() / refuse KnowledgeStore.save()
+        from slice import knowledge
+        head = self.skel.point("head")
+        out = norm.crop(self.skel, head[0] + 100, 0, 300, 300)
+        doc = knowledge.build(out, {}, engine={"name": "test"})
+        self.assertEqual(knowledge.validate(doc), [])
+
+    def test_centroid_transformed_too(self):
+        # the centroid is a frame-space point: a transform that moves
+        # joints must move it too, or downstream consumers get a stale
+        # coordinate from the old frame
+        self.skel.centroid = (200, 150)
+        c = norm.crop(self.skel, 100, 20, 200, 200)
+        self.assertEqual(c.centroid, (100, 130))
+        r = norm.resize(self.skel, 400, 300, 200, 150)
+        self.assertAlmostEqual(r.centroid[0], 100)
+        self.assertAlmostEqual(r.centroid[1], 75)
+        u = norm.to_unit(self.skel, 400, 300)
+        self.assertAlmostEqual(u.centroid[0], 0.5)
+        b = norm.from_unit(u, 400, 300)
+        self.assertAlmostEqual(b.centroid[0], 200)
+        self.assertAlmostEqual(b.centroid[1], 150)
 
     def test_resize_scales(self):
         head = self.skel.point("head")

@@ -52,6 +52,23 @@ class TestRepro(unittest.TestCase):
         self.assertIn("fake_joint", r["missing"])
         self.assertEqual(r["verdict"], "changed")
 
+    def test_recorded_profile_replayed(self):
+        """A doc made under engine.profile='robust' must re-verify
+        with the robust estimator flags — verifying under the default
+        profile reports configuration drift, not engine drift."""
+        bmp, _ = evaluate.draw_case(160, 300)
+        doc, _ = _doc(bmp)
+        doc["engine"]["profile"] = "robust"
+        r = repro.verify(doc, bmp)
+        self.assertEqual(r["engine_profile"], "robust")
+        self.assertIn("robust", r["basis"])
+
+    def test_estimator_for_profile_flags(self):
+        est = repro._estimator_for("robust")
+        self.assertTrue(est.adaptive)
+        self.assertTrue(est.reject_shadow)
+        self.assertTrue(est.clean)
+
     def test_added_joint_detected(self):
         bmp, _ = evaluate.draw_case(160, 300)
         doc, _ = _doc(bmp)

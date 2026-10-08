@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
+
+- bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）
+- bundle: unpackも同様に耐性化（validate raiseのmemberをskip）＋manifestが非dictをValueErrorで明示拒否
+- bitmap: `get`の負座標がPython負インデックスで画像末尾行を
+  巻き戻り読み取り、不在画素を実データとして返していた
+  フェイルオープンを修正 — 全OOB読み取りはIndexErrorに
 - balance: 重心・支持多角形・com_spanをobserved関節のみに
   修正。"foot below ankle"プライアのpredicted足が支持多角形
   （projected:inside）を、predicted四肢が質量カバレッジを

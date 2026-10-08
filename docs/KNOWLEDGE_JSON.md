@@ -17,6 +17,8 @@ Slice の成果物。画像そのものではなく、画像から推論した�
 | `style` | object | `{style, label, confidence, signals}` スタイル推定（real/anime/illustration/unknown） |
 | `ratio` | object | 比率解析結果 |
 | `prediction` | object | `observed`/`predicted`/`filled` 関節名リスト |
+| `coverage` | object | `{joints_total, observed, predicted, unfilled, observed_ratio, mean_observed_confidence}` — 画像証拠への依存度 |
+| `warnings` | string[] | 証拠の薄さの警告コード（`few_observed_joints`, `no_observed_wrists`, `no_observed_feet`） |
 | `export` | object | 相互運用形式 |
 
 ## skeleton
@@ -36,9 +38,16 @@ Slice の成果物。画像そのものではなく、画像から推論した�
   "body_model": {"name": "adult|child|deformed",
                  "label": "...", "confidence": 0.0,
                  "measured_head_ratio": 0.0,
-                 "state": "estimated"}
+                 "state": "estimated"},
+  "normalized": {"origin": "pelvis",
+                 "unit": "neck_pelvis_length",
+                 "joints": {"elbow_l": {"x": 0.5, "y": -0.3}, ...}}
 }
 ```
+
+- `normalized`（任意）: pelvis原点・neck–pelvis距離=1の正規化座標。
+  画像サイズ・構図に非依存なので画像間のポーズ比較に使う。
+  pelvisかneckが欠損している場合は省略される。
 
 - `state`: `observed` | `predicted`。predicted はUIで橙表示必須。
 - `basis`: その関節を置いた根拠（監査用文字列）。
@@ -63,3 +72,26 @@ OpenPose `pose_keypoints_2d` と同じ x,y,c 三つ組の並び
 - `schema` 値を変えずにフィールド**追加**は可（読み手は未知キーを無視）
 - 破壊的変更は `slice.knowledge/v2` として新スキーマ
 - `validate()` は必須キー・state 値・confidence 範囲を検査
+
+## v1.1: `analysis` 拡張スロット (`slice.knowledge/v1.1`)
+
+v1 の全フィールドに加えて、名前付き解析レイヤを格納する
+`analysis` キーを持てるマイナー拡張。`knowledge.build(analysis=...)`
+に渡すとスキーマが自動的に v1.1 になる。
+
+```json
+"analysis": {
+  "angles": {"elbow_l_flex": 174.2, ...},
+  "gesture": {"gestures": [], "count": 0},
+  "occlusion": {"reasons": {...}},
+}
+```
+
+- 各レイヤは自由形式のdict — 独自の `state`/`basis`/`assumption`
+  語彙（estimated/implied 等）を持ってよい
+- 新規ドキュメントで `analysis` を持つ場合は **v1.1** として
+  ビルドする（`build(analysis=...)` が自動昇格）
+- v1ドキュメント上の `analysis` も受理（先行して書き出された
+  ドキュメントの読み込み互換。形状検査のみ適用）
+- 関節の `state` は引き続き observed/predicted のみ
+  （拡張語彙はジョイントではなくレイヤ側に閉じ込める）

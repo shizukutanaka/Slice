@@ -24,11 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, axis, balance, bitmap, calib, classify, contrad,
-               evaluate, ground, knowledge, limbcov, pipeline, render, rest,
-               selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -38,6 +33,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
 from .anatomy import BODY_MODELS
+from . import (oks)
+from . import (balance, classify, contrad)
 
 
 def _cmd_analyze(a) -> int:
@@ -172,32 +169,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_contrad(a) -> int:
-    """Cross-layer contradiction audit (pose/axis/ground/balance)."""
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    skel = est.estimate(bmp, a.model or "adult")
-    if not skel.joints:
-        print("no person detected", file=sys.stderr)
-        return 1
-    layers = {
-        "classify": classify.analyze(skel),
-        "axis": axis.principal(skel),
-        "ground": ground.estimate(skel, skel.image_height),
-        "balance": balance.assess(skel),
-    }
-    layers = {k: v for k, v in layers.items() if v}
-    res = contrad.check(layers)
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0 if res["verdict"] == "consistent" else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -276,23 +247,52 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -322,7 +322,83 @@ def _cmd_mirror(a) -> int:
         "state": "derived",
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
+    }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
+
+
+def _norm_skel(skel):
+    """Rebuild `skel` in normalized pose space (pelvis origin,
+    torso unit) so cross-resolution comparisons are meaningful."""
+    from .skeleton import Joint, Skeleton
+    norm = skel.normalized()
+    out = Skeleton(1, 1)
+    if not norm:
+        return out
+    out.orientation = dict(skel.orientation)
+    out.body_model = dict(skel.body_model)
+    for name, pos in norm["joints"].items():
+        j = skel.joints[name]
+        out.set(Joint(name, pos["x"], pos["y"], j.confidence,
+                      state=j.state, basis=j.basis))
+    return out
+
+
+def _cmd_oks(a) -> int:
+    """OKS similarity of skeleton B against reference A."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for p in (a.a, a.b):
+        try:
+            with open(p, "rb") as f:
+                skels.append(_norm_skel(est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult")))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {p}: {e}", file=sys.stderr)
+            return 2
+    if not all(sk.joints for sk in skels):
+        print("no person in one or both images",
+              file=sys.stderr)
+        return 1
+    score = oks.oks(skels[0], skels[1])
+    res = {"oks": score,
+           "per_joint": oks.per_joint(skels[0], skels[1]),
+           "basis": "COCO OKS in normalized pose space "
+                    "(pelvis origin, torso unit)"}
+    if score is None:
+        print("no comparable joints", file=sys.stderr)
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_contrad(a) -> int:
+    """Cross-layer contradiction audit (pose/axis/ground/balance)."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    layers = {
+        "classify": classify.analyze(skel),
+        "axis": axis.principal(skel),
+        "ground": ground.estimate(skel, skel.image_height),
+        "balance": balance.assess(skel),
+    }
+    layers = {k: v for k, v in layers.items() if v}
+    res = contrad.check(layers)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "consistent" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -447,15 +523,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    cd = sub.add_parser(
-        "contrad", help="cross-layer contradiction audit")
-    cd.add_argument("image")
-    cd.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    cd.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    cd.set_defaults(fn=_cmd_contrad)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -475,17 +542,42 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)
+
+    ok = sub.add_parser(
+        "oks", help="COCO OKS similarity between two images")
+    ok.add_argument("a", help="reference image")
+    ok.add_argument("b", help="candidate image")
+    ok.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ok.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ok.set_defaults(fn=_cmd_oks)
+
+    cd = sub.add_parser(
+        "contrad", help="cross-layer contradiction audit")
+    cd.add_argument("image")
+    cd.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    cd.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    cd.set_defaults(fn=_cmd_contrad)
+
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")
     lc.add_argument("image")

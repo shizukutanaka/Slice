@@ -40,16 +40,22 @@ def _median(vals: List[float]) -> float:
 
 def _variants(est: HeuristicPoseEstimator) -> List[HeuristicPoseEstimator]:
     t, m = est.bg_threshold, est.max_dim
+    # the panel jitters threshold and resolution only — the caller's
+    # mask profile (adaptive/shadow/clean) must be identical across
+    # runs or the median measures profile differences it never
+    # disclosed
+    flags = dict(adaptive=est.adaptive,
+                 reject_shadow=est.reject_shadow, clean=est.clean)
     return [
         est,
         HeuristicPoseEstimator(max_dim=m,
-                               bg_threshold=max(1, int(t * 0.75))),
+                               bg_threshold=max(1, int(t * 0.75)), **flags),
         HeuristicPoseEstimator(max_dim=m,
-                               bg_threshold=max(1, int(t * 1.25))),
+                               bg_threshold=max(1, int(t * 1.25)), **flags),
         HeuristicPoseEstimator(max_dim=max(64, int(m * 0.75)),
-                               bg_threshold=t),
+                               bg_threshold=t, **flags),
         HeuristicPoseEstimator(max_dim=int(m * 1.25),
-                               bg_threshold=t),
+                               bg_threshold=t, **flags),
     ]
 
 
@@ -124,6 +130,9 @@ def consensus(bmp: Bitmap,
         "disputed": disputed,
         "mean_spread_px": round(sum(spreads) / len(spreads), 2)
         if spreads else None,
-        "state": "observed" if sk.joints else "failed",
+        # an all-predicted skeleton is not observation
+        "state": ("observed" if any(j.state == OBSERVED
+                                    for j in sk.joints.values())
+                  else "predicted" if sk.joints else "failed"),
         "basis": "median over %d parameter variants" % n_runs,
     }

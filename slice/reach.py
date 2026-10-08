@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from typing import Dict, Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_body_span
 
 Point = Tuple[float, float]
 
@@ -25,21 +25,33 @@ def _d(a: Point, b: Point) -> float:
     return math.hypot(b[0] - a[0], b[1] - a[1])
 
 
+def _obs(skel: Skeleton, name: str) -> Optional[Point]:
+    """Observed-only lookup: a predicted joint is prior fill —
+    treating a straight-arm prior as a measured arm length would
+    fabricate the workspace radius."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def arm_reach(skel: Skeleton, side: str) -> Optional[dict]:
     """{shoulder, radius, measured} — radius in px."""
-    s = skel.point(f"shoulder_{side}")
-    e = skel.point(f"elbow_{side}")
-    w = skel.point(f"wrist_{side}")
+    s = _obs(skel, f"shoulder_{side}")
+    e = _obs(skel, f"elbow_{side}")
+    w = _obs(skel, f"wrist_{side}")
     if s is None:
         return None
     if e and w:
         r = (_d(s, e) + _d(e, w)) * (1.0 + _HAND_FRAC)
         return {"shoulder": s, "radius": round(r, 1),
                 "measured": True}
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    if top:
-        r = (lo - top[1]) * _PRIOR_FRAC
+    # no arm bones: fall back to the body-height prior — but only
+    # when a body scale exists; a degenerate (inverted/empty)
+    # skeleton has no honest reach radius
+    span = observed_body_span(skel)
+    if span > 0:
+        r = span * _PRIOR_FRAC
         return {"shoulder": s, "radius": round(r, 1),
                 "measured": False}
     return None

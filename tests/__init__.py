@@ -81,6 +81,52 @@ def lying_person(width=300, height=160,
     return bmp
 
 
+def raised_arms_person(width=160, height=300,
+                       skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
+    """Like synthetic_person, but both arms rise diagonally up-out
+    (V-pose): exercises the above-shoulder arm scan — tips stay below
+    the head band so head/arm remain separable."""
+    from slice.bitmap import Bitmap
+
+    bmp = Bitmap.new(width, height, bg)
+    cx = width // 2
+
+    def rect(x0, y0, x1, y1):
+        for y in range(int(y0), int(y1)):
+            for x in range(int(x0), int(x1)):
+                if 0 <= x < width and 0 <= y < height:
+                    bmp.set(x, y, skin)
+
+    def disc(ccx, ccy, r):
+        for y in range(int(ccy - r), int(ccy + r) + 1):
+            for x in range(int(ccx - r), int(ccx + r) + 1):
+                if (x - ccx) ** 2 + (y - ccy) ** 2 <= r * r:
+                    bmp.set(x, y, skin)
+
+    head_r = width * 0.11
+    sh_y = height * 0.22
+    hip_y = height * 0.55
+    torso_w = width * 0.34
+    disc(cx, head_r + 8, head_r)
+    rect(cx - 3, head_r + 6, cx + 3, sh_y + 6)
+    rect(cx - torso_w / 2, sh_y, cx + torso_w / 2, hip_y)
+    # diagonal arms: shoulder edge -> tip near image edge just below
+    # the head band
+    tip_y = head_r + 12
+    for i in range(40):
+        t = i / 40
+        x0 = int(cx - torso_w / 2 - t * (cx - torso_w / 2 - 14))
+        x1 = int(cx + torso_w / 2
+                 + t * (width - (cx + torso_w / 2) - 20))
+        y0 = int(sh_y + 6 - t * (sh_y - tip_y))
+        rect(x0, y0, x0 + 6, y0 + 6)
+        rect(x1, y0, x1 + 6, y0 + 6)
+    gap = 8
+    rect(cx - torso_w / 2, hip_y, cx - gap / 2, height - 10)
+    rect(cx + gap / 2, hip_y, cx + torso_w / 2, height - 10)
+    return bmp
+
+
 def crouch_person(width=160, height=300,
                   skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
     """Crouched figure: compressed torso, bent knees, wide flat feet.

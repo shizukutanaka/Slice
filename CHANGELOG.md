@@ -16,6 +16,7 @@
   observed/predicted/absent配列を同梱。migrateは旧docへ
   `keypoints_state_backfilled` として開示的に補完。
 
+- selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが

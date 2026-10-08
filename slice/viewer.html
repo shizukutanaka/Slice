@@ -123,9 +123,14 @@ function render_side() {
   // (unknown_body_model, no_observed_torso, few_observed, ...) — a doc
   // with caveats must not render identically to a clean one
   const warns = doc.warnings || [];
-  document.getElementById('warnings').innerHTML = warns.length
-    ? warns.map(w => `<div class="row warn">${w}</div>`).join('')
-    : '';
+  // textContent, not innerHTML: warnings come from the stored doc
+  const wbox = document.getElementById('warnings');
+  wbox.replaceChildren(...warns.map(w => {
+    const el = document.createElement('div');
+    el.className = 'row warn';
+    el.textContent = String(w);
+    return el;
+  }));
   const st = doc.style || {};
   document.getElementById('style').innerHTML =
     `<div class="row"><span>${st.label||'—'}</span>` +

@@ -28,6 +28,14 @@ class TestPoseDistance(unittest.TestCase):
                                   _doc(160, 300))
         self.assertIsNone(r)
 
+    def test_predicted_joints_excluded(self):
+        # a guessed joint is prior fill — comparing it measures the
+        # prior, not the pose
+        a, b = _doc(160, 300), _doc(160, 300)
+        b["skeleton"]["joints"]["wrist_l"]["state"] = "predicted"
+        r = compare.pose_distance(a, b)
+        self.assertNotIn("wrist_l", r["per_joint"])
+
     def test_low_confidence_joints_excluded(self):
         a, b = _doc(160, 300), _doc(160, 300)
         b["skeleton"]["joints"]["wrist_l"]["confidence"] = 0.1

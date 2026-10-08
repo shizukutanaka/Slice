@@ -3,6 +3,37 @@
 ## [Unreleased]
 
 - selfcheck: 未知verdictのunmeasured降格を修正（語彙外判定をadvisoryへ — 未認識の証拠を「測定不能」と誤記していた静黙フォールバック）
+- knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
+- signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
+  #232が骨方向ベクトルをobserved化した際、末尾4スカラーが
+  `skel.point`でpredictedのhead/neck/pelvis/footを計測値として
+  混入し続けていた残件（obs版の死行も併せて除去）。
+- limbs: `of_body_h` の正規化子を観測関節のみの垂直スパンに修正 —
+  predicted の頭/足がプライア位置で身体スパンを伸縮させ、「計測
+  された」肢長比率が推測を分母にしていた欠陥を解消（全関節
+  predicted では None を返す）。
+- angles: predicted関節を含む角度を「計測値」として出力していた
+  欠陥を修正。プライア配置の四肢は構造的に~180°に伸びるため
+  elbow_flex等が捏造計測値になっていた（実測 175.8°）。
+  全端点observedの角度のみ出力、predictedは欠損扱いで省略。
+
+- skeleton: `observed_body_span` 共通ヘルパ追加 — contact/reach の身体スパンが predicted 関節を混入し、近接閾値・リーチ半径が未観測の長い脚で捏造されていた欠陥を修正（ground/dynamics も同ヘルパに統一）
+- contour: perimeterを弧長計測に修正（トレース画素数→直交1/対角√2のポリライン長、対角境界の~29%過小評価を解消）
+- rest: オーバーレイPNGをdoc隣に永続化＋メモリは上限128件の読通キャッシュ（再起動でoverlay_urlが404化＋無制限肥大の修正）
+- consistency: 監査をobserved関節のみに修正。predicted
+  head/feet（プライア補完）がbody extentを捏造し
+  `no_body_extent` を回避して虚構スケールで監査を通過
+  させていた → 部位長/対称チェックは両端observedのみ、
+  extentが全predictedなら `no_body_extent`。
+- gesture: ルールの参照点（head/pelvis/hip/shoulder）を観測関節
+  限定に修正 — 腕の証拠はobserved限定でも、predictedの頭や腰が
+  ジェスチャー判定の基準線を捏造していた欠陥を解消（upright判定
+  とhands_on_hipsの参照が推測で構成されなくなった）。
+- horizon: predicted足/足首でground line・カメラロールを計測して
+  いた欠陥を修正。「foot below ankle」複製は接地の証拠ではなく、
+  その線はプライア配置を測るだけ — 観測接地関節ペアのみ使用、
+  全てpredictedならstate=unknown（roll None）を返す。
+
 - `slice bias` — bias層のCLI接続。正解フィクスチャ群で推定器を走らせ、
   関節別の系統誤差（符号付き平均誤差ベクトル）と散布を分離して報告。
   worst関節がベンチゲート(10px)超なら exit 1。
@@ -22,6 +53,17 @@
 - norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
 - knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
 - basis: 先頭1語だけが一致するbasisをobservationと誤分類する穴を修正（完全な観測語彙prefixのみ許容 — 捏造由来の証拠なりすまし防止）
+- knowledge: get()がファイル名と内部idの不整合をKeyErrorで拒否（k_A.jsonが別idを名乗る破損docを誤同一視していた穴を解消）
+- framepos: bounds/headroomをobserved関節のみで計測。
+  predicted関節（"foot below ankle"プライア等）が関節クラウド
+  bboxを伸ばしfootroom/side_gap/body_fractionを捏造していた
+  （実測 footroom 0.037→0.014）。predictedは欠損扱い。
+- pose: 股より下の腕を「底行到達連結性」で脚と判別 — 従来のx重複
+  足判定は広い足（しゃがみ/開脚/足開き）に隣接する腕を脚と誤認し
+  腕を股で切断（手首が腰高に浮く計測誤差）。ランのx帯を下方向に
+  追跡し底行に届くもののみ脚とする。`tests.crouch_person`で回帰
+  ガード（wrist 197→239pxへ復帰）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

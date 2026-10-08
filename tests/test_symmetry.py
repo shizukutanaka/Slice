@@ -29,6 +29,22 @@ class TestSymmetry(unittest.TestCase):
         r = symmetry.score(self.skel)
         self.assertIn("wrist_pair", r["missing"])
 
+    def test_predicted_side_not_fabricated_symmetry(self):
+        # predicted joints are mirror fills: a pair containing them
+        # would always read 1.0 — it must report missing, not a
+        # perfect measured score
+        from slice.skeleton import Joint
+        for a, b in (("shoulder_r", "shoulder_l"),
+                     ("elbow_r", "elbow_l"), ("wrist_r", "wrist_l")):
+            j = self.skel.joints[b]
+            cx = self.skel.joints["neck"].x
+            self.skel.set(Joint(a, 2 * cx - j.x, j.y, 0.3,
+                                state="predicted", basis="mirror"))
+        r = symmetry.score(self.skel)
+        for k in ("shoulder_pair", "elbow_pair", "wrist_pair"):
+            self.assertIn(k, r["missing"])
+            self.assertNotIn(k, r["pairs"])
+
     def test_all_missing_score_none(self):
         for n in list(self.skel.joints):
             del self.skel.joints[n]

@@ -38,10 +38,15 @@ _PAIRS = [
 
 
 def _d(skel: Skeleton, a: str, b: str) -> Optional[float]:
-    pa, pb = skel.point(a), skel.point(b)
-    if not pa or not pb:
+    """Observed-only segment length: a bone ending in a predicted
+    joint is measured against prior fill — vacuous on prior chains
+    and unfairly attributed to the observed endpoint on mirrors —
+    so it yields no measurement."""
+    ja, jb = skel.joints.get(a), skel.joints.get(b)
+    if (ja is None or jb is None
+            or ja.state != "observed" or jb.state != "observed"):
         return None
-    return math.hypot(pa[0] - pb[0], pa[1] - pb[1])
+    return math.hypot(ja.x - jb.x, ja.y - jb.y)
 
 
 def audit(skel: Skeleton, model: Optional[str] = None) -> List[str]:
@@ -49,8 +54,11 @@ def audit(skel: Skeleton, model: Optional[str] = None) -> List[str]:
     prior = BODY_MODELS.get(
         model or (skel.body_model or {}).get("name") or DEFAULT_MODEL,
         BODY_MODELS[DEFAULT_MODEL])
-    head = skel.point("head")
-    feet = [p for p in (skel.point("foot_l"), skel.point("foot_r")) if p]
+    hj = skel.joints.get("head")
+    head = (hj.x, hj.y) if hj and hj.state == "observed" else None
+    feet = [(j.x, j.y) for j in
+            (skel.joints.get("foot_l"), skel.joints.get("foot_r"))
+            if j and j.state == "observed"]
     issues: List[str] = []
     if not head or not feet:
         return ["no_body_extent"]

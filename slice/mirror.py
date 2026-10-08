@@ -29,7 +29,7 @@ def flip_skeleton(skel: Skeleton) -> Skeleton:
     out = Skeleton(skel.image_width, skel.image_height)
     for name, j in skel.joints.items():
         out.set(Joint(MIRROR.get(name, name),
-                      skel.image_width - j.x, j.y,
+                      skel.image_width - 1 - j.x, j.y,
                       j.confidence, j.state, j.basis))
     orient = dict(skel.orientation)
     if orient.get("facing") == "left":
@@ -41,6 +41,6 @@ def flip_skeleton(skel: Skeleton) -> Skeleton:
     out.orientation = orient
     out.body_model = dict(skel.body_model)
     if skel.centroid is not None:
-        out.centroid = (skel.image_width - skel.centroid[0],
+        out.centroid = (skel.image_width - 1 - skel.centroid[0],
                         skel.centroid[1])
     return out

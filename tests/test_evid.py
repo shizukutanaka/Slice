@@ -3,7 +3,7 @@ import unittest
 
 from slice import evaluate, evid, mask as mask_mod
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 
 
 def _setup():
@@ -26,7 +26,7 @@ class TestEvid(unittest.TestCase):
     def test_off_mask_joint_flagged(self):
         bmp, est, m = _setup()
         sk = est.estimate(bmp)
-        sk.set(Joint("wrist_l", 5, 5, 0.9, basis="planted outside"))
+        sk.set(Joint("wrist_l", 5, 5, 0.9, OBSERVED, basis="planted outside"))
         r = evid.locate(sk, m)
         self.assertEqual(r["joints"]["wrist_l"]["zone"], "off_mask")
         self.assertIn("wrist_l", evid.unsupported(r))

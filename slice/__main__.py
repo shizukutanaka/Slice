@@ -176,39 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_split(a) -> int:
-    """Split a fused silhouette into per-person skeletons."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    skels = est.estimate_split(bmp, a.model or "adult",
-                               top_k=a.top_k)
-    figs = []
-    for i, sk in enumerate(skels):
-        figs.append({
-            "figure": i,
-            "joints": {n: {"x": round(j.x, 1),
-                           "y": round(j.y, 1),
-                           "confidence": j.confidence,
-                           "state": j.state}
-                       for n, j in sk.joints.items()},
-            "observed": sum(1 for j in sk.joints.values()
-                            if j.state == "observed"),
-            "frame": {"width": sk.image_width,
-                      "height": sk.image_height},
-        })
-    res = {"figures": len(figs), "results": figs,
-           "basis": "estimate_split: head-band peaks + geodesic "
-                    "watershed; touching people may stay merged"}
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0 if figs else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -287,11 +254,23 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
@@ -301,11 +280,22 @@ def _cmd_probe(a) -> int:
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -340,6 +330,7 @@ def _cmd_mirror(a) -> int:
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
     }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
 
@@ -759,17 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    sp = sub.add_parser(
-        "split", help="watershed-split fused silhouettes")
-    sp.add_argument("image")
-    sp.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    sp.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    sp.add_argument("--top-k", type=int, default=4,
-                    help="max figures")
-    sp.set_defaults(fn=_cmd_split)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -789,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

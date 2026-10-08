@@ -31,6 +31,14 @@ class TestIk(unittest.TestCase):
         ang = ik.bend_angle((0, 0), mid, end)
         self.assertLess(ang, 180)
 
+    def test_degenerate_segments_declined(self):
+        # documented contract: no chain to solve -> None, not a
+        # fabricated mid/end 1e-6 px from the root
+        self.assertIsNone(ik.solve_ik((0, 0), (10, 0), 0, 0))
+        self.assertIsNone(ik.solve_ik((0, 0), (10, 0), 0, 20))
+        self.assertIsNone(ik.solve_ik((0, 0), (10, 0), 20, 0))
+        self.assertIsNone(ik.solve_ik((0, 0), (10, 0), -5, 20))
+
 
 if __name__ == "__main__":
     unittest.main()

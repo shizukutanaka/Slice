@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
+
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
 - `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。

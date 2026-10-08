@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
+  時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
+  混入していた欠陥を修正（同ファイルの`forward_head`が宣言する
+  「scaleなし→unknown」ルールと整合。測定不能は`None`開示）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

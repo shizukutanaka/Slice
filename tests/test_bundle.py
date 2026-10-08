@@ -54,9 +54,10 @@ class TestBundle(unittest.TestCase):
             zpath = os.path.join(tmp, "out.zip")
             m = pack(store, zpath)
             self.assertEqual(m["count"], 1)
-            # broken.json never surfaces from store.list();
-            # only the listed-but-id-less entry is counted
-            self.assertEqual(m["skipped"], 1)
+            # both invalid files are dropped by store.list() itself —
+            # an id-less file is unlistable (its filename is not a
+            # retrievable identity), so pack never sees them
+            self.assertEqual(m["skipped"], 0)
             self.assertEqual(len(unpack(zpath)), 1)
 
     def test_unpack_skips_corrupt_members(self):

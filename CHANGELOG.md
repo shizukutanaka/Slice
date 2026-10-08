@@ -10,6 +10,10 @@
   再現するため、arm_l/limb_symmetry/arm_span等が捏造計測値に
   （ミラー肢のlimb_symmetryは構造的1.0）。全端点observedのみ
   計測、predictedはNoneで報告。
+- sample: joints_reportをobserved関節のみに修正。predicted
+  関節位置（プライア補完）で実画素を採取し `wrist_l: covered`
+  等の部位帰属ラベルを捏造していた → predictedはレポート
+  から除外。
 
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 

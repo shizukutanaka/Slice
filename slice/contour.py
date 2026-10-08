@@ -80,7 +80,14 @@ def features(mask: List[bytearray]) -> dict:
     bw, bh = bbox[2] - bbox[0] + 1, bbox[3] - bbox[1] + 1
     contour = trace(mask)
     area = len(pts)
-    perim = float(len(contour))
+    # perimeter as polyline arc length: orthogonal steps cost 1,
+    # diagonal steps cost sqrt(2) — counting traced pixels as 1px
+    # each under-reports diagonal-heavy boundaries by up to ~29%.
+    perim = 0.0
+    for i in range(len(contour)):
+        (ax, ay), (bx, by) = contour[i], contour[(i + 1) % len(contour)]
+        perim += math.hypot(ax - bx, ay - by)
+    perim = round(perim, 2)
     return {
         "area": area,
         "perimeter": perim,

@@ -24,6 +24,14 @@ class TestBasis(unittest.TestCase):
     def test_prior_wording(self):
         self.assertEqual(basis.category("head height prior"), "prior")
 
+    def test_first_word_collision_not_observation(self):
+        # "top guess" / "arm pose guess" share only a first word with
+        # observed bases — counting them as observation would let
+        # fabricated provenance launder into evidence
+        for b in ("top guess", "arm pose guess", "leg estimate",
+                  "merged prior hack", "edge of frame"):
+            self.assertEqual(basis.category(b), "unknown", b)
+
     def test_unknown(self):
         self.assertEqual(basis.category("mumbo jumbo"), "unknown")
         self.assertEqual(basis.category(""), "unknown")

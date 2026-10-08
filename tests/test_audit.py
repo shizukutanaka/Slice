@@ -58,6 +58,35 @@ class TestAudit(unittest.TestCase):
         codes = [w["code"] for w in a["warnings"]]
         self.assertIn("confidence_suspect", codes)
 
+    def test_stale_warning_flagged(self):
+        # a doc claiming thin evidence it does not have is a stale
+        # disclosure — the lint must say so
+        doc = _doc()
+        doc["warnings"] = ["few_observed_joints"]
+        a = audit(doc)
+        codes = [w["code"] for w in a["warnings"]]
+        self.assertIn("stale_warning", codes)
+
+    def test_backed_warning_not_flagged(self):
+        # a warning that matches the joint states is honest, keep it
+        doc = _doc()
+        for name, j in doc["skeleton"]["joints"].items():
+            if not name.startswith(("ankle", "foot")):
+                continue
+            j["state"] = "predicted"
+        doc["warnings"] = ["no_observed_feet"]
+        a = audit(doc)
+        codes = [w["code"] for w in a["warnings"]]
+        self.assertNotIn("stale_warning", codes)
+
+    def test_unknown_warning_code_ignored(self):
+        # codes outside the audited vocabulary are foreign, not stale
+        doc = _doc()
+        doc["warnings"] = ["some_future_code"]
+        a = audit(doc)
+        codes = [w["code"] for w in a["warnings"]]
+        self.assertNotIn("stale_warning", codes)
+
     def test_invalid_schema_verdict(self):
         a = audit({"no": "schema"})
         self.assertEqual(a["verdict"], "invalid")

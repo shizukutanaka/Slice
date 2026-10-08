@@ -19,7 +19,7 @@ Point = Tuple[float, float]
 LABELS = {
     "stand": "立つ", "sit": "座る", "walk": "歩く", "run": "走る",
     "lie": "寝る", "crouch": "しゃがむ", "bend": "前傾",
-    "unknown": "不明",
+    "invert": "逆さま", "unknown": "不明",
 }
 
 
@@ -53,7 +53,10 @@ def analyze(skel: Skeleton) -> dict:
                 "confidence": 0.0, "signals": {"reason": "insufficient joints"}}
 
     top_y = min(j.y for j in skel.joints.values())
-    bot_y = max(p[1] for p in feet)
+    # The lowest joint, not the lowest foot: for an inverted figure
+    # the feet are the top, and a foot-only bottom collapses the
+    # vertical span to ~0 (which then masquerades as "lie").
+    bot_y = max(j.y for j in skel.joints.values())
     span_y = bot_y - top_y
     span_x = max(j.x for j in skel.joints.values()) \
         - min(j.x for j in skel.joints.values())
@@ -82,6 +85,13 @@ def analyze(skel: Skeleton) -> dict:
     # 寝る: the figure's long axis is horizontal.
     if span_x > span_y * 1.15:
         return result("lie", 0.8)
+
+    # 逆さま: every foot is measured ABOVE the head — the figure is
+    # upside down (handstand, head-down lie, inverted capture), not
+    # standing. After "lie" so a diagonal head-low recline still
+    # classifies as lying.
+    if max(p[1] for p in feet) < head[1]:
+        return result("invert", 0.8)
 
     if not all((hip_l, hip_r, knee_l, knee_r, ankle_l, ankle_r)):
         return result("unknown", 0.3)

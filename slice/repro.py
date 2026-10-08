@@ -16,10 +16,11 @@ What it catches:
 
 verdict: `reproducible` (all joints within tolerance),
 `drifted` (positions moved but no structural change),
-`changed` (flips/misses/adds). Positions are compared in the
-*recorded* frame — re-estimated joints are rescaled when the
-downscale differs, so resolution changes alone don't count as
-drift.
+`changed` (flips/misses/adds), `unverifiable` (no recorded frame
+— position distances can't be checked at all). Positions are
+compared in the *recorded* frame — re-estimated joints are
+rescaled when the downscale differs, so resolution changes alone
+don't count as drift.
 """
 
 from __future__ import annotations
@@ -52,8 +53,16 @@ def verify(doc: dict, bmp: Bitmap,
 
     est = estimator or HeuristicPoseEstimator()
     sk = est.estimate(bmp, model)
-    sx = frame.get("width") and sk.image_width / frame["width"] or 1.0
-    sy = frame.get("height") and sk.image_height / frame["height"] or 1.0
+    fw, fh = frame.get("width"), frame.get("height")
+    # A doc without recorded frame dims gives no coordinate space to
+    # verify against: `or 1.0` would silently assume the re-estimate's
+    # space and compute px distances between unrelated frames —
+    # fabricated drifts on one side, real ones hidden on the other —
+    # while `basis` still claimed "frame-rescaled". Missing/added/flips
+    # are space-independent and stay verifiable; px distances don't.
+    frame_verified = bool(fw and fh)
+    sx = sk.image_width / fw if frame_verified else 1.0
+    sy = sk.image_height / fh if frame_verified else 1.0
 
     drifts, flips, missing, added = [], [], [], []
     compared = 0
@@ -62,33 +71,36 @@ def verify(doc: dict, bmp: Bitmap,
         if ej is None:
             missing.append(name)
             continue
-        ex, ey = ej.x / (sx or 1.0), ej.y / (sy or 1.0)
-        d = math.hypot(ex - rj["x"], ey - rj["y"])
         compared += 1
         if ej.state != rj.get("state"):
             flips.append({"joint": name,
                           "was": rj.get("state"), "now": ej.state})
-        if d > tolerance:
-            drifts.append({"joint": name,
-                           "drift_px": round(d, 2)})
+        if frame_verified:
+            d = math.hypot(ej.x / sx - rj["x"], ej.y / sy - rj["y"])
+            if d > tolerance:
+                drifts.append({"joint": name,
+                               "drift_px": round(d, 2)})
     for name in sk.joints:
         if name not in rec:
             added.append(name)
 
     verdict = ("changed" if flips or missing or added else
                "drifted" if drifts else
-               "reproducible")
+               "reproducible" if frame_verified else "unverifiable")
     return {
         "verdict": verdict,
         "joints_compared": compared,
+        "frame_verified": frame_verified,
         "drifts": drifts,
         "state_flips": flips,
         "missing": sorted(missing),
         "added": sorted(added),
         "tolerance_px": tolerance,
         "state": "measured",
-        "basis": "re-estimate on source image vs recorded joints "
-                 "(frame-rescaled)",
+        "basis": ("re-estimate on source image vs recorded joints "
+                  "(frame-rescaled)" if frame_verified else
+                  "re-estimate on source image vs recorded joints "
+                  "(frame unrecorded — px distances unverifiable)"),
     }
 
 

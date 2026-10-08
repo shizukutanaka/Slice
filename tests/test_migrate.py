@@ -44,6 +44,15 @@ class TestMigrate(unittest.TestCase):
             expect = sk[name]["state"] if name in sk else "absent"
             self.assertEqual(st, expect)
 
+    def test_state_fix_separates_existing_basis(self):
+        d = _doc()
+        j = d["skeleton"]["joints"]["head"]
+        del j["state"]
+        j["basis"] = "measured row 3"
+        r = migrate.upgrade(d)
+        b = r["document"]["skeleton"]["joints"]["head"]["basis"]
+        self.assertEqual(b, "measured row 3; migrated: state unknown")
+
     def test_state_missing_becomes_predicted(self):
         doc = _doc()
         doc["skeleton"]["joints"]["head"].pop("state")

@@ -93,6 +93,30 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_store_list_skips_id_mismatch(self):
+        # a file k_A.json claiming {"id": "k_B"} lists a doc that get()
+        # can never return — filename is the identity, drop the phantom
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            path = os.path.join(d, "k_aaaaaaaaaaaa.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"id": "k_bbbbbbbbbbbb",
+                           "skeleton": {"body_model": {"name": "adult"}}},
+                          f)
+            self.assertEqual(store.list(), [])
+
+    def test_store_get_rejects_id_mismatch(self):
+        # a file named k_A.json containing {"id": "k_B"} is corruption,
+        # not the document asked for — get() must not return it under
+        # the wrong identity
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            path = os.path.join(d, "k_aaaaaaaaaaaa.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"id": "k_bbbbbbbbbbbb"}, f)
+            with self.assertRaises(KeyError):
+                store.get("k_aaaaaaaaaaaa")
+
     def test_store_list_uses_index_and_heals(self):
         doc = pipeline.strip_runtime(analyze_synth())
         with tempfile.TemporaryDirectory() as d:
@@ -113,6 +137,22 @@ class TestKnowledge(unittest.TestCase):
             # stale index entry for a deleted doc is pruned
             os.remove(os.path.join(d, kid + ".json"))
             self.assertNotIn(kid, {i["id"] for i in store.list()})
+
+    def test_store_list_rereads_rewritten_doc(self):
+        # a doc overwritten after the index was built must not be
+        # reported with the stale indexed body_model
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            path = os.path.join(d, kid + ".json")
+            import time
+            time.sleep(0.05)   # ensure mtime moves past the index write
+            doc["skeleton"]["body_model"] = {"name": "child"}
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(doc, f)
+            ent = [e for e in store.list() if e["id"] == kid]
+            self.assertEqual(ent[0]["body_model"], "child")
 
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()

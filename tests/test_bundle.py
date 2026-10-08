@@ -54,9 +54,10 @@ class TestBundle(unittest.TestCase):
             zpath = os.path.join(tmp, "out.zip")
             m = pack(store, zpath)
             self.assertEqual(m["count"], 1)
-            # broken.json never surfaces from store.list();
-            # only the listed-but-id-less entry is counted
-            self.assertEqual(m["skipped"], 1)
+            # both invalid files are dropped by store.list() itself —
+            # an id-less file is unlistable (its filename is not a
+            # retrievable identity), so pack never sees them
+            self.assertEqual(m["skipped"], 0)
             self.assertEqual(len(unpack(zpath)), 1)
 
     def test_unpack_skips_corrupt_members(self):
@@ -73,6 +74,27 @@ class TestBundle(unittest.TestCase):
                 z.writestr("docs/nondict.json", "[1, 2]")
             docs = unpack(zpath)
             self.assertEqual([d["id"] for d in docs], [doc["id"]])
+
+    def test_unpack_skips_crc_corrupt_member(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeStore(tmp)
+            doc = _doc()
+            store.save(doc)
+            zpath = os.path.join(tmp, "out.zip")
+            pack(store, zpath)
+            # corrupt the compressed payload of the docs member —
+            # z.read raises and must not kill unpack
+            import struct
+            raw = bytearray(open(zpath, "rb").read())
+            with zipfile.ZipFile(zpath) as z:
+                info = z.getinfo("docs/%s.json" % doc["id"])
+            off = info.header_offset
+            nlen = struct.unpack("<H", raw[off + 26:off + 28])[0]
+            elen = struct.unpack("<H", raw[off + 28:off + 30])[0]
+            raw[off + 30 + nlen + elen + 5] ^= 0xFF
+            open(zpath, "wb").write(bytes(raw))
+            self.assertEqual(unpack(zpath), [])
 
     def test_pack_survives_unprocessable_doc(self):
         with tempfile.TemporaryDirectory() as tmp:

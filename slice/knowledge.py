@@ -195,7 +195,12 @@ class KnowledgeStore:
         if not os.path.isfile(path):
             raise KeyError(kid)
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            doc = json.load(f)
+        # a file named <kid>.json must be the document <kid> — a
+        # mismatched internal id means corruption, not the doc asked for
+        if not isinstance(doc, dict) or doc.get("id") != kid:
+            raise KeyError(kid)
+        return doc
 
     def _index_path(self) -> str:
         return os.path.join(self.root, INDEX_NAME)
@@ -230,9 +235,33 @@ class KnowledgeStore:
         indexed = self._index_load()
         out, healed = [], indexed is None
         entries = dict(indexed) if indexed else {}
+        index_mtime = 0.0
+        if indexed is not None:
+            try:
+                index_mtime = os.path.getmtime(self._index_path())
+            except OSError:
+                index_mtime = 0.0
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
+            if ent is not None and ent.get("id") != kid:
+                # a cached entry whose id disagrees with the filename
+                # names a document that can never be retrieved — drop
+                # it and let the file itself be judged below
+                healed = True
+                ent = None
+            if ent is not None:
+                # a file rewritten after the index was built leaves a
+                # stale entry — re-read it so list() never reports a
+                # document that no longer exists on disk
+                try:
+                    if os.path.getmtime(
+                            os.path.join(self.root, fn)) < index_mtime:
+                        out.append(ent)
+                        continue
+                except OSError:
+                    pass
+                ent = None
             if ent is None:
                 healed = True
                 try:
@@ -241,7 +270,9 @@ class KnowledgeStore:
                         d = json.load(f)
                 except (OSError, json.JSONDecodeError):
                     continue
-                if not isinstance(d, dict):
+                if not isinstance(d, dict) or d.get("id") != kid:
+                    # filename is the document's identity — a file that
+                    # claims another id is corruption, not a listable doc
                     continue
                 ent = _list_entry(d)
             out.append(ent)

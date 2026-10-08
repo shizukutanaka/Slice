@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
+
 - `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。
 
 - `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。

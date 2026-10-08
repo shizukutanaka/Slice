@@ -39,6 +39,7 @@ from . import (reid)
 from . import (describe)
 from . import (autocrop, crop)
 from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
+from . import (evid)
 
 
 def _cmd_analyze(a) -> int:
@@ -559,6 +560,27 @@ def _cmd_export(a) -> int:
     return 0
 
 
+def _cmd_evid(a) -> int:
+    """Per-joint evidence localization: interior/boundary/off_mask."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = evid.locate(skel, m)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if not evid.unsupported(res) else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -794,6 +816,15 @@ def main(argv=None) -> int:
     e.add_argument("-o", "--output",
                    help="output file (default: stdout)")
     e.set_defaults(fn=_cmd_export)
+
+    ev = sub.add_parser(
+        "evid", help="per-joint evidence localization")
+    ev.add_argument("image")
+    ev.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ev.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ev.set_defaults(fn=_cmd_evid)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

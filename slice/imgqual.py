@@ -75,14 +75,26 @@ def _border_rgb(bmp: Bitmap) -> List[int]:
 
 
 def _fg_bg_dist(bmp: Bitmap, bg: List[int]) -> float:
-    """Median-ish distance of sampled pixels from border colour."""
-    best = 0.0
+    """Upper-quartile distance of sampled pixels from border colour.
+
+    "Median-ish" per the module contract — a robust order
+    statistic, not the max(): a lone outlier pixel (a lamp, a
+    specular highlight, a compression artifact) must not pass the
+    contrast gate on its own. The 75th percentile still requires a
+    substantial region (~a quarter of the centre) to measurably
+    differ from the border — a true median would flag small centred
+    subjects that the estimator can in fact separate.
+    """
+    ds = []
     for y in range(bmp.height // 4, 3 * bmp.height // 4, 8):
         for x in range(bmp.width // 4, 3 * bmp.width // 4, 8):
             p = bmp.get(x, y)
-            best = max(best, math.sqrt(sum(
+            ds.append(math.sqrt(sum(
                 (p[i] - bg[i]) ** 2 for i in range(3))))
-    return best
+    if not ds:
+        return 0.0
+    ds.sort()
+    return ds[int(len(ds) * 0.75)]
 
 
 def assess(bmp: Bitmap) -> Dict:

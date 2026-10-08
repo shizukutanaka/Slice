@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- imgqual: contrastの前景/境界距離をmax→第75パーセンタイルに
+  （「median-ish」契約に対し孤立画素1個でゲートを通過していた
+  欠陥を修正。小さな被写体を弾かない頑健な順位統計）
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

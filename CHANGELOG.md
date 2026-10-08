@@ -9,6 +9,10 @@
   修正。弦配置のpredicted chestがforward_headの胴体基準を、
   predicted ankleが支持基準offsetを捏造していた → predictedは
   欠損扱い（forward_headはNoneで測定不能）。
+- pose: 水平腕（Tポーズ/腕上げ）検出 — 最広行が胴幅×1.6超のとき
+  腕ストリップと判定し、肩=胴縁・肘=中点・手首=先端を観測
+  （従来は肩が腕先端に吸収され118px誤差＋肘/手首未検出）。
+  `evaluate.draw_case(pose="t")` でポーズ多様性のあるフィクスチャ。
 
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 

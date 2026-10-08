@@ -4,6 +4,22 @@
 
 - `slice sheet <dir> [-o out.png]` — sheet層のCLI接続。ディレクトリ内画像を推定→骨格オーバーレイのコンタクトシート（アスペクト保持レターボックス）。データセットレビューが1PNGに集約。
 
+- `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
+
+- `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。
+- plumb: plumb line・forward_head・baseをobserved関節のみに
+  修正。弦配置のpredicted chestがforward_headの胴体基準を、
+  predicted ankleが支持基準offsetを捏造していた → predictedは
+  欠損扱い（forward_headはNoneで測定不能）。
+- pose: 水平腕（Tポーズ/腕上げ）検出 — 最広行が胴幅×1.6超のとき
+  腕ストリップと判定し、肩=胴縁・肘=中点・手首=先端を観測
+  （従来は肩が腕先端に吸収され118px誤差＋肘/手首未検出）。
+  `evaluate.draw_case(pose="t")` でポーズ多様性のあるフィクスチャ。
+- lift: 出力に関節の `state` を同梱。zの出典（basis）は従来通り
+  だが、x,yがpredictedでも観測座標と区別不能だった — 推測座標は
+  prior fillとして明示。
+
+- contour: features()に`contour_closed`を開示（トレースが反復上限で未閉鎖打ち切りの際、perimeter/compactnessが下界として完全計測値を装っていた欠陥を解消）
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。

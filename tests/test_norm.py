@@ -22,6 +22,22 @@ class TestNorm(unittest.TestCase):
         self.assertEqual(out.joints["head"].state, "out_of_frame")
         self.assertIn("lost to transform", out.joints["head"].basis)
 
+    def test_centroid_transformed_too(self):
+        # the centroid is a frame-space point: a transform that moves
+        # joints must move it too, or downstream consumers get a stale
+        # coordinate from the old frame
+        self.skel.centroid = (200, 150)
+        c = norm.crop(self.skel, 100, 20, 200, 200)
+        self.assertEqual(c.centroid, (100, 130))
+        r = norm.resize(self.skel, 400, 300, 200, 150)
+        self.assertAlmostEqual(r.centroid[0], 100)
+        self.assertAlmostEqual(r.centroid[1], 75)
+        u = norm.to_unit(self.skel, 400, 300)
+        self.assertAlmostEqual(u.centroid[0], 0.5)
+        b = norm.from_unit(u, 400, 300)
+        self.assertAlmostEqual(b.centroid[0], 200)
+        self.assertAlmostEqual(b.centroid[1], 150)
+
     def test_resize_scales(self):
         head = self.skel.point("head")
         out = norm.resize(self.skel, 300, 400, 150, 200)

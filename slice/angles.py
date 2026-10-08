@@ -3,7 +3,9 @@
 Flexion is the interior angle at the middle joint of a bone pair
 (180° = perfectly straight). Elevation measures a limb's direction
 relative to the torso vertical (0° = hanging down, 90° = horizontal,
-180° = overhead). Missing joints omit the entry rather than guess.
+180° = overhead). Missing joints omit the entry rather than guess —
+and predicted joints count as missing: a prior-placed limb reads
+~180° by construction, which would fabricate a measurement.
 """
 
 from __future__ import annotations
@@ -38,9 +40,14 @@ def _angle(a, b, c) -> Optional[float]:
     return math.degrees(math.acos(cos))
 
 
+def _obs_point(skel: Skeleton, name: str):
+    j = skel.joints.get(name)
+    return (j.x, j.y) if j and j.state == "observed" else None
+
+
 def _elevation(skel: Skeleton, a: str, b: str) -> Optional[float]:
     """Direction of a→b measured from straight-down, degrees."""
-    pa, pb = skel.point(a), skel.point(b)
+    pa, pb = _obs_point(skel, a), _obs_point(skel, b)
     if not pa or not pb:
         return None
     # y grows downward in image space: down is (0, +1)
@@ -54,7 +61,8 @@ def _elevation(skel: Skeleton, a: str, b: str) -> Optional[float]:
 def analyze(skel: Skeleton) -> dict:
     out: dict = {}
     for name, a, b, c in _FLEX:
-        v = _angle(skel.point(a), skel.point(b), skel.point(c))
+        v = _angle(_obs_point(skel, a), _obs_point(skel, b),
+                   _obs_point(skel, c))
         if v is not None:
             out[name] = round(v, 1)
     for side in ("l", "r"):

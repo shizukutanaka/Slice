@@ -24,8 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               mask as _mask_mod, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -178,38 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_mask(a) -> int:
-    """Foreground mask PNG, or alpha-cutout of the input."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    if a.cutout:
-        out = _mask_mod.cutout(bmp, est)
-        note = "background alpha=0 at input resolution"
-    else:
-        small = bmp.downscale(est.max_dim)
-        m = _mask_mod.foreground(small, est)
-        out = _mask_mod.to_bitmap(m, small.width,
-                                  small.height)
-        note = ("mask at estimator resolution "
-                f"{small.width}x{small.height}")
-    with open(a.output, "wb") as f:
-        f.write(bitmap.encode_png(out))
-    small = bmp.downscale(est.max_dim)
-    m = _mask_mod.foreground(small, est)
-    print(json.dumps({"output": a.output,
-                      "coverage": round(
-                          _mask_mod.coverage(m), 4),
-                      "size": [out.width, out.height],
-                      "basis": note}, ensure_ascii=False))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -288,23 +254,48 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
         return 1
+    small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -759,16 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    mk = sub.add_parser(
-        "mask", help="export the foreground mask PNG")
-    mk.add_argument("image")
-    mk.add_argument("-o", "--output", required=True)
-    mk.add_argument("--cutout", action="store_true",
-                    help="write an alpha cutout at full res")
-    mk.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    mk.set_defaults(fn=_cmd_mask)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -790,7 +771,9 @@ def main(argv=None) -> int:
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
                     default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -798,6 +781,7 @@ def main(argv=None) -> int:
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
                     default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

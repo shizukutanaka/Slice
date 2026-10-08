@@ -21,6 +21,10 @@ def solve_ik(root: Point, target: Point, L1: float, L2: float,
     """Return (mid, end). mid = elbow/knee position, end = reached
     position (clamped to L1+L2 if the target is unreachable, or to
     |L1-L2| if it is too close). None if segments are degenerate."""
+    if L1 <= 0 or L2 <= 0:
+        # a zero/negative-length bone cannot bend — no chain exists
+        # to solve, so there is no honest mid point to return
+        return None
     dx, dy = target[0] - root[0], target[1] - root[1]
     d = math.hypot(dx, dy)
     if d < 1e-9:

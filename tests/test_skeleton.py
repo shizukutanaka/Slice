@@ -2,6 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
+from slice import predict
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Joint, OBSERVED, PREDICTED, Skeleton
 from slice.skeleton import Joint, Skeleton, body_span
@@ -37,6 +38,24 @@ class TestNormalized(unittest.TestCase):
         skel.set(Joint("head", 50, 10, 0.5, OBSERVED))
         self.assertIsNone(skel.normalized())
         self.assertNotIn("normalized", skel.to_dict())
+
+    def test_predicted_anchor_omits_field(self):
+        # prior-placed pelvis must not anchor the normalized frame —
+        # abstain, don't write guessed coordinates into the doc
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        del skel.joints["pelvis"]
+        predict.complete(skel)
+        self.assertIsNone(skel.normalized())
+        self.assertNotIn("normalized", skel.to_dict())
+    def test_normalized_carries_state(self):
+        skel = Skeleton(100, 100)
+        skel.set(Joint("pelvis", 50, 90, 0.9, OBSERVED))
+        skel.set(Joint("neck", 50, 40, 0.9, OBSERVED))
+        skel.set(Joint("wrist_l", 10, 60, 0.3, PREDICTED,
+                       "prior off wrist"))
+        norm = skel.normalized()
+        self.assertEqual(norm["joints"]["wrist_l"]["state"], PREDICTED)
+        self.assertEqual(norm["joints"]["pelvis"]["state"], OBSERVED)
 
     def test_state_defaults_to_predicted(self):
         # claiming evidence must be deliberate: a Joint built without

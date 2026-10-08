@@ -23,6 +23,10 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
+from . import (anatomy, axis, balance, bitmap, classify, contrad,
+               evid, fit,
+               gate, ground, human, imgqual, knowledge, limbcov,
+               mask as mask_mod, pipeline, stability)
 from . import (axis, balance, bitmap, classify, consistency, contrad,
                evid, fit, gate, ground, human, imgqual, knowledge,
                limbcov, mask as mask_mod, pipeline, stability)
@@ -95,6 +99,11 @@ def run(raw: bytes, *, model: Optional[str] = None,
     mdl = model or "adult"
     layers: Dict[str, dict] = {}
     reasons = []
+
+    # an unknown model name silently estimates against the default
+    # prior — the audit must say the requested model never ran
+    if model and model not in anatomy.BODY_MODELS:
+        reasons.append("model:unknown_body_model")
 
     layers["imgqual"] = imgqual.assess(bmp)
     if not imgqual.adequate(layers["imgqual"]):

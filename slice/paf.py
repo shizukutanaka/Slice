@@ -12,12 +12,10 @@ lets us see where limb connectivity is asserted vs guessed
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Tuple
+from typing import List
 
 from .landmarks import BONES
 from .skeleton import PREDICTED, Skeleton
-
-Vec = Tuple[float, float]
 
 
 def _band_score(px: float, py: float, a, b, width: float) -> float:
@@ -80,10 +78,3 @@ def field(skel: Skeleton, width: float = 6.0,
     return out
 
 
-def direction_at(pafs: List[dict], x: int, y: int,
-                 ) -> Optional[Vec]:
-    """Field direction at a grid cell, else None."""
-    for p in pafs:
-        if (x, y) in p["cells"]:
-            return p["dir"]
-    return None

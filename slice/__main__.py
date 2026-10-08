@@ -14,6 +14,8 @@
         — per-joint systematic vs random error on fixtures
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
+    python -m slice modelchk <image>
+        — chosen BODY_MODEL vs measured ratios
 """
 
 from __future__ import annotations
@@ -32,6 +34,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               modelchk, pipeline, ratio, render, rest, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -626,6 +630,26 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_modelchk(a) -> int:
+    """Audit the chosen BODY_MODEL against measured ratios."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    ratios = ratio.analyze(skel, centroid=skel.centroid)
+    res = modelchk.check(skel, ratios)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "consistent" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +908,15 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    mc = sub.add_parser(
+        "modelchk", help="chosen body-model consistency audit")
+    mc.add_argument("image")
+    mc.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    mc.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mc.set_defaults(fn=_cmd_modelchk)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

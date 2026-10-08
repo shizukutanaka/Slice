@@ -44,6 +44,34 @@ class TestImgqual(unittest.TestCase):
             self.assertIn("limit", f)
         self.assertEqual(r["state"], "measured")
 
+    def test_transparent_border_contrast_unmeasurable(self):
+        # cutout PNG: the border's transparent pixels are absent
+        # background, not a black one — bg must not fabricate (0,0,0)
+        # and pass/fail contrast on that invented reference.
+        bmp = Bitmap.new(160, 160, (0, 0, 0, 0))
+        for y in range(40, 140):
+            for x in range(50, 110):
+                v = (x * 7 + y * 5) % 256
+                bmp.set(x, y, (v, 255 - v, (v * 3) % 256, 255))
+        r = imgqual.assess(bmp)
+        flag = next(f for f in r["flags"] if f["code"] == "contrast")
+        self.assertTrue(flag["unmeasurable"])
+        self.assertIsNone(flag["value"])
+        self.assertNotIn("contrast", r["failed"])
+
+    def test_transparent_pixels_not_foreground(self):
+        # transparent interior pixels are not fg-vs-bg evidence:
+        # an opaque blob no bigger than needed still measures against
+        # the opaque border it actually sits on
+        bmp = Bitmap.new(160, 160, (200, 210, 220, 255))
+        for y in range(60, 100):
+            for x in range(60, 100):
+                bmp.set(x, y, (0, 0, 0, 0))
+        r = imgqual.assess(bmp)
+        flag = next(f for f in r["flags"] if f["code"] == "contrast")
+        self.assertFalse(flag.get("unmeasurable"))
+        self.assertLess(flag["value"], imgqual.MIN_FG_BG)
+
 
 if __name__ == "__main__":
     unittest.main()

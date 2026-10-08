@@ -39,11 +39,25 @@ def _lum(bmp: Bitmap, x: int, y: int) -> float:
     return 0.299 * r + 0.587 * g + 0.114 * b
 
 
+def _opaque(bmp: Bitmap, x: int, y: int) -> bool:
+    # alpha<128 = absent content, not a black pixel — a cutout's
+    # transparent region must not vote its zeroed RGB into any
+    # statistic (same rule style.analyze and pose._background use)
+    return bmp.get(x, y)[3] >= 128
+
+
 def _sharpness(bmp: Bitmap) -> float:
     """Mean absolute 4-neighbour Laplacian on luminance."""
     total = n = 0
     for y in range(1, bmp.height - 1, 2):
         for x in range(1, bmp.width - 1, 2):
+            # a cutout outline is not content blur/sharpness — only a
+            # fully-opaque cross measures real edge softness
+            if not (_opaque(bmp, x, y) and _opaque(bmp, x - 1, y)
+                    and _opaque(bmp, x + 1, y)
+                    and _opaque(bmp, x, y - 1)
+                    and _opaque(bmp, x, y + 1)):
+                continue
             c = _lum(bmp, x, y)
             lap = abs(4 * c - _lum(bmp, x - 1, y) - _lum(bmp, x + 1, y)
                       - _lum(bmp, x, y - 1) - _lum(bmp, x, y + 1))
@@ -56,30 +70,43 @@ def _stddev(bmp: Bitmap) -> float:
     vals: List[float] = []
     for y in range(0, bmp.height, 4):
         for x in range(0, bmp.width, 4):
-            vals.append(_lum(bmp, x, y))
+            if _opaque(bmp, x, y):
+                vals.append(_lum(bmp, x, y))
     if not vals:
         return 0.0
     m = sum(vals) / len(vals)
     return math.sqrt(sum((v - m) ** 2 for v in vals) / len(vals))
 
 
-def _border_rgb(bmp: Bitmap) -> List[int]:
+def _border_rgb(bmp: Bitmap):
+    """Mean opaque border colour, or None when no border pixel is
+    opaque — a fully transparent border is *absent* background, not
+    a black one, and averaging its zeroed RGB would fabricate the
+    reference the contrast flag is measured against."""
     pts = []
     for x in (0, bmp.width - 1):
         for y in range(0, bmp.height, max(1, bmp.height // 16)):
-            pts.append(bmp.get(x, y)[:3])
+            p = bmp.get(x, y)
+            if p[3] >= 128:
+                pts.append(p[:3])
     for y in (0, bmp.height - 1):
         for x in range(0, bmp.width, max(1, bmp.width // 16)):
-            pts.append(bmp.get(x, y)[:3])
+            p = bmp.get(x, y)
+            if p[3] >= 128:
+                pts.append(p[:3])
+    if not pts:
+        return None
     return [sum(p[i] for p in pts) / len(pts) for i in range(3)]
 
 
 def _fg_bg_dist(bmp: Bitmap, bg: List[int]) -> float:
-    """Median-ish distance of sampled pixels from border colour."""
+    """Median-ish distance of sampled opaque pixels from border colour."""
     best = 0.0
     for y in range(bmp.height // 4, 3 * bmp.height // 4, 8):
         for x in range(bmp.width // 4, 3 * bmp.width // 4, 8):
             p = bmp.get(x, y)
+            if p[3] < 128:
+                continue  # transparent isn't foreground evidence
             best = max(best, math.sqrt(sum(
                 (p[i] - bg[i]) ** 2 for i in range(3))))
     return best
@@ -91,7 +118,7 @@ def assess(bmp: Bitmap) -> Dict:
     bg = _border_rgb(small)
     sharp = _sharpness(small)
     sd = _stddev(small)
-    fg_bg = _fg_bg_dist(small, bg)
+    fg_bg = _fg_bg_dist(small, bg) if bg is not None else None
     flags: List[Dict] = []
 
     def flag(code: str, ok: bool, value: float, limit: float) -> None:
@@ -103,9 +130,17 @@ def assess(bmp: Bitmap) -> Dict:
          min(bmp.width, bmp.height), MIN_DIM)
     flag("dynamic", sd >= MIN_STD, sd, MIN_STD)
     flag("blur", sharp >= MIN_SHARP, sharp, MIN_SHARP)
-    flag("contrast", fg_bg >= MIN_FG_BG, fg_bg, MIN_FG_BG)
+    if bg is None:
+        # no opaque border — the bg reference itself is unmeasurable,
+        # so contrast is reported unmeasurable, not failed or passed
+        flags.append({"code": "contrast", "ok": False,
+                      "value": None, "limit": MIN_FG_BG,
+                      "unmeasurable": True})
+    else:
+        flag("contrast", fg_bg >= MIN_FG_BG, fg_bg, MIN_FG_BG)
 
-    failed = [f["code"] for f in flags if not f["ok"]]
+    failed = [f["code"] for f in flags
+              if not f["ok"] and not f.get("unmeasurable")]
     verdict = ("adequate" if not failed else
                "marginal" if len(failed) == 1 else
                "inadequate")

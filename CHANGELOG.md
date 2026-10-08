@@ -5,6 +5,10 @@
 - `slice motion <A> <B>` — motion層のCLI接続。2フレーム画像の関節移動ベクトル＋最速関節・部位別集計JSON。`--min-confidence`で低信頼関節を除外。
 
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
+- `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。
+
+- `slice imgqual <image>` — imgqual層のCLI接続。推定前段の画像証拠適格性（size/dynamic/blur/contrastの4計測フラグ→adequate/marginal/inadequate）。inadequateは exit 1。
+
 - `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
 
 - `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。

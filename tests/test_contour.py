@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from tests import synthetic_person
@@ -29,6 +30,18 @@ class TestContour(unittest.TestCase):
         self.assertGreater(f["compactness"], 1.0)
         cx, cy = f["centroid"]
         self.assertTrue(0 < cx < self.bmp.width)
+
+    def test_perimeter_is_arc_length_not_pixel_count(self):
+        # A diagonal staircase boundary has sqrt(2)-length steps —
+        # counting traced pixels as 1px each under-reports it ~29%.
+        mask = [bytearray(20) for _ in range(20)]
+        cx, cy, r = 10, 10, 5
+        for y in range(20):
+            for x in range(20):
+                if abs(x - cx) + abs(y - cy) <= r:
+                    mask[y][x] = 1
+        f = contour.features(mask)
+        self.assertAlmostEqual(f["perimeter"], 4 * r * math.sqrt(2), places=1)
 
     def test_empty_mask(self):
         mask = [bytearray(10) for _ in range(10)]

@@ -16,8 +16,13 @@ from .skeleton import Skeleton
 
 
 def bounds(skel: Skeleton) -> Optional[dict]:
-    """Joint-cloud bounding box."""
-    pts = [(j.x, j.y) for j in skel.joints.values()]
+    """Joint-cloud bounding box — OBSERVED joints only.
+
+    Predicted joints are prior fill (a "foot below ankle" guess,
+    a mirror copy): including them stretches the cloud to guessed
+    geometry and fabricates headroom/footroom/side_gap."""
+    pts = [(j.x, j.y) for j in skel.joints.values()
+           if j.state == "observed"]
     if not pts:
         return None
     xs = [p[0] for p in pts]
@@ -32,6 +37,8 @@ def analyze(skel: Skeleton, frame_w: int, frame_h: int) -> Optional[dict]:
     b = bounds(skel)
     if not b or not frame_w or not frame_h:
         return None
+    hj = skel.joints.get("head")
+    head = (hj.x, hj.y) if hj and hj.state == "observed" else None
     bw = b["x1"] - b["x0"]
     bh = b["y1"] - b["y0"] or 1.0
 

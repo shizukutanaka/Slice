@@ -102,5 +102,13 @@ class TestAuditRest(unittest.TestCase):
             srv.shutdown()
 
 
+class TestAuditCli(unittest.TestCase):
+    def test_audit_store_needs_no_image(self):
+        # `audit --store DIR` must not require a positional image
+        from slice.__main__ import main
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(main(["audit", "--store", d]), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -130,7 +130,7 @@ def _cmd_analyze_multi(a, raw) -> int:
 
 def _cmd_audit(a) -> int:
     import os
-    if os.path.isdir(a.image):
+    if a.image and os.path.isdir(a.image):
         return _cmd_audit_dir(a)
     if a.store:
         return _cmd_audit_store(a)
@@ -290,9 +290,8 @@ def main(argv=None) -> int:
     b.set_defaults(fn=_cmd_batch)
 
     au = sub.add_parser("audit", help="run all quality layers on one image")
-    au.add_argument("image", help="image file or directory")
     au.add_argument("image", nargs="?",
-                    help="image file (a store dir needs --store)")
+                    help="image file or directory (a store dir needs --store)")
     au.add_argument("--store",
                     help="audit a KnowledgeStore directory instead "
                          "of an image")

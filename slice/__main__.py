@@ -40,6 +40,7 @@ from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
 from . import (reid)
+from . import (describe)
 
 
 def _cmd_analyze(a) -> int:
@@ -465,6 +466,61 @@ def _cmd_reid(a) -> int:
     return 0 if res.get("same_person") else 1
 
 
+def _cmd_describe(a) -> int:
+    """Describe one image's figure in a sentence."""
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        bmp = bitmap.decode(raw)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no figure data")
+        return 1
+    pose = (classify.analyze(skel) or {}).get("pose")
+    print(describe.describe(skel, pose))
+    return 0
+
+
+def _compare_doc(path: str, est, model: str):
+    """image or Knowledge JSON -> doc dict (skeleton only used)."""
+    if path.endswith(".json") or path.startswith("k_"):
+        if path.startswith("k_"):
+            path = os.path.join(
+                "knowledge_store", path + ".json")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    with open(path, "rb") as f:
+        bmp = bitmap.decode(f.read())
+    skel = est.estimate(bmp, model)
+    return {"skeleton": skel.to_dict()}
+
+
+def _cmd_compare(a) -> int:
+    """Normalized pose distance between two images/docs."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        da = _compare_doc(a.a, est, a.model or "adult")
+        db = _compare_doc(a.b, est, a.model or "adult")
+    except (bitmap.UnsupportedFormat, OSError,
+            json.JSONDecodeError) as e:
+        print(f"cannot load input: {e}", file=sys.stderr)
+        return 2
+    res = compare.pose_distance(da, db,
+                                min_confidence=a.min_confidence)
+    if res is None:
+        print("cannot normalize one or both skeletons",
+              file=sys.stderr)
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -664,6 +720,26 @@ def main(argv=None) -> int:
                     default=reid.DEFAULT_THRESHOLD,
                     help="mean |feature diff| below this = same person")
     ri.set_defaults(fn=_cmd_reid)
+
+    d = sub.add_parser("describe",
+                       help="describe one image's figure in a sentence")
+    d.add_argument("image")
+    d.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    d.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    d.set_defaults(fn=_cmd_describe)
+
+    cp = sub.add_parser(
+        "compare",
+        help="pose distance between two images/docs")
+    cp.add_argument("a")
+    cp.add_argument("b")
+    cp.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    cp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    cp.add_argument("--min-confidence", type=float, default=0.0)
+    cp.set_defaults(fn=_cmd_compare)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

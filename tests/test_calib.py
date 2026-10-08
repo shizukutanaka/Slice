@@ -53,6 +53,15 @@ class TestCalib(unittest.TestCase):
         self.assertIn("overconfident_bins", r)
         self.assertIn("bins", r)
 
+    def test_oversized_fixture_rescales_error(self):
+        # truth is fixture-space; a >max_dim fixture downsamples the
+        # skeleton — unscaled errors would all miss the hit radius
+        t = calib.reliability_table(
+            [evaluate.draw_case(1024, 2048)])
+        hits = sum(round(b["accuracy"] * b["n"], 3)
+                   for b in t if b["n"])
+        self.assertGreater(hits, 0)
+
     def test_empty_pairs(self):
         t = calib.reliability_table([])
         self.assertEqual(len(t), calib.BINS)

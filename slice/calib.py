@@ -47,6 +47,11 @@ def reliability_table(pairs, estimator: Optional[HeuristicPoseEstimator] = None,
     errs = [[] for _ in range(bins)]
     for bmp, truth in pairs:
         skel = est.estimate(bmp)
+        # truth is fixture-space; the skeleton is the estimator's
+        # working space — rescale so a fixture larger than max_dim
+        # doesn't turn the downscale into fake error
+        sx = bmp.width / skel.image_width
+        sy = bmp.height / skel.image_height
         for name, (tx, ty) in truth.items():
             j = skel.get(name)
             if j is None or j.state != OBSERVED:
@@ -55,7 +60,8 @@ def reliability_table(pairs, estimator: Optional[HeuristicPoseEstimator] = None,
             # scores to float error (0.6 / 0.1 == 5.999...)
             i = min(bins - 1, int(j.confidence * bins))
             cells[i].append(j.confidence)
-            errs[i].append(math.hypot(j.x - tx, j.y - ty))
+            errs[i].append(math.hypot(j.x * sx - tx,
+                                      j.y * sy - ty))
     table = []
     for i in range(bins):
         n = len(cells[i])

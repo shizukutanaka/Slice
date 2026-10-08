@@ -86,13 +86,20 @@ def evaluate(pairs: Iterable[Tuple[Bitmap, Truth]],
     for bmp, truth in pairs:
         cases += 1
         skel = est.estimate(bmp)
+        # the skeleton lives in the estimator's working space —
+        # a fixture larger than max_dim downscales while truth is
+        # recorded in fixture space. Rescale the estimate into
+        # fixture space or the resize counts as estimation error
+        # (and hides real error when spaces coincide).
+        sx = bmp.width / skel.image_width
+        sy = bmp.height / skel.image_height
         for name, (tx, ty) in truth.items():
             total += 1
             j = skel.get(name)
             if j is None:
                 continue
             found += 1
-            err = math.hypot(j.x - tx, j.y - ty)
+            err = math.hypot(j.x * sx - tx, j.y * sy - ty)
             err_sum += err
             per_joint.setdefault(name, []).append(
                 (err, j.state == OBSERVED))

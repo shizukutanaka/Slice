@@ -23,6 +23,15 @@ class TestEvaluate(unittest.TestCase):
         self.assertLess(r["mean_error_px"], 40)
         self.assertIn("wrist_l", r["per_joint"])
 
+    def test_oversized_fixture_measured_in_fixture_space(self):
+        # a fixture larger than max_dim yields a skeleton in
+        # downscaled space — without rescaling, mean_error would
+        # read half the figure's pixel distances (hundreds of px)
+        # rather than estimation error
+        cases = [evaluate.draw_case(1024, 2048)]
+        r = evaluate.evaluate(cases)
+        self.assertLess(r["mean_error_px"], 2048 * 0.05)
+
 
 if __name__ == "__main__":
     unittest.main()

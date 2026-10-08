@@ -27,6 +27,7 @@
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
     margin-right: 6px; vertical-align: -1px; }
   #info { font-size: 12px; color: #aaa; margin-top: 4px; min-height: 3.4em; }
+  #warnings .warn { font-size: 12px; color: #ffb84d; }
   label { display: block; margin-top: 10px; font-size: 12px; color: #aaa; }
 </style>
 </head>
@@ -39,6 +40,7 @@
 <div id="side">
   <h1>Slice</h1>
   <div id="info">未解析</div>
+  <div id="warnings"></div>
   <h2>Style</h2><div id="style">—</div>
   <h2>Body Model</h2><div id="model">—</div>
   <h2>Ratios</h2><div id="ratios">—</div>
@@ -117,6 +119,18 @@ function render_side() {
   document.getElementById('info').textContent =
     `${obs} observed / ${prd} predicted — facing: ` +
     `${doc.skeleton.orientation.facing || '?'}${poseTxt}`;
+  // doc.warnings carry the thin-evidence codes the pipeline emitted
+  // (unknown_body_model, no_observed_torso, few_observed, ...) — a doc
+  // with caveats must not render identically to a clean one
+  const warns = doc.warnings || [];
+  // textContent, not innerHTML: warnings come from the stored doc
+  const wbox = document.getElementById('warnings');
+  wbox.replaceChildren(...warns.map(w => {
+    const el = document.createElement('div');
+    el.className = 'row warn';
+    el.textContent = String(w);
+    return el;
+  }));
   const st = doc.style || {};
   document.getElementById('style').innerHTML =
     `<div class="row"><span>${st.label||'—'}</span>` +

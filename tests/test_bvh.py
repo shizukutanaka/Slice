@@ -38,6 +38,21 @@ class TestBvh(unittest.TestCase):
         with self.assertRaises(ValueError):
             bvh.export(self.skel)
 
+    def test_report_discloses_predicted(self):
+        rep = bvh.report(self.skel)
+        self.assertEqual(rep["state"], "estimated")
+        for n in rep["joints"]:
+            self.assertIn(n, self.skel.joints)
+        for n in rep["predicted"]:
+            self.assertNotEqual(self.skel.joints[n].state, "observed")
+
+    def test_report_matches_export(self):
+        # every JOINT line in the BVH appears in report().joints
+        emitted = [l.split()[1] for l in self.txt.splitlines()
+                   if l.strip().startswith("JOINT ")]
+        rep = bvh.report(self.skel)
+        self.assertEqual(sorted(emitted), sorted(rep["joints"][1:]))
+
 
 if __name__ == "__main__":
     unittest.main()

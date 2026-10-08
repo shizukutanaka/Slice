@@ -4,6 +4,10 @@
 
 - smooth: 平滑化骨格が`centroid`を保持（マスク計測点の沈黙消失を解消 — pelvis未観測時にtrackのアンカーが失われフレームがempty化していた）。また異解像度フレーム混在時、近傍の生pxを中心フレーム空間に再スケールしてから平均（解像度差を関節位置に混入していた欠陥、motion #314/diff #315と同型）。`jitter`も異フレーム間で前フレーム空間に再スケール（解像度変更を「動き」と誤認しない）。
 
+- `slice evid <image>` — evid層の単体CLI接続。chamfer距離変換の正逆で各関節を interior/on_boundary/off_mask に分類、observed_on_mask_fraction＋off_mask列挙。unsupported関節ありは exit 1。
+
+- `slice export <image> --format F [-o file]` — エクスポート層のCLI接続。bvh/gltf/coco/svg/ascii/paf/heatmapの7形式を1コマンド統合（バイナリはPNG直接出力、テキストはstdout）。外部連携フォーマットがライブラリ専用だった状態を解消。
+
 - `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
 
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。

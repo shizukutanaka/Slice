@@ -3,7 +3,7 @@ import unittest
 
 from slice import evaluate, gate, knowledge
 from slice.pose import HeuristicPoseEstimator
-from slice.skeleton import Joint, Skeleton
+from slice.skeleton import Joint, OBSERVED, Skeleton
 
 
 def _fixture():
@@ -43,9 +43,9 @@ class TestGate(unittest.TestCase):
     def test_broken_geometry_warns_or_fails(self):
         sk = Skeleton(160, 300)
         # feet above head → inverted body
-        sk.set(Joint("head", 80, 290, 0.9, basis="x"))
-        sk.set(Joint("foot_l", 80, 10, 0.9, basis="x"))
-        sk.set(Joint("foot_r", 82, 10, 0.9, basis="x"))
+        sk.set(Joint("head", 80, 290, 0.9, OBSERVED, basis="x"))
+        sk.set(Joint("foot_l", 80, 10, 0.9, OBSERVED, basis="x"))
+        sk.set(Joint("foot_r", 82, 10, 0.9, OBSERVED, basis="x"))
         r = gate.check(skel=sk)
         self.assertNotEqual(r["verdict"], "pass")
 

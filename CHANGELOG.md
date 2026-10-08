@@ -17,6 +17,7 @@
 - norm: 変換でフレーム外に出た関節をpredictedに降格（語彙外state "out_of_frame"がvalidate()を通らずdoc保存不可だった契約違反を解消、由来はbasisに開示）
 - knowledge: list()が索引構築後に上書きされたdocを再読込（mtime比較で陳腐entryを排除 — 一覧が存在しない内容を報告する穴を解消）
 - basis: 先頭1語だけが一致するbasisをobservationと誤分類する穴を修正（完全な観測語彙prefixのみ許容 — 捏造由来の証拠なりすまし防止）
+- knowledge: get()がファイル名と内部idの不整合をKeyErrorで拒否（k_A.jsonが別idを名乗る破損docを誤同一視していた穴を解消）
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消

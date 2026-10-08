@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- style: 透過画素を統計から除外（alpha=0領域がRGB=0として
+  パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
+  →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく
+  完全不透明近傍間のみ計測。`opaque_ratio`シグナルで証拠画素率を開示）。
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

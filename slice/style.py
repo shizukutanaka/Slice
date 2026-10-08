@@ -23,8 +23,7 @@ LABELS = {
 def analyze(bmp: Bitmap) -> dict:
     small = bmp.downscale(256)
     w, h = small.width, small.height
-    n = w * h
-    if n == 0:
+    if w * h == 0:
         return {"style": "unknown", "label": LABELS["unknown"],
                 "confidence": 0.0, "signals": {}}
 
@@ -34,11 +33,22 @@ def analyze(bmp: Bitmap) -> dict:
     grad_sum = 0
     grad_hi = 0         # strong-edge pixels
     d = small.data
-    luma = bytearray(n)
+    n_px = w * h
+    luma = bytearray(n_px)
+    opaque = bytearray(n_px)
+    n = 0
+    # Transparent pixels are *absent* content, not black pixels: a
+    # cutout PNG's alpha=0 region would otherwise vote its (usually
+    # zeroed) RGB into the palette and fabricate a dominant flat
+    # color that suppresses the photo rules.
     for y in range(h):
         base = y * w
         for x in range(w):
             i = (base + x) * 4
+            if d[i + 3] < 128:
+                continue
+            opaque[base + x] = 1
+            n += 1
             r, g, b = d[i], d[i + 1], d[i + 2]
             luma[base + x] = (r * 3 + g * 6 + b) // 10
             key = (r >> 3, g >> 3, b >> 3)
@@ -49,9 +59,19 @@ def analyze(bmp: Bitmap) -> dict:
             if (r > 95 and r > g > b and r - g > 15
                     and max(r, g, b) - min(r, g, b) > 15):
                 skin_hi += 1
+    if n == 0:
+        return {"style": "unknown", "label": LABELS["unknown"],
+                "confidence": 0.0, "signals": {"opaque_ratio": 0.0}}
+    inner = 0
     for y in range(1, h - 1):
         base = y * w
         for x in range(1, w - 1):
+            # a cutout outline is not content texture — only gradient
+            # between fully-opaque neighbourhoods counts as an edge
+            if not (opaque[base + x + 1] and opaque[base + x - 1]
+                    and opaque[base + w + x] and opaque[base - w + x]):
+                continue
+            inner += 1
             gx = abs(luma[base + x + 1] - luma[base + x - 1])
             gy = abs(luma[base + w + x] - luma[base - w + x])
             g = gx + gy
@@ -59,7 +79,7 @@ def analyze(bmp: Bitmap) -> dict:
             if g > 60:
                 grad_hi += 1
 
-    inner = max(1, (w - 2) * (h - 2))
+    inner = max(1, inner)
     uniq_ratio = len(colors) / n
     top_cov = max(colors.values()) / n
     grad_mean = grad_sum / inner
@@ -73,6 +93,7 @@ def analyze(bmp: Bitmap) -> dict:
         "grad_mean": round(grad_mean, 2),
         "saturation_ratio": round(sat_ratio, 3),
         "skin_ratio": round(skin_hi / n, 3),
+        "opaque_ratio": round(n / n_px, 3),
     }
 
     def result(style: str, conf: float) -> dict:

@@ -40,21 +40,28 @@ def limb(skel: Skeleton, kind: str, side: str) -> Optional[dict]:
     if len(pts) < 2:
         return None
 
-    top = skel.point("head")
-    lo = max((j.y for j in skel.joints.values()), default=0.0)
-    body_h = (lo - top[1]) if top else None
+    # the normalising body span must come from observed joints only:
+    # a predicted head or foot sits at a prior guess, so a "measured"
+    # fraction divided by it inherits the guess
+    obs_pts = [j.y for j in skel.joints.values() if j.state == "observed"]
+    body_h = (max(obs_pts) - min(obs_pts)) if obs_pts else 0.0
     length = sum(_d(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
     obs = sum(1 for s in states if s == "observed")
+    # a missing chain joint joins its neighbours into a chord — the
+    # summed length then under-measures the limb, so the profile is
+    # partial even when every present joint is observed
+    missing = len(pts) < len(names)
     return {"length_px": round(length, 1),
-            "of_body_h": round(length / body_h, 3) if body_h else None,
+            "of_body_h": round(length / body_h, 3)
+            if body_h > 0 else None,
             "segments": len(pts) - 1,
             "observed": obs,
-            "partial": obs < len(states)}
+            "partial": missing or obs < len(states)}
 
 
 def profile(skel: Skeleton) -> Dict[str, Optional[dict]]:
     """{arm_l, arm_r, leg_l, leg_r, delta} — delta = |L-R| px
-    asymmetry per kind."""
+    asymmetry per kind, only when both sides are fully measured."""
     out: Dict[str, Optional[dict]] = {}
     for kind in _CHAINS:
         for side in ("l", "r"):
@@ -62,7 +69,10 @@ def profile(skel: Skeleton) -> Dict[str, Optional[dict]]:
     delta = {}
     for kind in _CHAINS:
         l, r = out[f"{kind}_l"], out[f"{kind}_r"]
-        if l and r:
+        # compare only fully measured limbs — a chord across a
+        # missing or predicted joint under-measures its limb, so
+        # |partial - measured| would report a fabricated asymmetry
+        if l and r and not (l["partial"] or r["partial"]):
             delta[kind] = round(abs(l["length_px"] - r["length_px"]), 1)
     out["delta"] = delta
     return out

@@ -31,14 +31,27 @@ def _evidence(skel: Skeleton, names: List[str]) -> Optional[Dict[str, Point]]:
     return out
 
 
+def _ref(skel: Skeleton, name: str) -> Optional[Point]:
+    """Reference landmark for a rule comparison — observed only.
+    A predicted head/hip is a prior guess; comparing a measured
+    wrist against it would fabricate the gesture's reference."""
+    j = skel.joints.get(name)
+    return (j.x, j.y) if j and j.state == "observed" else None
+
+
 def detect(skel: Skeleton) -> List[dict]:
     """[{gesture, side, evidence}] — observed-joint evidence only."""
     found = []
-    head = skel.point("head")
-    hip_l = skel.point("hip_l")
-    hip_r = skel.point("hip_r")
-    shoulder_l = skel.point("shoulder_l")
-    shoulder_r = skel.point("shoulder_r")
+    head = _ref(skel, "head")
+    hip_l = _ref(skel, "hip_l")
+    hip_r = _ref(skel, "hip_r")
+    shoulder_l = _ref(skel, "shoulder_l")
+    shoulder_r = _ref(skel, "shoulder_r")
+    pelvis = _ref(skel, "pelvis")
+    # "wrist above the head" only reads as a wave when the figure is
+    # upright — on an inverted skeleton every wrist is above the
+    # head in image space and the gesture would be fabricated
+    upright = bool(head and pelvis and head[1] < pelvis[1])
     for side, shoulder in (("l", shoulder_l), ("r", shoulder_r)):
         wrist_n, elbow_n = f"wrist_{side}", f"elbow_{side}"
         sh_n = f"shoulder_{side}"
@@ -49,7 +62,7 @@ def detect(skel: Skeleton) -> List[dict]:
         arm_len = _d(s, e) + _d(e, w) or 1.0
 
         # wave: wrist clearly above the head line
-        if head and w[1] < head[1] - 0.3 * arm_len:
+        if upright and w[1] < head[1] - 0.3 * arm_len:
             found.append({"gesture": "wave", "side": side,
                           "evidence": sorted(ev)})
             continue

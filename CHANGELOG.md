@@ -28,6 +28,7 @@
 - pipeline: `frame.source`に元画像解像度を開示（downscale作業空間の関節座標が`image_sha256`の元画像にマップ不能だった穴を解消）
 - pose: `body_model.prior`に実際に適用したプライア表を開示（測定選択名`name`と適用表が食い違う際に配置由来が不明だった穴を解消）
 - viewer: doc.warningsを表示（unknown_body_model・no_observed_torso等の注意付きdocがクリーンdocと同じ見た目になっていた欠陥を解消）
+- bvh: `report(skel)`開示サイドカー追加（BVH形式がjoint metadataを持てずpredicted骨が実測と区別不能で書き出されていた欠陥を解消）
 - knowledge: list()がファイル名と内部id不一致のdocを列挙しない（取得不可能な幽霊entryを報告していた穴 — id無しファイルも同様に除外）
 - signature: スカラー部（体幹傾き・正規化子）も観測関節限定に —
   #232が骨方向ベクトルをobserved化した際、末尾4スカラーが

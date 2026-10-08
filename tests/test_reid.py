@@ -2,7 +2,7 @@ import unittest
 
 from slice.pose import HeuristicPoseEstimator
 from slice.reid import compare, features
-from slice.skeleton import Joint
+from slice.skeleton import Joint, OBSERVED
 from tests import synthetic_person
 
 
@@ -63,7 +63,7 @@ class TestReid(unittest.TestCase):
     def test_no_shared_features_returns_none(self):
         skel = _est()
         bare = type(skel)(skel.image_width, skel.image_height)
-        bare.set(Joint("head", 10, 10, 0.9))
+        bare.set(Joint("head", 10, 10, 0.9, OBSERVED))
         c = compare(features(bare), features(skel))
         self.assertIsNone(c["distance"])
         self.assertIsNone(c["same_person"])

@@ -14,6 +14,9 @@ background-distance gate (low-contrast clothing on a similar wall).
    its own pass instead of only the biggest one.
 3. `relaxed_threshold` — a second estimator with half the
    `bg_threshold`, catching figures too close to the background.
+   The caller's profile flags (`adaptive`/`reject_shadow`/`clean`)
+   carry over — relaxing the colour gate must not silently relax
+   the shadow and morphology gates too.
 
 Every recovered skeleton's joints get `"; recovered: <method>"`
 appended to `basis`, so a downstream reader can tell a recovered
@@ -66,7 +69,9 @@ def recover(bmp: Bitmap, estimator: Optional[HeuristicPoseEstimator] = None,
 
     relaxed = HeuristicPoseEstimator(
         max_dim=est.max_dim,
-        bg_threshold=max(8, int(est.bg_threshold * RELAXED_FACTOR)))
+        bg_threshold=max(8, int(est.bg_threshold * RELAXED_FACTOR)),
+        adaptive=est.adaptive, reject_shadow=est.reject_shadow,
+        clean=est.clean)
     skel = relaxed.estimate(bmp, model)
     if skel.joints:
         _tag(skel, "relaxed_threshold")

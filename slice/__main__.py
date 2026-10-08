@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, imgqual, knowledge,
-               limbcov, pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -42,6 +38,9 @@ from . import (balance, classify, contrad)
 from . import (reid)
 from . import (describe)
 from . import (autocrop, crop)
+from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
+from . import (evid)
+from . import (imgqual)
 
 
 def _cmd_analyze(a) -> int:
@@ -176,19 +175,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_imgqual(a) -> int:
-    """Image evidence adequacy before estimation."""
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    res = imgqual.assess(bmp)
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0 if res["verdict"] != "inadequate" else 1
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -267,13 +253,23 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
@@ -283,13 +279,22 @@ def _cmd_probe(a) -> int:
     res = _probe_dispatch(a.layer, skel, mask)
     if res is None:
         print(f"unknown layer: {a.layer}", file=sys.stderr)
+        return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
            else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
@@ -324,6 +329,7 @@ def _cmd_mirror(a) -> int:
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
     }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
 
@@ -509,6 +515,86 @@ def _cmd_autocrop(a) -> int:
     return 0 if res.get("crop") else 1
 
 
+def _cmd_export(a) -> int:
+    """Render a skeleton into an external format."""
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        bmp = bitmap.decode(raw)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    binary = None
+    if a.format == "bvh":
+        text = bvh.export(skel)
+    elif a.format == "gltf":
+        text = json.dumps(gltf.to_gltf(skel), ensure_ascii=False)
+    elif a.format == "coco":
+        text = json.dumps(coco.to_coco(skel), ensure_ascii=False)
+    elif a.format == "svg":
+        text = svg.render(skel)
+    elif a.format == "ascii":
+        text = ascii.render(skel)
+    elif a.format == "paf":
+        text = json.dumps(paf.field(skel), ensure_ascii=False)
+    elif a.format == "heatmap":
+        binary = bitmap.encode_png(heatmap.render(skel))
+        text = None
+    if a.output:
+        if binary is not None:
+            with open(a.output, "wb") as f:
+                f.write(binary)
+        else:
+            with open(a.output, "w", encoding="utf-8") as f:
+                f.write(text + "\n")
+        print(f"wrote {a.output}", file=sys.stderr)
+    elif binary is not None:
+        sys.stdout.buffer.write(binary)
+    else:
+        print(text)
+    return 0
+
+
+def _cmd_evid(a) -> int:
+    """Per-joint evidence localization: interior/boundary/off_mask."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = evid.locate(skel, m)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if not evid.unsupported(res) else 1
+
+
+def _cmd_imgqual(a) -> int:
+    """Image evidence adequacy before estimation."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = imgqual.assess(bmp)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] != "inadequate" else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -633,11 +719,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    iq = sub.add_parser(
-        "imgqual", help="image evidence adequacy")
-    iq.add_argument("image")
-    iq.set_defaults(fn=_cmd_imgqual)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -661,6 +742,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -735,6 +817,33 @@ def main(argv=None) -> int:
     ac.add_argument("-o", "--output",
                     help="write the cropped PNG here")
     ac.set_defaults(fn=_cmd_autocrop)
+
+    e = sub.add_parser("export",
+                       help="render a skeleton into an external format")
+    e.add_argument("image")
+    e.add_argument("--format", required=True,
+                   choices=["bvh", "gltf", "coco", "svg", "ascii",
+                            "paf", "heatmap"])
+    e.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    e.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    e.add_argument("-o", "--output",
+                   help="output file (default: stdout)")
+    e.set_defaults(fn=_cmd_export)
+
+    ev = sub.add_parser(
+        "evid", help="per-joint evidence localization")
+    ev.add_argument("image")
+    ev.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    ev.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ev.set_defaults(fn=_cmd_evid)
+
+    iq = sub.add_parser(
+        "imgqual", help="image evidence adequacy")
+    iq.add_argument("image")
+    iq.set_defaults(fn=_cmd_imgqual)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

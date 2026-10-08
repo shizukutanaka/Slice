@@ -189,10 +189,11 @@ INDEX_NAME = "_index.json"
 
 
 def _list_entry(doc: dict) -> dict:
+    skel = doc.get("skeleton")
+    bm = skel.get("body_model") if isinstance(skel, dict) else None
     return {"id": doc.get("id"),
             "created_at": doc.get("created_at"),
-            "body_model": (doc.get("skeleton") or {})
-            .get("body_model", {}).get("name")}
+            "body_model": bm.get("name") if isinstance(bm, dict) else None}
 
 
 class KnowledgeStore:

@@ -32,6 +32,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, track, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -626,6 +628,54 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_track(a) -> int:
+    """Track one person across an ordered image directory."""
+    import os
+    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
+    paths = sorted(os.path.join(a.dir, f) for f in os.listdir(a.dir)
+                   if f.lower().endswith(exts)
+                   and os.path.isfile(os.path.join(a.dir, f)))
+    if not paths:
+        print(f"no images under {a.dir}", file=sys.stderr)
+        return 1
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    frames = []
+    skipped = []
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                frames.append((p, est.estimate(
+                    bitmap.decode(f.read()), a.model or "adult")))
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            skipped.append({"image": p, "error": str(e)})
+    links = track.track([s for _, s in frames],
+                        max_jump_torso=a.max_jump)
+    for (p, _), link in zip(frames, links):
+        link["image"] = p
+    tid = [l["track_id"] for l in links if l["track_id"] is not None]
+    summary = {
+        "n_frames": len(links),
+        "n_tracks": len(set(tid)) if tid else 0,
+        "n_empty": sum(1 for l in links if l["state"] == "empty"),
+        "n_reacquired": sum(1 for l in links
+                            if l["state"] == "reacquired"),
+        "skipped": skipped,
+    }
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"links": links, "summary": summary}, f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    else:
+        for l in links:
+            tid_s = "-" if l["track_id"] is None else str(l["track_id"])
+            print(f"{l['frame']:>4}  track={tid_s:>2}  {l['state']:<9}"
+                  f"  {os.path.basename(l['image'])}")
+        print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
+    return 0 if not skipped else 1
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +934,21 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    t = sub.add_parser("track",
+                       help="track one person across an ordered "
+                            "image directory")
+    t.add_argument("dir", help="directory of frames, sorted by name")
+    t.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    t.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    t.add_argument("--max-jump", type=float, default=0.8,
+                   dest="max_jump",
+                   help="max pelvis displacement per frame, in torso "
+                        "units (default 0.8)")
+    t.add_argument("-o", "--output",
+                   help="write the full track JSON (links + summary)")
+    t.set_defaults(fn=_cmd_track)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

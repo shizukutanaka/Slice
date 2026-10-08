@@ -24,8 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               pipeline, render, rest, selfcheck, stats, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -178,34 +176,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_stats(a) -> int:
-    """Aggregate joint-observation stats over a frame directory."""
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    skels = []
-    for f in sorted(os.listdir(a.dir)):
-        path = os.path.join(a.dir, f)
-        if not os.path.isfile(path) or not f.endswith(
-                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
-            continue
-        try:
-            with open(path, "rb") as fh:
-                skel = est.estimate(
-                    bitmap.decode(fh.read()), a.model or "adult")
-        except (bitmap.UnsupportedFormat, OSError):
-            continue
-        if skel.joints:
-            skels.append(skel)
-    if not skels:
-        print("no person detected in any frame", file=sys.stderr)
-        return 1
-    res = stats.summary(skels)
-    res["weakest_joints"] = stats.weakest_joints(
-        res["per_joint"], n=a.weakest)
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -284,11 +254,17 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -298,6 +274,7 @@ def _cmd_probe(a) -> int:
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
@@ -306,8 +283,13 @@ def _cmd_probe(a) -> int:
         return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
     try:
         with open(a.image, "rb") as f:
             bmp = bitmap.decode(f.read())
@@ -317,6 +299,7 @@ def _cmd_mirror(a) -> int:
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -325,6 +308,7 @@ def _cmd_mirror(a) -> int:
         ja = actual.joints.get(name)
         if ja is None:
             drift[name] = None
+            continue
         drift[name] = round(math.hypot(
             ja.x - je.x, ja.y - je.y), 2)
     vals = [v for v in drift.values() if v is not None]
@@ -346,6 +330,7 @@ def _cmd_mirror(a) -> int:
         "basis": "est(flip(image)) vs flip(est(image)); "
                  "nonzero drift = estimator left/right bias",
     }
+    print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res["verdict"] == "symmetric" else 1
 
 
@@ -765,18 +750,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    st = sub.add_parser(
-        "stats",
-        help="joint-observation stats over a frame directory")
-    st.add_argument("dir", help="directory of frame images")
-    st.add_argument("--model", choices=sorted(BODY_MODELS),
-                    default=None)
-    st.add_argument("--robust", action="store_true",
-                    help="robust estimation profile")
-    st.add_argument("--weakest", type=int, default=5,
-                    help="how many weakest joints to report")
-    st.set_defaults(fn=_cmd_stats)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -796,14 +769,19 @@ def main(argv=None) -> int:
     pr.add_argument("layer", choices=sorted(_PROBE_LAYERS))
     pr.add_argument("image")
     pr.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     pr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
     mi.add_argument("image")
     mi.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
     mi.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
     mi.add_argument("--tolerance", type=float, default=4.0,
                     help="max per-joint drift px for 'symmetric'")
     mi.set_defaults(fn=_cmd_mirror)

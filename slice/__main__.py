@@ -64,6 +64,9 @@ def _cmd_analyze(a) -> int:
     print(f"pose: {pose_l} | style: {style_l} | model: "
           f"{bm.get('label', '?')} ({bm.get('state', '?')})",
           file=sys.stderr)
+    warns = out.get("warnings") or []
+    if warns:
+        print("warnings: " + ", ".join(warns), file=sys.stderr)
     return 0
 
 

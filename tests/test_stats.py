@@ -27,6 +27,22 @@ class TestStats(unittest.TestCase):
     def test_empty_corpus(self):
         self.assertEqual(stats.summary([])["cases"], 0)
 
+    def test_mean_observed_confidence_disclosed(self):
+        from slice.predict import complete
+        est = HeuristicPoseEstimator()
+        sk1 = est.estimate(synthetic_person())
+        sk2 = est.estimate(synthetic_person())
+        sk2.joints.pop("wrist_l")
+        complete(sk2)  # wrist_l comes back as predicted
+        self.assertEqual(sk2.joints["wrist_l"].state, "predicted")
+        js = stats.joint_stats([sk1, sk2])
+        w = js["wrist_l"]
+        self.assertIn("mean_observed_confidence", w)
+        # blended mean is dragged down by the predicted occurrence;
+        # the observed-only mean reflects only real evidence
+        self.assertGreater(w["mean_observed_confidence"],
+                           w["mean_confidence"])
+
 
 if __name__ == "__main__":
     unittest.main()

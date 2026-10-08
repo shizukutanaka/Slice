@@ -6,6 +6,10 @@
   退化支持基底で、任意の1px pelvis偏移が`com_outside_feet`を発火し
   detailが生pxを「足幅分率」と装っていた欠陥を修正（span<=0は不発火、
   leg軸の一致ケースも明示ガード）
+- `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
+
+- `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
+
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

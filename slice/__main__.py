@@ -32,6 +32,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, stats, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -626,6 +628,34 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_stats(a) -> int:
+    """Aggregate joint-observation stats over a frame directory."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skels = []
+    for f in sorted(os.listdir(a.dir)):
+        path = os.path.join(a.dir, f)
+        if not os.path.isfile(path) or not f.endswith(
+                (".png", ".bmp", ".jpg", ".jpeg", ".webp")):
+            continue
+        try:
+            with open(path, "rb") as fh:
+                skel = est.estimate(
+                    bitmap.decode(fh.read()), a.model or "adult")
+        except (bitmap.UnsupportedFormat, OSError):
+            continue
+        if skel.joints:
+            skels.append(skel)
+    if not skels:
+        print("no person detected in any frame", file=sys.stderr)
+        return 1
+    res = stats.summary(skels)
+    res["weakest_joints"] = stats.weakest_joints(
+        res["per_joint"], n=a.weakest)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -884,6 +914,18 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    st = sub.add_parser(
+        "stats",
+        help="joint-observation stats over a frame directory")
+    st.add_argument("dir", help="directory of frame images")
+    st.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    st.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    st.add_argument("--weakest", type=int, default=5,
+                    help="how many weakest joints to report")
+    st.set_defaults(fn=_cmd_stats)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

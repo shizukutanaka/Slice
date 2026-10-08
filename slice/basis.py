@@ -42,6 +42,7 @@ OBSERVED_BASES = {
     "leg run at knee height", "leg run at bottom",
     "merged leg run", "legs not separable",
     "axis midpoint", "midpoint shoulders-pelvis",
+    "clavicle midpoint below shoulder row",
     "silhouette bottom",
 }
 
@@ -61,7 +62,7 @@ def category(basis: Optional[str]) -> str:
     if low in OBSERVED_PRIOR_BASES:
         return "prior"
     if low in OBSERVED_BASES or any(
-            low.startswith(b.split()[0]) for b in OBSERVED_BASES):
+            low.startswith(b) for b in OBSERVED_BASES):
         return "observation"
     return "unknown"
 

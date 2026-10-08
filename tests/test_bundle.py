@@ -125,19 +125,26 @@ class TestBundle(unittest.TestCase):
             m = pack(store, os.path.join(tmp, "out.zip"))
             self.assertEqual(m["count"], 1)
 
-    def test_pack_survives_unprocessable_doc(self):
+    def test_unpack_skips_crc_corrupt_member(self):
+        import zipfile
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)
-            store.save(_doc())
-            # validate raises inside on malformed internals — pack
-            # must skip that doc, not die
-            with open(os.path.join(tmp, "k_aaaaaaaaaaaa.json"),
-                      "w") as f:
-                json.dump({"id": "k_aaaaaaaaaaaa",
-                           "skeleton": {"joints": {"head": 5}}}, f)
-            m = pack(store, os.path.join(tmp, "out.zip"))
-            self.assertEqual(m["count"], 1)
-            self.assertEqual(m["skipped"], 1)
+            doc = _doc()
+            store.save(doc)
+            zpath = os.path.join(tmp, "out.zip")
+            pack(store, zpath)
+            # corrupt the compressed payload of the docs member —
+            # z.read raises and must not kill unpack
+            import struct
+            raw = bytearray(open(zpath, "rb").read())
+            with zipfile.ZipFile(zpath) as z:
+                info = z.getinfo("docs/%s.json" % doc["id"])
+            off = info.header_offset
+            nlen = struct.unpack("<H", raw[off + 26:off + 28])[0]
+            elen = struct.unpack("<H", raw[off + 28:off + 30])[0]
+            raw[off + 30 + nlen + elen + 5] ^= 0xFF
+            open(zpath, "wb").write(bytes(raw))
+            self.assertEqual(unpack(zpath), [])
 
     def test_pack_survives_unprocessable_doc(self):
         with tempfile.TemporaryDirectory() as tmp:

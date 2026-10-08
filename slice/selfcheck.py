@@ -74,12 +74,6 @@ def _severity(layer: str, result: Dict) -> str:
         return "advisory" if stability.unstable(result) else "ok"
     if layer == "contrad":
         return {"consistent": "ok", "contradicted": "problem"}.get(
-            result["verdict"], "unmeasured")
-    if layer == "consistency":
-        # anatomical-prior violations are advisory, not fail: real
-        # bodies legitimately exceed population bounds
-        return {"consistent": "ok", "issues": "advisory"}.get(
-            result["verdict"], "unmeasured")
             result["verdict"], _unmapped(result))
     if layer == "consistency":
         # anatomical-prior violations are advisory, not fail: real

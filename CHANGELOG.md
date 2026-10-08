@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
+
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。
 
 - `slice oks <A> <B>` — oks層のCLI接続。2画像のCOCO OKS骨格類似度＋関節別スコア（スケール=参照側頭高で正規化）。比較可能関節なしはnull＋exit 1。
@@ -27,6 +29,8 @@
   測るだけ（一致ならdup誤判定、ずれなら虚偽の差分）。両ドキュメント
   でobservedの関節のみ比較、predictedは欠損扱いで除外。
 
+- skeleton: normalized 各関節に state を同梱（正規化空間で推測位置が観測と区別不能だった欠陥を解消、export.keypoints_state と同契約）
+- selfcheck: 無効なmodel名を`model:unknown_body_model`理由コードで開示（analyze経路と同型のサイレントフォールバックがaudit経路に残留していた欠陥を解消）
 - `slice diff <A> <B> [--store DIR]` — 比較層のCLI接続。画像パスまたは`k_<id>`を受け取り、フィールド差分（moved/added/removed/state_changed/confidence_delta＋pose/model変更）＋正規化ポーズ距離をJSON出力。diff/compare層がライブラリ専用だった状態を解消。
 
 - bundle: unpackもpackと同型に耐性化（validate raiseのmemberをskip）＋manifest非dict拒否＋list_entryのbody_model非dict耐性（#283レビュー修正）

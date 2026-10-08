@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from typing import Optional, Tuple
 
-from .skeleton import OBSERVED, Skeleton
+from .skeleton import OBSERVED, Skeleton, head_length_px
 
 
 def _dist(a: Optional[Tuple[float, float]],
@@ -89,11 +89,11 @@ def _top_y(skel: Skeleton) -> float:
 
 def _head_height(skel: Skeleton) -> Optional[float]:
     head = skel.get("head")
-    neck = skel.get("neck")
     if not head:
         return None
-    if neck and neck.y > head.y:
-        return (neck.y - head.y) * 2
+    d = head_length_px(skel)
+    if d is not None:
+        return d
     return head.y - _top_y(skel) + (head.y - _top_y(skel))
 
 

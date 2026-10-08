@@ -42,6 +42,30 @@ class BiasCliTest(unittest.TestCase):
         self.assertIsNone(rep["worst_joint"])
         self.assertEqual(rc, 1)
 
+    def test_all_insufficient_fails(self):
+        # every joint observed in only one fixture → all verdicts
+        # "insufficient" — an entry in joints means "seen once", not
+        # "measured". The gate must fail, not pass on zero evidence
+        # (the old code: joints non-empty → measured → exit 0).
+        import slice.__main__ as cli
+        from slice.skeleton import Joint
+
+        def one_joint(name):
+            sk = Skeleton(1, 1)
+            sk.set(Joint(name, 1.0, 1.0, 0.9, state="observed"))
+            return sk
+
+        skels = iter([one_joint("j_a"), one_joint("j_b")])
+        with mock.patch.object(cli.pipeline.ESTIMATOR, "estimate",
+                               side_effect=lambda bmp: next(skels)):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = main(["bias"])
+        rep = json.loads(buf.getvalue())
+        self.assertEqual(rep["state"], "unmeasured")
+        self.assertIsNone(rep["worst_joint"])
+        self.assertEqual(rc, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
+  =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
+  でexit 0を返していたフェイルオープン。「unmeasured must not
+  pass」宣言通り、実測0件はexit 1。推定器劣化時にこそゲートが
+  効く方向へ修正）。
 - norm: crop/resize/to_unit/from_unitが新フレームを宣言（関節座標と`image_width/height`の乖離でdocのframeが実座標空間を偽っていた欠陥を解消）
 - consensus: バリアントパネルが呼出側のadaptive/reject_shadow/
   cleanを伝播（閾値・解像度の摂動だけを計るはずが、呼出側が

@@ -2,9 +2,10 @@
 
 Comparison happens in normalized space — pelvis at the origin, one unit
 = neck–pelvis length — so framing and resolution cannot dominate the
-distance. Only joints present (and confident enough) in both documents
-contribute; the result reports which joints were compared so a small
-overlap cannot masquerade as a close match.
+distance. Only joints observed (and confident enough) in both documents
+contribute — a predicted joint is a prior fill, and counting it would
+measure the prior, not the poses; the result reports which joints were
+compared so a small overlap cannot masquerade as a close match.
 """
 
 from __future__ import annotations
@@ -34,9 +35,12 @@ def pose_distance(doc_a: dict, doc_b: dict,
     if a is None or b is None:
         return None
     ja = (doc_a["skeleton"]["joints"])
+    jb = doc_b["skeleton"]["joints"]
     common = [n for n in a if n in b
+              and ja[n].get("state") != "predicted"
+              and jb[n].get("state") != "predicted"
               and ja[n].get("confidence", 1.0) >= min_confidence
-              and doc_b["skeleton"]["joints"][n].get("confidence", 1.0)
+              and jb[n].get("confidence", 1.0)
               >= min_confidence]
     if not common:
         return None

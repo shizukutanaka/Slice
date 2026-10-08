@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- smooth: 平滑化骨格が`centroid`を保持（マスク計測点の沈黙消失を解消 — pelvis未観測時にtrackのアンカーが失われフレームがempty化していた）。また異解像度フレーム混在時、近傍の生pxを中心フレーム空間に再スケールしてから平均（解像度差を関節位置に混入していた欠陥、motion #314/diff #315と同型）。`jitter`も異フレーム間で前フレーム空間に再スケール（解像度変更を「動き」と誤認しない）。
+
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。

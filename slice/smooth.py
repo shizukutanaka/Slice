@@ -9,6 +9,11 @@ the joint is missing stay missing — smoothing never invents a
 position. And an observed centre averages only observed neighbours:
 predicted guesses in the window must not pull a measured joint
 toward a fabricated location.
+
+Frames may differ in resolution — a neighbour in a different frame
+space is rescaled into the centre frame's space before averaging
+(px positions are frame-relative), and `jitter` reports
+displacement in the earlier frame's space for the same reason.
 """
 
 from __future__ import annotations
@@ -29,6 +34,10 @@ def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
         dst = Skeleton(src.image_width, src.image_height)
         dst.body_model = dict(src.body_model)
         dst.orientation = dict(src.orientation)
+        # the mask centroid is a measured point in this frame's
+        # space — dropping it would leave downstream consumers
+        # (track's anchor, norm's transform) with nothing
+        dst.centroid = src.centroid
         lo, hi = max(0, t - radius), min(n, t + radius + 1)
         for name, j in src.joints.items():
             xs, ys, cnt = 0.0, 0.0, 0
@@ -41,8 +50,16 @@ def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
                 # measured joint toward a fabricated location
                 if j.state == OBSERVED and o.state != OBSERVED:
                     continue
-                xs += o.x
-                ys += o.y
+                ot = series[tt]
+                ox, oy = o.x, o.y
+                if (ot.image_width != src.image_width
+                        or ot.image_height != src.image_height):
+                    # a px position means nothing outside its own
+                    # frame space — rescale into the centre frame's
+                    ox *= src.image_width / ot.image_width
+                    oy *= src.image_height / ot.image_height
+                xs += ox
+                ys += oy
                 cnt += 1
             dst.set(Joint(name, xs / cnt, ys / cnt, j.confidence,
                           state=j.state, basis=j.basis))
@@ -57,5 +74,14 @@ def jitter(series: List[Skeleton], joint: str = "pelvis") -> float:
         a = series[t - 1].joints.get(joint)
         b = series[t].joints.get(joint)
         if a and b:
-            steps.append(((b.x - a.x) ** 2 + (b.y - a.y) ** 2) ** 0.5)
+            fa, fb = series[t - 1], series[t]
+            bx, by = b.x, b.y
+            if (fa.image_width != fb.image_width
+                    or fa.image_height != fb.image_height):
+                # report in the earlier frame's space — a raw px
+                # diff across resolutions counts the resize as
+                # motion (and hides real motion the other way)
+                bx *= fa.image_width / fb.image_width
+                by *= fa.image_height / fb.image_height
+            steps.append(((bx - a.x) ** 2 + (by - a.y) ** 2) ** 0.5)
     return round(sum(steps) / len(steps), 3) if steps else 0.0

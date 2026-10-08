@@ -51,6 +51,53 @@ def synthetic_person(width=160, height=300, *, arms_down=True,
     return bmp
 
 
+def crouch_person(width=160, height=300,
+                  skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
+    """Crouched figure: compressed torso, bent knees, wide flat feet.
+
+    The feet spread wider than the dangling arms — exercises
+    below-crotch leg/arm disambiguation where x-overlap with a foot
+    used to amputate the arm (wrist floating at hip height)."""
+    from slice.bitmap import Bitmap
+
+    bmp = Bitmap.new(width, height, bg)
+    cx = width // 2
+
+    def rect(x0, y0, x1, y1):
+        for y in range(int(y0), int(y1)):
+            for x in range(int(x0), int(x1)):
+                if 0 <= x < width and 0 <= y < height:
+                    bmp.set(x, y, skin)
+
+    def disc(ccx, ccy, r):
+        for y in range(int(ccy - r), int(ccy + r) + 1):
+            for x in range(int(ccx - r), int(ccx + r) + 1):
+                if (x - ccx) ** 2 + (y - ccy) ** 2 <= r * r:
+                    bmp.set(x, y, skin)
+
+    head_r = width * 0.11
+    torso_w = width * 0.34
+    disc(cx, height * 0.45, head_r)
+    rect(cx - 3, height * 0.45 + head_r * 0.6, cx + 3, height * 0.52)
+    # shoulder bar connects arms and torso into one silhouette
+    rect(cx - torso_w / 2 - 10, height * 0.52,
+         cx + torso_w / 2 + 10, height * 0.52 + 6)
+    rect(cx - torso_w / 2, height * 0.52,
+         cx + torso_w / 2, height * 0.68)          # torso
+    rect(cx - torso_w / 2 - 10, height * 0.52 + 6,
+         cx - torso_w / 2 - 2, height * 0.80)     # left arm
+    rect(cx + torso_w / 2 + 2, height * 0.52 + 6,
+         cx + torso_w / 2 + 10, height * 0.80)    # right arm
+    # bent legs: thighs to knees, shins to wide flat feet
+    rect(cx - torso_w / 2, height * 0.68, cx - 6, height * 0.80)
+    rect(cx + 6, height * 0.68, cx + torso_w / 2, height * 0.80)
+    rect(cx - torso_w / 2, height * 0.80, cx - 6, height * 0.94)
+    rect(cx + 6, height * 0.80, cx + torso_w / 2, height * 0.94)
+    rect(cx - torso_w / 2 - 6, height * 0.94, cx - 4, height * 0.98)
+    rect(cx + 4, height * 0.94, cx + torso_w / 2 + 6, height * 0.98)
+    return bmp
+
+
 def wide_hand_person(width=160, height=300,
                      skin=(60, 60, 60, 255), bg=(235, 235, 235, 255)):
     """Like synthetic_person, but the left hand below the hip is a wide

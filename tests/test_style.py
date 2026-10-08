@@ -42,12 +42,29 @@ def sketch_image(w=128, h=128):
     return bmp
 
 
+def skin_image(w=128, h=128, seed=1):
+    """Warm skin-tone texture — photographic portrait crop."""
+    bmp = bitmap.Bitmap.new(w, h, (0, 0, 0, 255))
+    rng = random.Random(seed)
+    for y in range(h):
+        for x in range(w):
+            j = rng.randrange(-70, 70)
+            bmp.set(x, y, (min(255, 205 + j), min(255, 165 + j),
+                           min(255, 130 + j), 255))
+    return bmp
+
+
 class TestStyle(unittest.TestCase):
     def test_flat_figure_is_anime(self):
         r = style.analyze(synthetic_person(240, 420))
         self.assertEqual(r["style"], "anime")
         self.assertGreater(r["confidence"], 0.5)
         self.assertGreater(r["signals"]["top_color_coverage"], 0.35)
+
+    def test_skin_texture_is_real(self):
+        r = style.analyze(skin_image())
+        self.assertEqual(r["style"], "real")
+        self.assertGreater(r["signals"]["skin_ratio"], 0.05)
 
     def test_noise_is_real(self):
         r = style.analyze(noise_image())

@@ -31,6 +31,7 @@ def analyze(bmp: Bitmap) -> dict:
 
     colors: dict = {}
     sat_hi = 0          # vivid pixels
+    skin_hi = 0         # plausible skin pixels (lighting-robust rules)
     grad_sum = 0
     grad_hi = 0         # strong-edge pixels
     d = small.data
@@ -45,6 +46,10 @@ def analyze(bmp: Bitmap) -> dict:
             colors[key] = colors.get(key, 0) + 1
             if max(r, g, b) - min(r, g, b) > 100 and max(r, g, b) > 120:
                 sat_hi += 1
+            # classic skin range (R>G>B, warm, not too dark/light)
+            if (r > 95 and r > g > b and r - g > 15
+                    and max(r, g, b) - min(r, g, b) > 15):
+                skin_hi += 1
     for y in range(1, h - 1):
         base = y * w
         for x in range(1, w - 1):
@@ -71,6 +76,7 @@ def analyze(bmp: Bitmap) -> dict:
         "edge_density": round(edge_density, 4),
         "grad_mean": round(grad_mean, 2),
         "saturation_ratio": round(sat_ratio, 3),
+        "skin_ratio": round(skin_hi / n, 3),
     }
 
     def result(style: str, conf: float) -> dict:
@@ -87,8 +93,10 @@ def analyze(bmp: Bitmap) -> dict:
     # セル塗り: few flat colors dominate, edges are sparse and sharp.
     if uniq_ratio < 0.02 and top_cov > 0.35 and edge_density < 0.08:
         return result("anime", 0.55 + top_cov * 0.4)
-    # 写真: dense micro-texture, no dominant flat color.
-    if uniq_ratio > 0.2 and top_cov < 0.25 and edge_density > 0.12:
+    # 写真: dense micro-texture, no dominant flat color. Skin presence
+    # at textured edges is a second photographic cue (portrait crops).
+    if ((uniq_ratio > 0.2 and top_cov < 0.25 and edge_density > 0.12)
+            or (skin_hi / n > 0.05 and edge_density > 0.08)):
         return result("real", 0.5 + min(uniq_ratio, 0.4))
     # 絵画的: mid palette with blended gradients — edges exist but soft.
     if uniq_ratio >= 0.02 and edge_density < 0.12 and grad_mean > 3:

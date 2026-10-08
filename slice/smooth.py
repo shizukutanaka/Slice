@@ -6,14 +6,16 @@ moving average over each joint's track, cutting jitter while
 keeping real motion. Missing frames break nothing: a joint absent
 from a window's frames just averages what exists, and frames where
 the joint is missing stay missing — smoothing never invents a
-position.
+position. And an observed centre averages only observed neighbours:
+predicted guesses in the window must not pull a measured joint
+toward a fabricated location.
 """
 
 from __future__ import annotations
 
 from typing import List
 
-from .skeleton import Joint, Skeleton
+from .skeleton import OBSERVED, Joint, Skeleton
 
 
 def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
@@ -32,10 +34,16 @@ def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
             xs, ys, cnt = 0.0, 0.0, 0
             for tt in range(lo, hi):
                 o = series[tt].joints.get(name)
-                if o is not None:
-                    xs += o.x
-                    ys += o.y
-                    cnt += 1
+                if o is None:
+                    continue
+                # an observed centre averages only observed
+                # neighbours — predicted guesses must not pull a
+                # measured joint toward a fabricated location
+                if j.state == OBSERVED and o.state != OBSERVED:
+                    continue
+                xs += o.x
+                ys += o.y
+                cnt += 1
             dst.set(Joint(name, xs / cnt, ys / cnt, j.confidence,
                           state=j.state, basis=j.basis))
         out.append(dst)

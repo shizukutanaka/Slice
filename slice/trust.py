@@ -10,11 +10,16 @@ trust this wrist?" has to query all three and arbitrate.
 *already-computed* results of those layers (any subset) and folds
 them into one of three grades per joint:
 
-- `low`    — off the mask, unstable under perturbation, or
-             calibrated accuracy under 0.3
+- `low`    — observed joint off the mask, unstable under
+             perturbation, or calibrated accuracy under 0.3
 - `medium` — sensitive, single-run, calibrated accuracy < 0.5,
              or simply `predicted` (fill-in, not evidence)
 - `high`   — nothing contradicted it
+
+A predicted joint off the mask is *expected*, not a failure —
+priors legitimately place joints outside the silhouette (same
+rule evid.unsupported uses: off_mask only accuses an observed
+claim), so it does not push a joint below `medium`.
 
 Every joint's `factors` list names which inputs pushed it down, so
 the grade stays an explanation, not a number. Missing inputs are
@@ -65,7 +70,7 @@ def grade(skel: Skeleton,
         if evidence is not None:
             zone = (evidence.get("joints") or {}).get(name, {}) \
                 .get("zone")
-            if zone == "off_mask":
+            if zone == "off_mask" and j.state == OBSERVED:
                 g = "low"
                 factors.append("off_mask")
 

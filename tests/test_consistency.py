@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import consistency
+from slice import consistency, predict
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Joint
 
@@ -23,6 +23,26 @@ class TestAudit(unittest.TestCase):
         skel.set(Joint("knee_l", knee.x, knee.y - 300, knee.confidence))
         issues = consistency.audit(skel)
         self.assertIn("hip_l_knee_l_too_long", issues)
+
+    def test_predicted_extent_is_no_body(self):
+        # prior-placed head/feet must not substitute for a
+        # measured body extent — the audit can't scale honestly
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        for n in ("head", "foot_l", "foot_r"):
+            del skel.joints[n]
+        predict.complete(skel)
+        self.assertEqual(consistency.audit(skel),
+                         ["no_body_extent"])
+
+    def test_predicted_endpoint_no_segment_check(self):
+        # a bone ending in prior fill yields no measurement —
+        # it cannot be flagged too_long/too_short
+        skel = HeuristicPoseEstimator().estimate(synthetic_person())
+        del skel.joints["knee_l"]
+        predict.complete(skel)
+        issues = consistency.audit(skel)
+        self.assertNotIn("hip_l_knee_l_too_long", issues)
+        self.assertNotIn("hip_l_knee_l_too_short", issues)
 
 
 if __name__ == "__main__":

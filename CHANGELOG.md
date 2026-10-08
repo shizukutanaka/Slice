@@ -7,17 +7,23 @@
   正規化がフレームスケールに膨張していた欠陥を解消。
   ground/dynamicsの重複実装を共通ヘルパへ委譲）
 
+- cli: `slice analyze` のstderr要約にwarnings行を追加。
+  `doc.warnings`（few_observed_joints 等の薄証拠コード）を持つ
+  docがCLI上ではクリーンなdocと同一表示になっていた
+  （viewer側と同型の沈黙表示）。警告がある場合のみ
+  `warnings: <code>, ...` を出力。
+
+- `slice mirror <image>` — mirror層のCLI接続。`est(flip(img))` vs `flip(est(img))` の関節別ドリフトで推定器の左右バイアスを監査。併せて flip_skeleton の座標系を `w-1-x` に修正（bitmap反転とのoff-by-oneで一様1pxドリフトしていた実バグ、centroid同様、閾値3px→2pxに引き締め）。
+
 - pose: 向きリトライ（±90°/180°再推定）を estimate_multi にも適用。
   複数人画像内の横たわり・逆さま人物が、単一推定と違って
   直立スキャンだけで誤計測されていた経路を解消
   （_estimate_oriented 抽出で両経路が同一判定を使用）。
-
 - cli: `slice batch` に `--robust` を追加。analyze/audit にだけ
   あった robust プロファイル（adaptive閾値・影除去・形態学
   クリーンアップ）をバルク経路でも有効化可能に — ノイズの多い
   実写真の一括解析が最もそれを必要とする経路だった。
   docの `engine.profile` に "robust" と記録される。
-
 - track: アンカー/胴体長正規化をobserved関節のみに修正。
   predictedのpelvisがリンク距離・jump計測の根拠になっていた
   （推測位置での"linked"判定）。predicted pelvisはcentroidに

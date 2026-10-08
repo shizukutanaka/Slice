@@ -6,6 +6,8 @@
   torso正規化空間が未定義なのに生px比較へ沈黙切替、全関節同yの
   0高クラウドでbody_fractionが1px分捏造されていた欠陥を修正
   （dedup: unmeasurable→比較対象外、framepos: fraction=0）
+- `slice autocrop <image> [-o out.png] [--margin m] [--aspect W:H]` — autocrop層のCLI接続。最大前景成分bboxからのクロップ提案（coverage/state/basis開示）＋`-o`でcrop.crop実クロップPNG書き出し。フレーム境界へのclampは誠実設計を継承。
+
 - `slice compare <img|doc> <img|doc>` — compare層のCLI接続。骨盤→首単位の正規化ポーズ距離（共通関節の平均・関節別内訳、`--min-confidence`でフィルタ）。正規化不能は exit 1。
 
 - `slice describe <image>` — NLG層のCLI接続。推定＋姿勢分類→1文の英語説明（pose/facing/四肢のobserved状況＋関節数）。describe層がライブラリ専用だった状態を解消。
@@ -22,6 +24,16 @@
   prior fillとして明示。
 
 - contour: features()に`contour_closed`を開示（トレースが反復上限で未閉鎖打ち切りの際、perimeter/compactnessが下界として完全計測値を装っていた欠陥を解消）
+- pipeline: warningsに`no_observed_torso`追加（四肢は観測でも運動学ルートの体幹が全て推測のdocを「アンカー未測定」として開示）
+- stats/dataset: `mean_observed_confidence`を開示（観測と推測を混ぜた混成mean_confidenceが証拠品質を系統的に過小評価していた欠陥を解消、混成列は互換のため据え置き）
+- predict: プライア由来のbasisにモデル名を同梱（`prior off X (child)` — どの体型モデル表で置かれたか不明だった推測関節の由来を開示）
+- motion: 異フレーム骨格の変位をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（解像度違いの生px差を運動と誤認していた欠陥）
+- pipeline: warningsに`no_observed_head`追加 — 頭関節がpredicted
+  のdocは、スケールアンカーとなる最重要ランドマークを未測定の
+  まま下流層（headroom/ゾーン/実寸/比率）がプライア位置に依存する
+  ことを開示（wrists/feetと同じ証拠の薄さコード、KNOWLEDGE_JSON
+  の語彙表も同期）。
+
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。

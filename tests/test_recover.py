@@ -50,6 +50,32 @@ class TestRecover(unittest.TestCase):
         self.assertEqual(r["attempts"], len(recover.LADDER))
         self.assertFalse(r["skeleton"].joints)
 
+    def test_relaxed_rung_keeps_profile_flags(self):
+        # the relaxed rung must relax only the colour gate — the
+        # caller's adaptive/shadow/clean profile must carry over,
+        # otherwise the disclosed "gate relaxed to N" understates
+        # how much the estimator was loosened
+        seen = []
+        real = recover.HeuristicPoseEstimator
+
+        class Spy(real):
+            def __init__(self, *a, **kw):
+                seen.append(kw)
+                super().__init__(*a, **kw)
+
+        recover.HeuristicPoseEstimator = Spy
+        try:
+            est = real(adaptive=True, reject_shadow=True, clean=True)
+            recover.recover(Bitmap.new(160, 300, (235, 235, 235, 255)),
+                            estimator=est)
+        finally:
+            recover.HeuristicPoseEstimator = real
+        self.assertEqual(len(seen), 1)  # only the relaxed rung builds one
+        kw = seen[0]
+        self.assertTrue(kw["adaptive"])
+        self.assertTrue(kw["reject_shadow"])
+        self.assertTrue(kw["clean"])
+
     def test_no_fabrication_on_failure(self):
         bmp = Bitmap.new(40, 40, (0, 0, 0, 255))
         r = recover.recover(bmp)

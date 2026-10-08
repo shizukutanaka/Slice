@@ -22,6 +22,12 @@
 - stats/dataset: `mean_observed_confidence`を開示（観測と推測を混ぜた混成mean_confidenceが証拠品質を系統的に過小評価していた欠陥を解消、混成列は互換のため据え置き）
 - predict: プライア由来のbasisにモデル名を同梱（`prior off X (child)` — どの体型モデル表で置かれたか不明だった推測関節の由来を開示）
 - motion: 異フレーム骨格の変位をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（解像度違いの生px差を運動と誤認していた欠陥）
+- pipeline: warningsに`no_observed_head`追加 — 頭関節がpredicted
+  のdocは、スケールアンカーとなる最重要ランドマークを未測定の
+  まま下流層（headroom/ゾーン/実寸/比率）がプライア位置に依存する
+  ことを開示（wrists/feetと同じ証拠の薄さコード、KNOWLEDGE_JSON
+  の語彙表も同期）。
+
 - `slice reid <A> <B>` — reid層のCLI接続。骨長比率のポーズ不変特徴量で同一人物照合（距離・same_person・共有特徴数・両側特徴量を開示）。`--threshold`調整可、照合=exit 0。basisに「2Dキューであり生体認証ではない」誠実注記を継承。
 
 - `slice contrad <image>` — contrad層のCLI接続。classify×axis×ground×balanceのレイヤ間矛盾ルール（例: 立位なのに軸が水平/空中浮遊）。absent層はスキップ（仮定しない）。contradicted/insufficientは exit 1。

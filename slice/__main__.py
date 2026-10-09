@@ -791,7 +791,6 @@ def main(argv=None) -> int:
     au.add_argument("--store",
                     help="audit a KnowledgeStore directory instead "
                          "of an image")
-    au.add_argument("image", help="image file or directory")
     au.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     au.add_argument("--robust", action="store_true",
                     help="robust estimation profile")

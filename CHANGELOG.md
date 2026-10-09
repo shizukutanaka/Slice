@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- style: 透過画素を統計から除外（alpha=0領域がRGB=0として
+  パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
+  →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく
+  完全不透明近傍間のみ計測。`opaque_ratio`シグナルで証拠画素率を開示）。
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

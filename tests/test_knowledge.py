@@ -102,6 +102,19 @@ class TestKnowledge(unittest.TestCase):
             with self.assertRaises(KeyError):
                 store.get("../etc/passwd")
 
+    def test_store_save_rejects_nonconforming_id(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        doc["id"] = "../evil"
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            # get() can only read k_<12-hex> names — an id outside
+            # that shape would be unreachable, or a separator would
+            # let the write escape the store directory
+            with self.assertRaises(ValueError):
+                store.save(doc)
+            self.assertFalse(
+                os.path.exists(os.path.join(d, "..", "evil.json")))
+
     def test_store_list_skips_id_mismatch(self):
         # a file k_A.json claiming {"id": "k_B"} lists a doc that get()
         # can never return — filename is the identity, drop the phantom

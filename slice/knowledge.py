@@ -185,7 +185,14 @@ class KnowledgeStore:
         errors = validate(doc)
         if errors:
             raise ValueError("invalid knowledge: " + "; ".join(errors))
-        path = os.path.join(self.root, doc["id"] + ".json")
+        kid = doc["id"]
+        # get() can only ever read k_<12-hex> names — an id outside
+        # that shape would be unreachable, or worse, a separator
+        # would let the write escape the store directory
+        if not isinstance(kid, str) or not re.fullmatch(
+                r"k_[0-9a-f]{12}", kid):
+            raise ValueError("invalid knowledge id: %r" % kid)
+        path = os.path.join(self.root, kid + ".json")
         # atomic write: a crash mid-save must never leave a torn JSON
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:

@@ -9,7 +9,7 @@ pixels: the map labels evidence, it never invents it.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from .bitmap import Bitmap
 from .landmarks import BONES

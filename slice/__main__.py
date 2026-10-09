@@ -24,10 +24,6 @@ import math
 import os
 import sys
 
-from . import (__version__, bitmap, calib, dataset, evaluate, knowledge,
-               limbcov, pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -36,6 +32,10 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               dataset, selfcheck)
+from . import (__version__, bitmap, dataset, knowledge, limbcov, pipeline,
+               render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -180,25 +180,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_dataset(a) -> int:
-    """Export a KnowledgeStore as CSV or JSONL."""
-    docs = dataset.from_store(knowledge.KnowledgeStore(a.store))
-    if a.format == "csv":
-        text = dataset.to_csv(docs)
-    elif a.format == "csv-joints":
-        text = dataset.to_csv(docs, joints=True)
-    else:
-        text = dataset.to_jsonl(docs)
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            f.write(text)
-        print(f"wrote {a.output} ({len(docs)} docs)",
-              file=sys.stderr)
-    else:
-        print(text, end="")
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -277,9 +258,13 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -302,6 +287,9 @@ def _cmd_probe(a) -> int:
         return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -713,6 +701,25 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_dataset(a) -> int:
+    """Export a KnowledgeStore as CSV or JSONL."""
+    docs = dataset.from_store(knowledge.KnowledgeStore(a.store))
+    if a.format == "csv":
+        text = dataset.to_csv(docs)
+    elif a.format == "csv-joints":
+        text = dataset.to_csv(docs, joints=True)
+    else:
+        text = dataset.to_jsonl(docs)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"wrote {a.output} ({len(docs)} docs)",
+              file=sys.stderr)
+    else:
+        print(text, end="")
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -766,16 +773,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    ds = sub.add_parser(
-        "dataset", help="export a KnowledgeStore as CSV or JSONL")
-    ds.add_argument("--store", default="knowledge",
-                    help="KnowledgeStore directory")
-    ds.add_argument("--format", default="csv",
-                    choices=["csv", "csv-joints", "jsonl"])
-    ds.add_argument("-o", "--output",
-                    help="output file (default: stdout)")
-    ds.set_defaults(fn=_cmd_dataset)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -799,6 +796,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -926,6 +924,16 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    ds = sub.add_parser(
+        "dataset", help="export a KnowledgeStore as CSV or JSONL")
+    ds.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore directory")
+    ds.add_argument("--format", default="csv",
+                    choices=["csv", "csv-joints", "jsonl"])
+    ds.add_argument("-o", "--output",
+                    help="output file (default: stdout)")
+    ds.set_defaults(fn=_cmd_dataset)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

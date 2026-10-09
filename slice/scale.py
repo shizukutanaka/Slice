@@ -43,7 +43,7 @@ def _obs_point(skel: Skeleton, name: str):
     return (j.x, j.y)
 
 
-def _head_px(skel: Skeleton, prior: dict) -> Optional[float]:
+def _head_px(skel: Skeleton) -> Optional[float]:
     """Head length in px: crown (≈2×head radius above neck) to neck."""
     head, neck = _obs_point(skel, "head"), _obs_point(skel, "neck")
     if head and neck:

@@ -34,6 +34,11 @@ def _spine_x(skel: Skeleton, y: float) -> float:
     if neck and pelvis:
         t = (y - neck.y) / max(1e-6, pelvis.y - neck.y)
         return neck.x + (pelvis.x - neck.x) * min(max(t, 0), 1)
+    # the component centroid is measured evidence — an off-centre
+    # figure mirrored about the IMAGE centre lands the counterpart
+    # on the wrong side of the body
+    if skel.centroid is not None:
+        return skel.centroid[0]
     return skel.image_width / 2
 
 

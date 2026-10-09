@@ -13,7 +13,7 @@ and the UI must never render it as observed fact.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL
 from .landmarks import MIRROR

@@ -37,6 +37,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               people, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, rig, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
@@ -638,6 +640,21 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_people(a) -> int:
+    """Enumerate foreground components as person candidates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = people.candidates(bmp, est, min_frac=a.min_frac)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["candidates"] else 1
+
+
 def _cmd_rig(a) -> int:
     """Animation rig: bone hierarchy, lengths, directions."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -964,6 +981,15 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    pp = sub.add_parser(
+        "people", help="rank foreground components as people")
+    pp.add_argument("image")
+    pp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    pp.add_argument("--min-frac", type=float, default=0.02,
+                    help="min component fraction (default 0.02)")
+    pp.set_defaults(fn=_cmd_people)
 
     rg = sub.add_parser(
         "rig", help="animation rig export (bones + hierarchy)")

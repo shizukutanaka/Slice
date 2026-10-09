@@ -4,6 +4,8 @@
 
 - `slice migrate --store DIR [--write]` — migrate層のCLI接続。ストア内旧ドキュメントを現行スキーマへ正規化。デフォルトはドライラン（変更点のみ報告）、`--write`で原子的に書き込み。全修復をchanges列挙＋修復不能docは書き込まない誠実設計。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

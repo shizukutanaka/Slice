@@ -40,7 +40,9 @@ def analyze(skel: Skeleton, frame_w: int, frame_h: int) -> Optional[dict]:
     hj = skel.joints.get("head")
     head = (hj.x, hj.y) if hj and hj.state == "observed" else None
     bw = b["x1"] - b["x0"]
-    bh = b["y1"] - b["y0"] or 1.0
+    # a 0-height cloud has zero area — `or 1.0` would fabricate a
+    # 1px row and inflate body_fraction by a whole pixel column
+    bh = b["y1"] - b["y0"]
 
     cx = (b["x0"] + b["x1"]) / 2.0
     cy = (b["y0"] + b["y1"]) / 2.0

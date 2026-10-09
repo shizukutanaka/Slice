@@ -12,6 +12,11 @@
   左右を反転補正。回転フレームの向きを原画像座標の値として
   誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
 
+- REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
+  全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
+  一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは
+  CIゲート可）
+
 - 未使用import一掃＋デッドヘルパ削除 — 31モジュールで参照のなくなったtyping/シンボルimport（Optional/Tuple/Dict/List/Joint/Skeleton/OBSERVED/PREDICTED等36件）と、一度も呼ばれない `balance._dist_to_segment` を除去。リント相当の静的棚卸しで死荷重を削減、挙動変更なし。
 
 - 重複ヘルパの統合 — 6モジュール（balance/dominance/dynamics/gait/plumb/reach）に同一ロジックで分散していたobserved限定ルックアップ `_obs` を `skeleton.observed_point` に一本化（`observed_body_span` と同じ置き場）。挙動変更なし、-52行。

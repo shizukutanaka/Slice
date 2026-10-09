@@ -12,6 +12,10 @@
         — confidence calibration vs ground-truth fixtures
     python -m slice bias
         — per-joint systematic vs random error on fixtures
+    python -m slice batch <dir> --store DIR [--model M] [-r]
+    python -m slice audit <image|dir> [--model M] [--robust] [-o audit.json]
+        — run every quality layer over one image (or a directory)
+          and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -149,12 +153,18 @@ def _cmd_analyze_multi(a, raw) -> int:
 
 
 def _cmd_audit(a) -> int:
+    import os
+    if a.image and os.path.isdir(a.image):
+        return _cmd_audit_dir(a)
     if a.store:
         return _cmd_audit_store(a)
     if not a.image:
         print("audit: image path or --store DIR required",
               file=sys.stderr)
         return 2
+    import os
+    if os.path.isdir(a.image):
+        return _cmd_audit_dir(a)
     with open(a.image, "rb") as f:
         raw = f.read()
     try:
@@ -700,6 +710,44 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_audit_dir(a) -> int:
+    """Audit every image under a directory; print a verdict per file."""
+    import os
+    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
+    paths = sorted(os.path.join(a.image, f) for f in os.listdir(a.image)
+                   if f.lower().endswith(exts)
+                   and os.path.isfile(os.path.join(a.image, f)))
+    if not paths:
+        print(f"no images under {a.image}", file=sys.stderr)
+        return 1
+    tally = {"pass": 0, "warn": 0, "fail": 0}
+    results = []
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                raw = f.read()
+            res = selfcheck.run(raw, model=a.model, source_name=p,
+                                robust=a.robust)
+            tally[res["verdict"]] += 1
+            results.append({"image": p, **res})
+            print(f"{res['verdict']:>4}  {p}  "
+                  f"{','.join(res['reasons'][:3])}")
+        except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
+            tally["fail"] += 1
+            results.append({"image": p, "verdict": "fail",
+                            "reasons": [str(e)]})
+            print(f"fail  {p}  {e}", file=sys.stderr)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"results": results, "tally": tally}, f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(f"audit: {tally['pass']} pass / {tally['warn']} warn / "
+          f"{tally['fail']} fail ({len(paths)} images)",
+          file=sys.stderr)
+    return 0 if not tally["fail"] else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -742,7 +790,7 @@ def main(argv=None) -> int:
 
     au = sub.add_parser("audit", help="run all quality layers on one image")
     au.add_argument("image", nargs="?",
-                    help="image file (a store dir needs --store)")
+                    help="image file or directory (a store dir needs --store)")
     au.add_argument("--store",
                     help="audit a KnowledgeStore directory instead "
                          "of an image")

@@ -162,6 +162,20 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertTrue(any(jt.basis and "rotated" in jt.basis
                             for jt in j.values()))
 
+    def test_flat_lying_figure_retried_when_upright_starves(self):
+        """A figure shorter than the upright 24px body-height gate
+        used to return an empty skeleton with no retry at all — the
+        one case the orientation retry exists for. The rotated scans
+        must still run; only a clean rotated skeleton is adopted."""
+        bmp = Bitmap.new(200, 60, (240, 240, 240, 255))
+        for y in range(20, 40):
+            for x in range(30, 170):
+                bmp.set(x, y, (60, 60, 60, 255))
+        j = HeuristicPoseEstimator().estimate(bmp).joints
+        self.assertTrue(j)
+        self.assertTrue(any(jt.basis and "rotated" in jt.basis
+                            for jt in j.values()))
+
     def test_rotated_retry_discloses_and_mirrors_orientation(self):
         """180°-flipped profile faces right in the image — but the
         rotated scan reads its facing in the mirrored frame ("left").

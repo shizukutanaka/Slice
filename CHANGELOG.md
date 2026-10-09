@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- pose: 直立推定が0関節に飢えたときも向きリトライを走査。
+  直立ゲート（body_h<24px）を通らない横たわり人物は、リトライが
+  最も必要なケースでありながら早期returnで回転スキャンすら
+  されず空骨格で沈黙見逃しされていた欠陥を修正
+  （採用規則は厳格のまま — 完全にクリーンな回転候補のみ採用）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

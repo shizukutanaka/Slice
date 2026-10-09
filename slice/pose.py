@@ -380,8 +380,12 @@ class HeuristicPoseEstimator(PoseEstimator):
         evidence; joints map back to image space and record the
         rotation in their basis."""
         sk = self._estimate_component(small, comp, size, w, h, model)
-        if not sk.joints:
-            return sk
+        # No early exit when the upright scan starves: a lying figure
+        # can fail every upright gate (body_h < 24px) yet skeletonize
+        # cleanly once rotated — the retry exists for exactly that
+        # case. With no base skeleton the adoption rule stays strict:
+        # audit of an empty skeleton counts as one issue, so only a
+        # fully clean rotated candidate qualifies.
         from . import consistency
         base_issues = len(consistency.audit(sk, model))
         base_headw = _head_band_width(comp, w, h)

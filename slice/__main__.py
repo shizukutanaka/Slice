@@ -30,6 +30,8 @@ import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, ik, knowledge, limbcov,
+               pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
@@ -638,6 +640,31 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_ik(a) -> int:
+    """2-bone IK: where does the mid joint land."""
+    try:
+        rx, ry = (float(v) for v in a.root.split(","))
+        tx, ty = (float(v) for v in a.target.split(","))
+        l1, l2 = (float(v) for v in a.lengths.split(","))
+    except ValueError:
+        print("root/target/lengths must be comma floats",
+              file=sys.stderr)
+        return 2
+    r = ik.solve_ik((rx, ry), (tx, ty), l1, l2, bend=a.bend)
+    if r is None:
+        print("degenerate segment lengths", file=sys.stderr)
+        return 1
+    mid, end = r
+    reached = math.hypot(tx - rx, ty - ry) <= l1 + l2 + 1e-6
+    res = {"mid": [round(mid[0], 3), round(mid[1], 3)],
+           "end": [round(end[0], 3), round(end[1], 3)],
+           "angle_deg": ik.bend_angle((rx, ry), mid, end),
+           "reached": reached,
+           "note": "end is clamped to reach when unreachable"}
+    print(json.dumps(res, ensure_ascii=False))
+    return 0
+
+
 def _cmd_rig(a) -> int:
     """Animation rig: bone hierarchy, lengths, directions."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -964,6 +991,15 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    iks = sub.add_parser(
+        "ik", help="2-bone IK solver (root,target,lengths)")
+    iks.add_argument("--root", required=True, metavar="X,Y")
+    iks.add_argument("--target", required=True, metavar="X,Y")
+    iks.add_argument("--lengths", required=True, metavar="L1,L2")
+    iks.add_argument("--bend", type=float, default=1.0,
+                     help="bend direction +1/-1")
+    iks.set_defaults(fn=_cmd_ik)
 
     rg = sub.add_parser(
         "rig", help="animation rig export (bones + hierarchy)")

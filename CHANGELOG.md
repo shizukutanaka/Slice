@@ -6,6 +6,8 @@
   `w or 10**9`で任意の正座標が「フレーム内検証済み」を装っていた
   （x=5000でもTrue）。負座標・既知frame超過のみFalse→truncated、
   寸法なしの正座標はNone→unobservedの誠実な三値に
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

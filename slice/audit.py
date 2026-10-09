@@ -17,7 +17,6 @@ semantics_on_prediction  a pose label sits on top of < 40% evidence
 
 from __future__ import annotations
 
-from typing import Optional
 
 from .knowledge import validate
 from .landmarks import JOINTS

@@ -209,6 +209,22 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(right.orientation["facing"], "right")
         self.assertGreater(right.orientation["head_shift"], 0)
 
+    def test_offcenter_figure_keeps_front_facing(self):
+        """Symmetry is measured around the body axis, not the image
+        centre — a front-facing person framed off-centre must not
+        degrade to three-quarter purely by composition."""
+        src = synthetic_person(width=160, height=300)
+        w, h = src.width, src.height
+        bg = src.get(0, 0)
+        wide = Bitmap.new(w + 120, h, bg)
+        for y in range(h):
+            for x in range(w):
+                if src.get(x, y) != bg:
+                    wide.set(x + 110, y, src.get(x, y))
+        ori = HeuristicPoseEstimator().estimate(wide).orientation
+        self.assertEqual(ori["facing"], "front")
+        self.assertGreater(ori["symmetry"], 0.75)
+
     def test_blank_image(self):
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,
                                                           (255, 255, 255, 255)))

@@ -37,6 +37,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, topology, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, rig, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
@@ -638,6 +640,22 @@ def _cmd_human(a) -> int:
     return 0 if any(c["person_like"] for c in comps) else 1
 
 
+def _cmd_topology(a) -> int:
+    """Silhouette topology: components, holes, Euler number."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = topology.analyze(bmp, min_hole=a.min_hole)
+    if res is None:
+        print("no foreground detected", file=sys.stderr)
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_rig(a) -> int:
     """Animation rig: bone hierarchy, lengths, directions."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -964,6 +982,13 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    tp = sub.add_parser(
+        "topology", help="silhouette topology (holes, Euler)")
+    tp.add_argument("image")
+    tp.add_argument("--min-hole", type=int, default=12,
+                    help="min hole pixels")
+    tp.set_defaults(fn=_cmd_topology)
 
     rg = sub.add_parser(
         "rig", help="animation rig export (bones + hierarchy)")

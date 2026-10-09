@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

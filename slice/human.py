@@ -68,8 +68,14 @@ def assess(comp: List[bytearray]) -> Dict:
     area = sum(len(r) for r in rows)
 
     # aspect: height/width; people 1.2–4.0 → full credit, fades out
+    # on both sides — a lamp post is taller than any person
     aspect = h / w
-    a_sig = max(0.0, min(1.0, (aspect - 0.4) / 0.8))
+    if aspect < 1.2:
+        a_sig = max(0.0, (aspect - 0.4) / 0.8)
+    elif aspect <= 4.0:
+        a_sig = 1.0
+    else:
+        a_sig = max(0.0, 1.0 - (aspect - 4.0) / 4.0)
 
     # fill: area/bbox — people are <0.75 full (gaps at limbs/head)
     fill = area / (w * h)

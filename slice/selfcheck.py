@@ -12,6 +12,7 @@ overall verdict with the reason codes preserved:
             fit       good | poor | unmeasurable
             stability stable_fraction over threshold probes
     layers  contrad   consistent | contradicted
+            modelchk  consistent | mismatch | unmeasurable
     doc     gate      pass | warn | fail
 
 Layers that cannot measure (no skeleton, no foreground) report their
@@ -29,7 +30,8 @@ from . import (anatomy, axis, balance, bitmap, classify, contrad,
                mask as mask_mod, pipeline, stability)
 from . import (axis, balance, bitmap, classify, consistency, contrad,
                evid, fit, gate, ground, human, imgqual, knowledge,
-               limbcov, mask as mask_mod, pipeline, stability)
+               limbcov, mask as mask_mod, modelchk, pipeline, ratio,
+               stability)
 
 _SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
 
@@ -79,6 +81,9 @@ def _severity(layer: str, result: Dict) -> str:
         # anatomical-prior violations are advisory, not fail: real
         # bodies legitimately exceed population bounds
         return {"consistent": "ok", "issues": "advisory"}.get(
+            result["verdict"], _unmapped(result))
+    if layer == "modelchk":
+        return {"consistent": "ok", "mismatch": "advisory"}.get(
             result["verdict"], _unmapped(result))
     if layer == "gate":
         return {"pass": "ok", "warn": "advisory",
@@ -154,6 +159,17 @@ def run(raw: bytes, *, model: Optional[str] = None,
             "issues": c_issues,
             "verdict": "issues" if c_issues else "consistent"}
         reasons += ["consistency:" + i for i in c_issues]
+
+    # the chosen BODY_MODEL is selected on the head ratio alone —
+    # re-checking it against every measured ratio catches a prior
+    # that only fits because the rest of the body was never audited
+    layers["modelchk"] = modelchk.check(
+        skel, ratio.analyze(skel, centroid=skel.centroid))
+    if layers["modelchk"]["verdict"] == "mismatch":
+        reasons.append("modelchk:mismatch")
+        better = layers["modelchk"].get("better_model")
+        if better:
+            reasons.append("modelchk:better_model:" + better)
 
     doc = pipeline._build_doc(
         skel, bmp, knowledge.sha256(raw), source_name, mdl,

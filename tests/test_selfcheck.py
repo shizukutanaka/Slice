@@ -57,6 +57,17 @@ class TestSelfCheck(unittest.TestCase):
         # unmeasurable layers do not fake a verdict
         self.assertNotIn("evid", r["layers"])
 
+    def test_modelchk_layer_integrated(self):
+        # the chosen-model audit must run inside the one-shot audit:
+        # an audit layer that no caller reaches is a dead layer
+        raw = bitmap.encode_png(synthetic_person())
+        r = selfcheck.run(raw)
+        self.assertIn("modelchk", r["layers"])
+        self.assertIn(r["layers"]["modelchk"]["verdict"],
+                      ("consistent", "mismatch", "unmeasurable"))
+        self.assertIn(r["severity"]["modelchk"],
+                      ("ok", "advisory", "unmeasured"))
+
     def test_robust_profile_runs(self):
         raw = bitmap.encode_png(synthetic_person())
         r = selfcheck.run(raw, robust=True)

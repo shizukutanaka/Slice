@@ -111,7 +111,9 @@ def audit(doc: dict) -> dict:
         "no_observed_feet":
             not any(n.startswith(("ankle", "foot")) for n in obs_set),
     }
-    stale = sorted(w for w in (doc.get("warnings") or [])
+    declared = (doc.get("warnings") or []) \
+        if isinstance(doc, dict) else []
+    stale = sorted(w for w in declared
                    if w in backed and not backed[w])
     if stale:
         warnings.append({

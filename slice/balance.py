@@ -10,7 +10,7 @@ two → line segment; missing feet → the honest answer is
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .skeleton import Skeleton, observed_point
 
@@ -48,16 +48,6 @@ def center_of_mass(skel: Skeleton) -> Optional[dict]:
     return {"x": round(mx / covered, 1), "y": round(my / covered, 1),
             "mass_covered": round(covered, 2), "state": "estimated"}
 
-
-def _dist_to_segment(p: Tuple[float, float],
-                     a: Tuple[float, float],
-                     b: Tuple[float, float]) -> float:
-    ax, ay = b[0] - a[0], b[1] - a[1]
-    d2 = ax * ax + ay * ay
-    t = 0.0 if d2 < 1e-9 else max(
-        0.0, min(1.0, ((p[0] - a[0]) * ax + (p[1] - a[1]) * ay) / d2))
-    cx, cy = a[0] + t * ax, a[1] + t * ay
-    return ((p[0] - cx) ** 2 + (p[1] - cy) ** 2) ** 0.5
 
 
 def assess(skel: Skeleton) -> dict:

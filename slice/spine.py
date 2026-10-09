@@ -10,7 +10,7 @@ two-segment polyline whose geometry is honest to report.
 from __future__ import annotations
 
 import math
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 from .skeleton import Skeleton
 

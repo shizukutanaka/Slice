@@ -7,6 +7,11 @@
   していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
   で除算してはならない」に違反していた同型3箇所を一括修正。
   スケール未測定時は該当判定を発火しない）。
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

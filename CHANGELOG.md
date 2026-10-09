@@ -5,6 +5,11 @@
 - `slice motion <A> <B>` — motion層のCLI接続。2フレーム画像の関節移動ベクトル＋最速関節・部位別集計JSON。`--min-confidence`で低信頼関節を除外。
 
 - `slice dataset --store DIR [--format csv|csv-joints|jsonl]` — dataset層のCLI接続。ストア全docを分析用にエクスポート（doc要約CSV／関節ロング形式CSV／生JSONL）。validate不合格docは輸出しない誠実設計を継承。
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

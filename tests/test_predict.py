@@ -52,6 +52,28 @@ class TestPredict(unittest.TestCase):
         # the straight prior drop would have kept x near shoulder+x
         self.assertLess(el.x, 30)
 
+    def test_predicted_anchor_disclosed(self):
+        # interpolation endpoints that are themselves predicted must not
+        # pass the result off as anchored on observation
+        from slice.skeleton import Joint
+        sk = Skeleton(100, 200)
+        sk.set(Joint("shoulder_l", 30, 60, 0.8, OBSERVED))
+        sk.set(Joint("wrist_l", 10, 120, 0.2, PREDICTED,
+                     "mirrored from wrist_r"))
+        predict.complete(sk)
+        self.assertIn("(predicted anchor)", sk.get("elbow_l").basis)
+
+    def test_predicted_anchor_prior_and_foot(self):
+        # prior drops and the foot-below-ankle guess also disclose a
+        # predicted anchor joint
+        from slice.skeleton import Joint
+        sk = Skeleton(100, 200)
+        sk.set(Joint("hip_l", 40, 120, 0.2, PREDICTED, "mirrored"))
+        sk.set(Joint("ankle_l", 36, 195, 0.2, PREDICTED, "mirrored"))
+        predict.complete(sk)
+        self.assertIn("(predicted anchor)", sk.get("knee_l").basis)
+        self.assertIn("(predicted anchor)", sk.get("foot_l").basis)
+
     def test_basis_names_the_prior_model(self):
         # prior-derived joints must say which BODY_MODEL table produced
         # them — "prior off X" alone hid the source anatomy

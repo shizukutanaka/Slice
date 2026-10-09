@@ -86,7 +86,10 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
             a = skel.joints[ankle]
             j = Joint(f"foot_{side}", a.x, min(a.y + body_h * 0.03,
                                              skel.image_height - 1),
-                      0.25, PREDICTED, "foot below ankle")
+                      0.25, PREDICTED,
+                      f"foot below ankle ({model_name})" + (
+                          " (predicted anchor)"
+                          if a.state != OBSERVED else ""))
             skel.set(j)
             added.append(j)
     return added
@@ -107,7 +110,10 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
         r = skel.get(ref)
         if r:
             j = Joint(name, r.x + dxr * body_h, r.y + dyr * body_h,
-                      0.2, PREDICTED, f"prior off {ref} ({model_name})")
+                      0.2, PREDICTED,
+                      f"prior off {ref} ({model_name})" + (
+                          " (predicted anchor)"
+                          if r.state != OBSERVED else ""))
             skel.set(j)
             return j
 
@@ -132,11 +138,13 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
                 # An endpoint further down the chain is known: place the
                 # joint between parent and it, at the prior fraction of
                 # the whole chain. Better than a blind straight drop.
+                guessy = (p.state != OBSERVED or distal.state != OBSERVED)
                 j = Joint(
                     name, p.x + (distal.x - p.x) * (frac / total),
                     p.y + (distal.y - p.y) * (frac / total),
                     0.3, PREDICTED,
-                    f"interpolated {parent}-{distal.name} ({model_name})")
+                    f"interpolated {parent}-{distal.name} ({model_name})"
+                    + (" (predicted anchor)" if guessy else ""))
                 skel.set(j)
                 return j
             # arms angle slightly outward, legs drop straight down
@@ -144,7 +152,10 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
             sign = -1 if side == "l" else 1
             j = Joint(name, p.x + sign * out * body_h,
                       p.y + frac * body_h,
-                      0.2, PREDICTED, f"prior off {parent} ({model_name})")
+                      0.2, PREDICTED,
+                      f"prior off {parent} ({model_name})" + (
+                          " (predicted anchor)"
+                          if p.state != OBSERVED else ""))
             skel.set(j)
             return j
     return None

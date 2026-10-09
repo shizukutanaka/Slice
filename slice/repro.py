@@ -31,7 +31,7 @@ from .anatomy import DEFAULT_MODEL
 from .bitmap import Bitmap
 from .pose import HeuristicPoseEstimator
 from .predict import complete
-from .skeleton import OBSERVED, PREDICTED
+from .skeleton import PREDICTED
 
 TOLERANCE_PX = 2.0
 

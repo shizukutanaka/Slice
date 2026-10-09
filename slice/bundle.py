@@ -22,12 +22,6 @@ from .knowledge import validate
 SCHEMA = "slice.bundle/v1"
 
 
-def _safe_member_name(kid) -> bool:
-    return (isinstance(kid, str) and bool(kid)
-            and "/" not in kid and "\\" not in kid
-            and ".." not in kid)
-
-
 def _body_model_name(d: dict):
     sk = d.get("skeleton")
     bm = sk.get("body_model") if isinstance(sk, dict) else None
@@ -57,12 +51,6 @@ def pack(store, path: str) -> dict:
         except Exception:
             bad = True
         if bad:
-            skipped += 1
-            continue
-        # an id carrying separators or '..' would write a member
-        # escaping docs/ — refuse to ship it
-        if (not isinstance(doc, dict)
-                or not _safe_member_name(doc.get("id"))):
             skipped += 1
             continue
         # validate does not type-check body_model — a malformed one
@@ -97,10 +85,6 @@ def pack(store, path: str) -> dict:
 def manifest(path: str) -> dict:
     """Read just the manifest from a bundle."""
     with zipfile.ZipFile(path) as z:
-        try:
-            return json.loads(z.read("manifest.json"))
-        except KeyError:
-            raise ValueError("not a slice bundle (no manifest.json)")
         m = json.loads(z.read("manifest.json"))
     if not isinstance(m, dict):
         raise ValueError("manifest.json is not an object")

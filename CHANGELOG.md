@@ -7,6 +7,8 @@
   ため、返り値はプライア自身の間隔を実測と装う循環捏造だった。
   scale/ratioの正規化子がこの偽値をそのまま使っていた。未観測はNone。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

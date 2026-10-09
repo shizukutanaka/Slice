@@ -5,6 +5,8 @@
 - `slice.moments` 新設 — シルエット画像モーメント（m00/重心/
   共分散→等価楕円の角度・長短軸・離心率）。contour・hullと
   対になる統計的形状記述（OpenCV moments相当をstdlibで）
+- 重複ヘルパの統合 — 6モジュール（balance/dominance/dynamics/gait/plumb/reach）に同一ロジックで分散していたobserved限定ルックアップ `_obs` を `skeleton.observed_point` に一本化（`observed_body_span` と同じ置き場）。挙動変更なし、-52行。
+
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。

@@ -4,6 +4,8 @@
 
 - `slice track <dir>` CLI — track層の接続。フレーム列（ディレクトリ、名前順）を一括推定→安定`track_id`付与。フレーム別に`new_track`/`linked`/`reacquired`/`empty`を表示、`--max-jump`（トルソ単位の追跡閾値）・`--robust`・`-o`で全リンク＋集計JSON（n_tracks/n_empty/n_reacquired/skipped）を出力。trackがライブラリ専用だったP3-19をCLIで実用化。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

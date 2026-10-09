@@ -52,6 +52,10 @@ class Skeleton:
     orientation: dict = field(default_factory=dict)
     body_model: dict = field(default_factory=dict)
     centroid: Optional[Point] = None
+    # runtime only (not serialized): how many foreground components
+    # were offered for skeletonization when estimate_multi/split ran
+    # — 0 means the skeleton came from the single-person path
+    component_count: int = 0
 
     def set(self, joint: Joint) -> None:
         self.joints[joint.name] = joint

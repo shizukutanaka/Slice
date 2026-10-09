@@ -451,14 +451,19 @@ class HeuristicPoseEstimator(PoseEstimator):
         w, h = small.width, small.height
         mask = self._mask(small)
         labels, sizes = self._label_components(mask, w, h)
+        eligible = [lab for lab in
+                    sorted(sizes, key=sizes.get, reverse=True)[:top_k]
+                    if sizes[lab] >= w * h * min_fraction]
         out: List[Skeleton] = []
-        for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
-            if sizes[lab] < w * h * min_fraction:
-                break
+        for lab in eligible:
             comp = self._component_mask(labels, lab, w, h)
             sk = self._estimate_oriented(small, comp, sizes[lab],
                                          w, h, model)
             if sk.joints:
+                # components that passed the size gate — how many
+                # candidates shared the frame, not how many skeletons
+                # survived
+                sk.component_count = len(eligible)
                 out.append(sk)
         return out
 
@@ -478,7 +483,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         w, h = small.width, small.height
         mask = self._mask(small)
         labels, sizes = self._label_components(mask, w, h)
-        out: List[Skeleton] = []
+        subs_all: List[list] = []
         for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
             if sizes[lab] < w * h * 0.005:
                 break
@@ -499,19 +504,24 @@ class HeuristicPoseEstimator(PoseEstimator):
                      if all(abs(hpt[0] - o[0]) > spread
                             for o in heads[:i])]
             if len(heads) < 2:
-                subs = [comp]
+                subs_all.append(comp)
             else:
                 subs, _ = _split.split(comp, seeds=heads)
-            for sub in subs:
-                size = sum(sum(r) for r in sub)
-                sk = self._estimate_component(small, sub, size,
-                                              w, h, model)
-                if not sk.joints:
-                    continue
-                for j in sk.joints.values():
-                    j.basis = (j.basis + "; split region"
-                               if j.basis else "split region")
-                out.append(sk)
+                subs_all.extend(subs)
+        out: List[Skeleton] = []
+        for sub in subs_all:
+            size = sum(sum(r) for r in sub)
+            sk = self._estimate_component(small, sub, size,
+                                          w, h, model)
+            if not sk.joints:
+                continue
+            for j in sk.joints.values():
+                j.basis = (j.basis + "; split region"
+                           if j.basis else "split region")
+            # subregions offered across the whole frame — how many
+            # person hypotheses shared it, not how many survived
+            sk.component_count = len(subs_all)
+            out.append(sk)
         return out
 
     def _estimate_component(self, small, comp, size, w, h,

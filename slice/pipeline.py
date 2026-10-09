@@ -97,8 +97,11 @@ def analyze_multi(raw: bytes, *, model: Optional[str] = None,
     docs = [_build_doc(s, bmp, sha, source_name, model,
                        estimator=estimator, robust=robust)
             for s in skels]
-    for i, d in enumerate(docs):
+    for i, (s, d) in enumerate(zip(skels, docs)):
         d["people"] = {"index": i, "count": len(docs),
+                       # components offered for skeletonization — may
+                       # exceed `count` when some yield no skeleton
+                       "components": s.component_count or len(docs),
                        "state": "observed",
                        "basis": "foreground component"}
     return docs

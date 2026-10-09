@@ -12,7 +12,6 @@ output says "candidate components", never "people detected".
 
 from __future__ import annotations
 
-from collections import deque
 from typing import List
 
 from .bitmap import Bitmap
@@ -21,32 +20,31 @@ from .pose import HeuristicPoseEstimator
 _MIN_FRAC = 0.005
 
 
-def _components(mask: List[bytearray], w: int, h: int) -> List[dict]:
-    labels = [[0] * w for _ in range(h)]
-    comps: List[dict] = []
-    for y0 in range(h):
-        for x0 in range(w):
-            if not mask[y0][x0] or labels[y0][x0]:
+def _components(labels: List[list], sizes: dict,
+                w: int, h: int) -> List[dict]:
+    """Per-label size+bbox from a labelled mask (the estimator's own
+    component labelling supplies `labels`/`sizes`; only the box pass
+    is local)."""
+    boxes: dict = {}
+    for y in range(h):
+        row = labels[y]
+        for x in range(w):
+            lab = row[x]
+            if not lab:
                 continue
-            idx = len(comps) + 1
-            size = 0
-            lx, ty, rx, by = x0, y0, x0, y0
-            q = deque([(x0, y0)])
-            labels[y0][x0] = idx
-            while q:
-                x, y = q.popleft()
-                size += 1
-                lx, rx = min(lx, x), max(rx, x)
-                ty, by = min(ty, y), max(by, y)
-                for nx, ny in ((x + 1, y), (x - 1, y),
-                               (x, y + 1), (x, y - 1)):
-                    if (0 <= nx < w and 0 <= ny < h
-                            and mask[ny][nx] and not labels[ny][nx]):
-                        labels[ny][nx] = idx
-                        q.append((nx, ny))
-            comps.append({"size": size,
-                          "bbox": (lx, ty, rx - lx + 1, by - ty + 1)})
-    return comps
+            bb = boxes.setdefault(lab, [x, y, x, y])
+            if x < bb[0]:
+                bb[0] = x
+            if y < bb[1]:
+                bb[1] = y
+            if x > bb[2]:
+                bb[2] = x
+            if y > bb[3]:
+                bb[3] = y
+    return [{"size": sizes[lab],
+             "bbox": (bb[0], bb[1],
+                      bb[2] - bb[0] + 1, bb[3] - bb[1] + 1)}
+            for lab, bb in boxes.items()]
 
 
 def candidates(bmp: Bitmap, est: HeuristicPoseEstimator = None,
@@ -58,7 +56,8 @@ def candidates(bmp: Bitmap, est: HeuristicPoseEstimator = None,
     w, h = small.width, small.height
     mask = est._mask(small)
     frame = w * h
-    comps = _components(mask, w, h)
+    labels, sizes = est._label_components(mask, w, h)
+    comps = _components(labels, sizes, w, h)
     out = []
     for i, c in enumerate(sorted(comps, key=lambda c: -c["size"])):
         if c["size"] < frame * min_frac:

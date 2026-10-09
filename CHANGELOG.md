@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 - multi: `people.components`に骨格化に回った成分数を開示（ゲートで落ちた成分が`count`から読めず「画像内の人数」を過小申告していた穴を解消）
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

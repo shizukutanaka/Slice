@@ -1,21 +1,22 @@
-"""Pose similarity between two Knowledge documents.
-
-Comparison happens in normalized space — pelvis at the origin, one unit
-= neck–pelvis length — so framing and resolution cannot dominate the
-distance. Only joints observed (and confident enough) in both documents
-contribute — a predicted joint is a prior fill, and counting it would
-measure the prior, not the poses; the result reports which joints were
-compared so a small overlap cannot masquerade as a close match.
-"""
-
+"""Pose distance between two Knowledge documents, in torso units."""
 from __future__ import annotations
 
 import math
 from typing import Dict, Optional, Tuple
 
 
-def _norm_joints(doc: dict) -> Optional[Dict[str, Tuple[float, float]]]:
-    joints = (doc.get("skeleton") or {}).get("joints") or {}
+def _valid_joints(doc: dict) -> Dict:
+    sk = doc.get("skeleton") if isinstance(doc, dict) else None
+    raw = sk.get("joints") if isinstance(sk, dict) else None
+    if not isinstance(raw, dict):
+        return {}
+    return {n: j for n, j in raw.items()
+            if isinstance(j, dict)
+            and isinstance(j.get("x"), (int, float))
+            and isinstance(j.get("y"), (int, float))}
+
+
+def _norm_joints(joints: Dict) -> Optional[Dict[str, Tuple[float, float]]]:
     pelvis, neck = joints.get("pelvis"), joints.get("neck")
     if not pelvis or not neck:
         return None
@@ -31,17 +32,17 @@ def pose_distance(doc_a: dict, doc_b: dict,
                   *, min_confidence: float = 0.0) -> Optional[dict]:
     """Mean per-joint distance in torso units, or None when either
     document lacks a normalizable skeleton."""
-    a, b = _norm_joints(doc_a), _norm_joints(doc_b)
+    ja, jb = _valid_joints(doc_a), _valid_joints(doc_b)
+    a, b = _norm_joints(ja), _norm_joints(jb)
     if a is None or b is None:
         return None
-    ja = (doc_a["skeleton"]["joints"])
-    jb = doc_b["skeleton"]["joints"]
     common = [n for n in a if n in b
               and ja[n].get("state") != "predicted"
               and jb[n].get("state") != "predicted"
+              and isinstance(ja[n].get("confidence", 1.0), (int, float))
+              and isinstance(jb[n].get("confidence", 1.0), (int, float))
               and ja[n].get("confidence", 1.0) >= min_confidence
-              and jb[n].get("confidence", 1.0)
-              >= min_confidence]
+              and jb[n].get("confidence", 1.0) >= min_confidence]
     if not common:
         return None
     per_joint = {n: round(math.hypot(a[n][0] - b[n][0],

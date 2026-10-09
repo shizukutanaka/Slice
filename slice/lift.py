@@ -17,7 +17,7 @@ are prior fill, distinguishable from observed coordinates.
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict
 
 from .skeleton import OBSERVED, Skeleton
 

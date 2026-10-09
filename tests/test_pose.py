@@ -178,6 +178,36 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertEqual(ori.get("estimated_on_rotated_deg"), 180)
         self.assertEqual(ori.get("facing"), "right")
 
+    def test_raised_arm_upright_not_flipped(self):
+        """A raised arm made the upright scan look inconsistent
+        (arms outside prior bounds), and the 180° retry used to win
+        on its cleaner audit — flipping a real upright figure so its
+        fabricated head landed at the bottom. Rotation now requires
+        decisively stronger head-band evidence."""
+        bmp = synthetic_person()
+        w, h = bmp.width, bmp.height
+        cx = w // 2
+        tw = w * 0.34
+        sh_y = h * 0.22
+        bg = bmp.get(1, 1)
+        skin = bmp.get(cx, int(sh_y) + 2)
+        # delete the left dangling arm, paint a raised one instead
+        for y in range(int(sh_y) + 6, int(h * 0.75)):
+            for x in range(int(cx - tw / 2 - 10), int(cx - tw / 2 - 2)):
+                bmp.set(x, y, bg)
+        tip_y = w * 0.11 + 12
+        for i in range(40):
+            t = i / 40
+            x0 = int(cx - tw / 2 - t * (cx - tw / 2 - 14))
+            y0 = int(sh_y + 6 - t * (sh_y - tip_y))
+            for dy in range(6):
+                for dx in range(6):
+                    bmp.set(x0 + dx, y0 + dy, skin)
+        j = HeuristicPoseEstimator().estimate(bmp).joints
+        self.assertLess(j["head"].y, h * 0.3)       # head stays up
+        self.assertFalse(any(jt.basis and "rotated" in jt.basis
+                             for jt in j.values()))
+
     def test_confidence_range(self):
         for j in self.skel.joints.values():
             self.assertTrue(0 < j.confidence <= 1)

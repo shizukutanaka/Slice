@@ -13,7 +13,6 @@ predicted) are visible, not just motion.
 
 from __future__ import annotations
 
-from typing import Optional
 
 _MOVE_EPS = 0.5     # px below which a joint "didn't move"
 _CONF_EPS = 0.01    # confidence delta worth reporting

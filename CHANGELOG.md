@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で
+  移した位置が「top blob centroid」等の単フレーム計測由来を
+  そのまま名乗っていた欠陥を解消（位置・confidence・stateは
+  不変、由来の開示のみ）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

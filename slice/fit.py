@@ -16,7 +16,7 @@ limbs, mis-scaled body, wrong component) and should drop trust in
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from .landmarks import BONES
 from .skeleton import Skeleton

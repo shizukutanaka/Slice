@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- lift: facing "left"/"right"（実際のプロファイル検出）でも遠側にzを付与
+  （facing "side"のみ対象だったため真の側面人物が平坦zになっていた欠陥。
+  遠側は向き方向側フランク＝facing "left"なら_l側。orientation["side"]の
+  未使用ヒント入力も"side"時に継続尊重）
+
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

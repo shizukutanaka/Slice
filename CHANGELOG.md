@@ -4,6 +4,8 @@
 
 - `slice track <dir>` CLI — track層の接続。フレーム列（ディレクトリ、名前順）を一括推定→安定`track_id`付与。フレーム別に`new_track`/`linked`/`reacquired`/`empty`を表示、`--max-jump`（トルソ単位の追跡閾値）・`--robust`・`-o`で全リンク＋集計JSON（n_tracks/n_empty/n_reacquired/skipped）を出力。trackがライブラリ専用だったP3-19をCLIで実用化。
 
+- 未使用import一掃＋デッドヘルパ削除 — 31モジュールで参照のなくなったtyping/シンボルimport（Optional/Tuple/Dict/List/Joint/Skeleton/OBSERVED/PREDICTED等36件）と、一度も呼ばれない `balance._dist_to_segment` を除去。リント相当の静的棚卸しで死荷重を削減、挙動変更なし。
+
 - 重複ヘルパの統合 — 6モジュール（balance/dominance/dynamics/gait/plumb/reach）に同一ロジックで分散していたobserved限定ルックアップ `_obs` を `skeleton.observed_point` に一本化（`observed_body_span` と同じ置き場）。挙動変更なし、-52行。
 
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。

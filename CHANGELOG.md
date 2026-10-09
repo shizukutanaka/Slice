@@ -4,6 +4,8 @@
 
 - `slice scale <image>` — scale層のCLI接続。頭長プライアでpx→cm換算し身長・胴・四肢の実寸推定を報告。頭が測れない場合は較正不可を正直に報告。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

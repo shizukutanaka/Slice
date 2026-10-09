@@ -14,7 +14,7 @@ import math
 from typing import Dict, Optional
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL
-from .skeleton import Skeleton, head_length_px
+from .skeleton import NECK_CLAVICLE_BASIS, Skeleton, head_length_px
 
 # Mean adult head length (vertex→chin), anthropometric standard.
 HEAD_CM = {"adult": 23.0, "child": 19.0, "deformed": 20.0}
@@ -30,9 +30,26 @@ _BONES_CM = [
 ]
 
 
+def _obs_point(skel: Skeleton, name: str):
+    """Observed-only lookup: a predicted joint is prior fill — a
+    scale factor or cm length derived from it would measure the
+    prior, not the person, so it is excluded like a missing joint."""
+    j = skel.joints.get(name)
+    if j is None or j.state != "observed":
+        return None
+    return (j.x, j.y)
+
+
 def _head_px(skel: Skeleton) -> Optional[float]:
-    """Head length in px — convention-aware (clavicle vs chin neck)."""
-    return head_length_px(skel)
+    """Head length in px — convention-aware (clavicle vs chin neck),
+    observed joints only: a predicted head/neck is prior fill, and
+    measuring it would measure the prior, not the person."""
+    head, neck = _obs_point(skel, "head"), _obs_point(skel, "neck")
+    if not head or not neck or neck[1] <= head[1]:
+        return None
+    neck_j = skel.joints.get("neck")
+    mult = 1.0 if neck_j.basis == NECK_CLAVICLE_BASIS else 2.0
+    return (neck[1] - head[1]) * mult
 
 
 def calibrate(skel: Skeleton, model: Optional[str] = None) -> dict:
@@ -58,7 +75,7 @@ def measure_cm(skel: Skeleton, model: Optional[str] = None) -> Dict:
         return out
     lengths = {}
     for label, a, b in _BONES_CM:
-        pa, pb = skel.point(a), skel.point(b)
+        pa, pb = _obs_point(skel, a), _obs_point(skel, b)
         if pa and pb:
             px = math.hypot(pa[0] - pb[0], pa[1] - pb[1])
             lengths[label] = round(px / ppcm, 1)

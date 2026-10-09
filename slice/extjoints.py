@@ -29,7 +29,7 @@ moves to the observation vocabulary — the joint name stays.
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from .skeleton import Joint, OBSERVED, PREDICTED, Skeleton
 
@@ -98,8 +98,7 @@ def derive(skel: Skeleton,
             dx, dy = w.x - e.x, w.y - e.y
             L = math.hypot(dx, dy)
             if L > 1e-6:
-                hx, hy = dx / L * L * HAND_LEN_RATIO, dy / L * L * \
-                    HAND_LEN_RATIO
+                hx, hy = dx * HAND_LEN_RATIO, dy * HAND_LEN_RATIO
                 _put(out, f"fingertip_{side}", (w.x + hx, w.y + hy),
                      min(e.confidence, w.confidence) * 0.5,
                      f"prior off wrist_{side} (forearm direction)"
@@ -113,10 +112,7 @@ def derive(skel: Skeleton,
             L = math.hypot(dx, dy)
             if L > 1e-6:
                 ux, uy = dx / L, dy / L
-                shin = skel.joints.get(f"knee_{side}")
                 seg = L
-                if shin:
-                    seg = math.hypot(f.x - a.x, f.y - a.y)
                 _put(out, f"toe_{side}",
                      (f.x + ux * seg * TOE_LEN_RATIO,
                       f.y + uy * seg * TOE_LEN_RATIO),

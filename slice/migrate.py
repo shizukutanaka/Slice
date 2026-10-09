@@ -105,7 +105,8 @@ def upgrade(doc: dict) -> Dict:
                  "%s.confidence → 0.0 (was absent)" % name)
         if j.get("state") not in (OBSERVED, PREDICTED):
             j["state"] = PREDICTED
-            j["basis"] = str(j.get("basis") or "") + \
+            b = j.get("basis")
+            j["basis"] = ((str(b) + "; ") if b else "") + \
                 "migrated: state unknown"
             _chg(changes, "joint_state_fixed",
                  "%s unmarked → predicted (observed would fabricate)"

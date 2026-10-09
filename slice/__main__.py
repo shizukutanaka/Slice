@@ -12,6 +12,8 @@
         — confidence calibration vs ground-truth fixtures
     python -m slice bias
         — per-joint systematic vs random error on fixtures
+    python -m slice consistency <image> [--model M] [--robust]
+        — skeleton plausibility audit (limb lengths, symmetry, frame)
     python -m slice batch <dir> --store DIR [--model M] [-r]
     python -m slice audit <image|dir> [--model M] [--robust] [-o audit.json]
         — run every quality layer over one image (or a directory)
@@ -29,6 +31,8 @@ import os
 import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
+               knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, consistency, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
@@ -707,6 +711,30 @@ def _cmd_limbcov(a) -> int:
     return 0 if res["verdict"] == "covered" else 1
 
 
+def _cmd_consistency(a) -> int:
+    """Skeleton plausibility audit: limb-length, symmetry, frame rules."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    issues = consistency.audit(skel, a.model)
+    print(json.dumps({"state": "estimated",
+                      "basis": "skeleton plausibility rules "
+                               "(limb ratios, symmetry, frame bounds)",
+                      "issues": issues,
+                      "verdict": "issues" if issues else "consistent"},
+                     ensure_ascii=False, indent=2))
+    return 1 if issues else 0
+
+
 def _cmd_calib(a) -> int:
     """Confidence calibration: measured hit rate per reported bin."""
     pairs = [evaluate.draw_case(),
@@ -992,6 +1020,15 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    co = sub.add_parser(
+        "consistency", help="skeleton plausibility audit")
+    co.add_argument("image")
+    co.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    co.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    co.set_defaults(fn=_cmd_consistency)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

@@ -5,6 +5,11 @@
 - `slice.radial` 新設 — 放射状シグネチャ（重心から64方向の
   輪郭距離、最長正規化）。matchは全循環シフト最良L1で回転
   不変 — 質量の伸び方を見るcompact形状照合
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

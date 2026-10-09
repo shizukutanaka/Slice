@@ -30,6 +30,9 @@ _BONES_CM = [
 ]
 
 
+def _head_px(skel: Skeleton) -> Optional[float]:
+    """Head length in px — convention-aware (clavicle vs chin neck)."""
+    return head_length_px(skel)
 def _obs_point(skel: Skeleton, name: str):
     """Observed-only lookup: a predicted joint is prior fill — a
     scale factor or cm length derived from it would measure the
@@ -40,12 +43,12 @@ def _obs_point(skel: Skeleton, name: str):
     return (j.x, j.y)
 
 
-def _head_px(skel: Skeleton) -> Optional[float]:
-    """Head length in px — convention-aware (clavicle vs chin neck).
-    Observed head and neck only (see _obs_point)."""
-    if not (_obs_point(skel, "head") and _obs_point(skel, "neck")):
-        return None
-    return head_length_px(skel)
+def _head_px(skel: Skeleton, prior: dict) -> Optional[float]:
+    """Head length in px: crown (≈2×head radius above neck) to neck."""
+    head, neck = _obs_point(skel, "head"), _obs_point(skel, "neck")
+    if head and neck:
+        return (neck[1] - head[1]) * 2.0
+    return None
 
 
 def calibrate(skel: Skeleton, model: Optional[str] = None) -> dict:

@@ -4,6 +4,8 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

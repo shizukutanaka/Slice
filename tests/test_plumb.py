@@ -46,10 +46,11 @@ class TestPlumb(unittest.TestCase):
         # head/neck exist but no measurable scale (flat chain, no
         # pelvis/ankle): of_body_h must be disclosed as unmeasurable,
         # not raw px dressed as a fraction via `or 1.0`
-        from slice.skeleton import Joint, Skeleton
+        from slice.skeleton import Joint, OBSERVED, Skeleton
         skel = Skeleton(image_width=100, image_height=100)
         for i, name in enumerate(("head", "neck", "chest")):
-            skel.joints[name] = Joint(name, 50 + i * 4, 50, 0.9)
+            skel.joints[name] = Joint(name, 50 + i * 4, 50, 0.9,
+                                      OBSERVED)
         r = plumb.line(skel)
         self.assertIsNotNone(r)
         for v in r["offsets"].values():

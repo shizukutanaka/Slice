@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- skeleton: `body_span`を観測関節のみに限定（predictedの足/頭が
+  スパンをフレーム端まで伸ばし、reach半径・contact閾値の
+  正規化がフレームスケールに膨張していた欠陥を解消。
+  ground/dynamicsの重複実装を共通ヘルパへ委譲）
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

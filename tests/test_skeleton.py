@@ -83,6 +83,16 @@ class TestBodySpan(unittest.TestCase):
         skel.set(Joint("head", 50, 90, 0.5))
         self.assertEqual(body_span(skel), 0.0)
 
+    def test_predicted_foot_does_not_extend_span(self):
+        # predict.complete clamps foot_* at image_height-1 — letting it
+        # extend the span normalises by the frame edge, not the person.
+        skel = Skeleton(100, 300)
+        skel.set(Joint("head", 50, 10, 0.8, OBSERVED))
+        skel.set(Joint("ankle_l", 45, 250, 0.8, OBSERVED))
+        skel.set(Joint("foot_l", 45, 299, 0.2, "predicted",
+                       "foot below ankle"))
+        self.assertAlmostEqual(body_span(skel), 250 - 10)
+
 
 if __name__ == "__main__":
     unittest.main()

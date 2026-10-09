@@ -21,7 +21,7 @@ by a predicted joint is recorded but never counted as broken.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from .landmarks import BONES
 from .skeleton import OBSERVED, Skeleton

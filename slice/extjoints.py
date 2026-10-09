@@ -29,7 +29,7 @@ moves to the observation vocabulary — the joint name stays.
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from .skeleton import Joint, PREDICTED, Skeleton
 

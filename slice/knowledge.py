@@ -18,9 +18,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .landmarks import BONES, JOINTS
-from .skeleton import OBSERVED, OUT_OF_FRAME, PREDICTED, Skeleton
-
-_STATES = (OBSERVED, PREDICTED, OUT_OF_FRAME)
+from .skeleton import OBSERVED, PREDICTED, Skeleton
 
 SCHEMA = "slice.knowledge/v1"
 SCHEMA_V11 = "slice.knowledge/v1.1"
@@ -52,10 +50,6 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
             "observed": [n for n, j in joints.items() if j.state == OBSERVED],
             "predicted": [n for n, j in joints.items()
                           if j.state == PREDICTED],
-            # a third honesty state — measured once, then moved out
-            # of the frame by a crop/resize; neither evidence nor fill
-            "out_of_frame": [n for n, j in joints.items()
-                             if j.state == OUT_OF_FRAME],
         },
         # how much of the document rests on image evidence — the
         # honesty contract as numbers, not just colors
@@ -65,8 +59,6 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
                             if j.state == OBSERVED),
             "predicted": sum(1 for j in joints.values()
                              if j.state == PREDICTED),
-            "out_of_frame": sum(1 for j in joints.values()
-                                if j.state == OUT_OF_FRAME),
             "unfilled": len(JOINTS) - len(joints),
             "observed_ratio": round(
                 sum(1 for j in joints.values() if j.state == OBSERVED)
@@ -115,7 +107,7 @@ def validate(doc: dict) -> list:
         for f in ("x", "y", "confidence", "state"):
             if f not in j:
                 errors.append(f"joint {name} missing {f}")
-        if j.get("state") not in _STATES:
+        if j.get("state") not in (OBSERVED, PREDICTED):
             errors.append(f"joint {name} bad state {j.get('state')}")
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:

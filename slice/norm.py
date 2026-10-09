@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .skeleton import Joint, OUT_OF_FRAME, Skeleton
+from .skeleton import Joint, PREDICTED, Skeleton
 from .skeleton import Joint, PREDICTED, Skeleton
 
 
@@ -44,8 +44,6 @@ def _map(skel: Skeleton, fx, fy, frame_w: int, frame_h: int) -> Skeleton:
         j.x, j.y = fx(j.x), fy(j.y)
         if j.state == "observed" and not (
                 0 <= j.x < frame_w and 0 <= j.y < frame_h):
-            j.state = OUT_OF_FRAME
-            j.basis = (j.basis or "observed") + "; lost to transform"
             j.state = PREDICTED
             j.basis = (j.basis or "observed") \
                 + "; lost to transform (was observed)"

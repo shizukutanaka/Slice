@@ -31,7 +31,7 @@ from typing import Dict, List, Tuple
 
 from .knowledge import SCHEMA, validate
 from .landmarks import BONES, JOINTS
-from .skeleton import OBSERVED, OUT_OF_FRAME, PREDICTED
+from .skeleton import OBSERVED, PREDICTED
 
 
 def _chg(changes: List[Dict], code: str, detail: str) -> None:
@@ -72,8 +72,7 @@ def upgrade(doc: dict) -> Dict:
             j["confidence"] = 0.0
             _chg(changes, "joint_field_filled",
                  "%s.confidence → 0.0 (was absent)" % name)
-        if j.get("state") not in (OBSERVED, PREDICTED,
-                                  OUT_OF_FRAME):
+        if j.get("state") not in (OBSERVED, PREDICTED):
             j["state"] = PREDICTED
             j["basis"] = (j["basis"] + "; " if j.get("basis") else "") + \
                 "migrated: state unknown"
@@ -99,8 +98,6 @@ def upgrade(doc: dict) -> Dict:
                          if j.get("state") == OBSERVED],
             "predicted": [n for n, j in joints.items()
                           if j.get("state") == PREDICTED],
-            "out_of_frame": [n for n, j in joints.items()
-                             if j.get("state") == OUT_OF_FRAME],
         }
         _chg(changes, "prediction_recomputed",
              "observed/predicted lists rebuilt from joint states")
@@ -113,8 +110,6 @@ def upgrade(doc: dict) -> Dict:
             "observed": obs,
             "predicted": sum(1 for j in joints.values()
                              if j.get("state") == PREDICTED),
-            "out_of_frame": sum(1 for j in joints.values()
-                                if j.get("state") == OUT_OF_FRAME),
             "unfilled": len(JOINTS) - len(joints),
             "observed_ratio": round(obs / len(JOINTS), 3),
             "mean_observed_confidence": round(

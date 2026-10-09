@@ -12,11 +12,6 @@ from typing import Dict, List, Optional, Tuple
 
 OBSERVED = "observed"
 PREDICTED = "predicted"
-# a third honesty state: the joint was measured, then a coordinate
-# transform (crop/resize) moved it out of the frame — unmeasurable,
-# not evidence, not fill
-OUT_OF_FRAME = "out_of_frame"
-
 Point = Tuple[float, float]
 
 # The neck moved from the chin (basis "head height prior", ~half a
@@ -32,7 +27,6 @@ class Joint:
     x: float
     y: float
     confidence: float
-    state: str = OBSERVED  # OBSERVED | PREDICTED | OUT_OF_FRAME
     # OBSERVED | PREDICTED — default is PREDICTED: claiming evidence
     # must be deliberate. A Joint built without a state argues the
     # weaker claim, never silently manufactures an observation.

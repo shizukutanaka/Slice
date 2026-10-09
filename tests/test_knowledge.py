@@ -52,16 +52,18 @@ class TestKnowledge(unittest.TestCase):
         img = synthetic_person()
         sk = HeuristicPoseEstimator().estimate(img)
         # crop away half the figure — observed joints leave the frame
+        # and are demoted to predicted (the only legal vocabulary)
         c = norm.crop(sk, 0, 0, img.width // 2, img.height)
         doc = knowledge.build(c, {}, source_name="t",
                               engine={"name": "t", "version": "0"})
         self.assertEqual(knowledge.validate(doc), [])
-        n_oof = sum(1 for j in c.joints.values()
-                    if j.state == "out_of_frame")
-        self.assertGreater(n_oof, 0)
-        self.assertEqual(len(doc["prediction"]["out_of_frame"]),
-                         n_oof)
-        self.assertEqual(doc["coverage"]["out_of_frame"], n_oof)
+        n_pred = sum(1 for j in c.joints.values()
+                     if j.state == "predicted"
+                     and "lost to transform" in j.basis)
+        self.assertGreater(n_pred, 0)
+        self.assertEqual(len(doc["prediction"]["predicted"]),
+                         sum(1 for j in c.joints.values()
+                             if j.state == "predicted"))
 
     def test_keypoints_state_aligns_with_order(self):
         doc = analyze_synth()

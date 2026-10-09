@@ -5,6 +5,11 @@
 - scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
   首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
   計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

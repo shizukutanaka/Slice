@@ -29,7 +29,7 @@ from typing import Dict, Optional
 from .anatomy import DEFAULT_MODEL
 from .bitmap import Bitmap
 from .pose import HeuristicPoseEstimator
-from .skeleton import OBSERVED, Skeleton
+from .skeleton import OBSERVED
 
 DELTA = 10            # probe at threshold ±DELTA
 STABLE_PX = 3.0

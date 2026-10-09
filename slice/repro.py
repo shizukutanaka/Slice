@@ -30,7 +30,6 @@ from typing import Dict, Optional
 from .anatomy import DEFAULT_MODEL
 from .bitmap import Bitmap
 from .pose import HeuristicPoseEstimator
-from .skeleton import OBSERVED, PREDICTED
 
 TOLERANCE_PX = 2.0
 

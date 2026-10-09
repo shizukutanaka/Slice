@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- ratio: `body_height_px` 正規化子を観測関節スパンに限定。
+  predictedの頭/足（プライア配置）が分母を捏造し全比率を
+  推論でスケーリングしていた欠陥を解消 — predict #345・
+  skeleton.body_span #346 と同型の残存。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

@@ -24,7 +24,6 @@ import math
 import os
 import sys
 
-from . import __version__, bitmap, export, knowledge, pipeline, render, rest
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -33,6 +32,7 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import __version__, bitmap, export, knowledge, pipeline, render, rest
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -728,13 +728,13 @@ def main(argv=None) -> int:
     a = sub.add_parser("analyze", help="analyze one image")
     a.add_argument("image")
     a.add_argument("-o", "--output")
-    # default=None keeps auto-selection; forcing marks body_model 'forced'
-    a.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     a.add_argument("--model", choices=sorted(BODY_MODELS), default=None,
                    help="body model to force (default: estimator's own pick)")
     a.add_argument("--robust", action="store_true",
                    help="robust profile: adaptive threshold, shadow "
                         "rejection, mask cleanup (for real photos)")
+    # default=None keeps auto-selection; forcing marks body_model 'forced'
+    a.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.add_argument("--multi", action="store_true",

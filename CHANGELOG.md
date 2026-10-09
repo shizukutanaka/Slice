@@ -6,6 +6,8 @@
   体幹関節未観測のオフセンター人物で、画像中央に鏡像を置き
   反対側の体を空想位置に出していた欠陥を修正（計測された
   centroidを軸として使用）
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

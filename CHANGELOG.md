@@ -4,6 +4,11 @@
 
 - `slice trust <image>` — trust層のCLI接続。evid（証拠位置）＋stability（摂動感度）を実行し関節ごとの high/medium/low グレード＋格下げ要因を報告。calib正解データ非依存で動作。
 
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

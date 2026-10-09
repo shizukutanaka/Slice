@@ -32,6 +32,10 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               classify, describe, selfcheck)
+from . import (__version__, bitmap, classify, describe, knowledge, limbcov,
+               pipeline, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -451,26 +455,6 @@ def _cmd_describe(a) -> int:
     return 0
 
 
-def _cmd_describe(a) -> int:
-    """Describe one image's figure in a sentence."""
-    with open(a.image, "rb") as f:
-        raw = f.read()
-    try:
-        bmp = bitmap.decode(raw)
-    except bitmap.UnsupportedFormat as e:
-        print(f"unsupported image: {e}", file=sys.stderr)
-        return 2
-    est = (pipeline.ROBUST_ESTIMATOR if a.robust
-           else pipeline.ESTIMATOR)
-    skel = est.estimate(bmp, a.model or "adult")
-    if not skel.joints:
-        print("no figure data")
-        return 1
-    pose = (classify.analyze(skel) or {}).get("pose")
-    print(describe.describe(skel, pose))
-    return 0
-
-
 def _compare_doc(path: str, est, model: str):
     """image or Knowledge JSON -> doc dict (skeleton only used)."""
     if path.endswith(".json") or path.startswith("k_"):
@@ -717,6 +701,26 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_describe(a) -> int:
+    """Describe one image's figure in a sentence."""
+    with open(a.image, "rb") as f:
+        raw = f.read()
+    try:
+        bmp = bitmap.decode(raw)
+    except bitmap.UnsupportedFormat as e:
+        print(f"unsupported image: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no figure data")
+        return 1
+    pose = (classify.analyze(skel) or {}).get("pose")
+    print(describe.describe(skel, pose))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -846,14 +850,6 @@ def main(argv=None) -> int:
                    help="robust estimation profile")
     d.set_defaults(fn=_cmd_describe)
 
-    d = sub.add_parser("describe",
-                       help="describe one image's figure in a sentence")
-    d.add_argument("image")
-    d.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
-    d.add_argument("--robust", action="store_true",
-                   help="robust estimation profile")
-    d.set_defaults(fn=_cmd_describe)
-
     cp = sub.add_parser(
         "compare",
         help="pose distance between two images/docs")
@@ -929,6 +925,14 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    d = sub.add_parser("describe",
+                       help="describe one image's figure in a sentence")
+    d.add_argument("image")
+    d.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    d.add_argument("--robust", action="store_true",
+                   help="robust estimation profile")
+    d.set_defaults(fn=_cmd_describe)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

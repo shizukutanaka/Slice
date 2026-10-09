@@ -10,7 +10,7 @@ each also gets checked against the mask.
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict
 
 from .landmarks import JOINTS
 from .skeleton import Skeleton

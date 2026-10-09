@@ -164,20 +164,26 @@ class TestBundle(unittest.TestCase):
     def test_pack_skips_unsafe_member_id(self):
         import zipfile
         with tempfile.TemporaryDirectory() as tmp:
-            store = KnowledgeStore(tmp)
-            store.save(_doc())
-            poison = _doc()
-            store.save(poison)
             # a valid-schema doc whose id would escape docs/ on
             # extraction must be refused, not shipped (reached via
-            # a stale index entry)
-            doc = _doc()
-            doc["id"] = "../evil"
-            with open(os.path.join(tmp, poison["id"] + ".json"),
-                      "w") as f:
-                json.dump(doc, f)
+            # a stale index entry — knowledge.list() now filters
+            # id-mismatched docs, so feed pack a store stub that
+            # still yields one)
+            good = _doc()
+            evil = _doc()
+            evil["id"] = "../evil"
+
+            class _StaleStore:
+                def list(self):
+                    return [{"id": good["id"]}, {"id": "k_stale000000"}]
+
+                def get(self, kid):
+                    if kid == good["id"]:
+                        return good
+                    return evil
+
             zpath = os.path.join(tmp, "out.zip")
-            m = pack(store, zpath)
+            m = pack(_StaleStore(), zpath)
             self.assertEqual(m["count"], 1)
             self.assertEqual(m["skipped"], 1)
             with zipfile.ZipFile(zpath) as z:

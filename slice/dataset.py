@@ -86,13 +86,13 @@ def summary_rows(docs: Iterable[dict]) -> List[dict]:
         joints = _joint_map(d)
         n_obs = sum(1 for j in joints.values()
                     if j.get("state") == "observed")
-        confs = [j.get("confidence", 0.0) for j in joints.values()
-                 if isinstance(j.get("confidence", 0.0), (int, float))]
-        frame = _block(d, "skeleton", "frame")
         confs = [j.get("confidence", 0.0) for j in joints.values()]
         obs_confs = [j.get("confidence", 0.0) for j in joints.values()
                      if j.get("state") == "observed"]
         frame = (d.get("skeleton") or {}).get("frame") or {}
+        confs = [j.get("confidence", 0.0) for j in joints.values()
+                 if isinstance(j.get("confidence", 0.0), (int, float))]
+        frame = _block(d, "skeleton", "frame")
         rows.append({
             "id": d.get("id", "") if isinstance(d, dict) else "",
             "created_at": d.get("created_at", "")

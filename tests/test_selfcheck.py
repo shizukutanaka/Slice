@@ -106,6 +106,22 @@ class TestSelfCheck(unittest.TestCase):
         self.assertGreaterEqual(head["runs"], 3)
 
 
+    def test_consistency_reasons_not_double_counted(self):
+        # selfcheck appends consistency codes itself AND gate.check
+        # re-reports the same audit's codes — each finding must be
+        # counted once in reasons/n_reasons
+        from unittest.mock import patch
+        from slice import consistency
+        raw = bitmap.encode_png(synthetic_person())
+        with patch.object(consistency, "audit",
+                          return_value=["shoulder_l_elbow_l_too_long"]):
+            r = selfcheck.run(raw)
+        self.assertEqual(
+            r["reasons"].count("consistency:shoulder_l_elbow_l_too_long"),
+            1, r["reasons"])
+        self.assertEqual(r["n_reasons"], len(r["reasons"]))
+
+
 class TestAuditRest(unittest.TestCase):
     def test_post_audit_endpoint(self):
         rest.Handler.store = knowledge.KnowledgeStore(

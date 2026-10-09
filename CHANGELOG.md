@@ -4,6 +4,11 @@
 
 - `slice smooth <dir> [-o dir]` — smooth層のCLI接続。フレーム列の関節軌跡を移動平均し、関節別ジッタ改善量をJSON報告。`-o`で平滑化済み骨格JSONを書き出し。欠損フレームの位置を捏造しない誠実設計を継承。
 
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

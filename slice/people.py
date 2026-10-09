@@ -13,7 +13,7 @@ output says "candidate components", never "people detected".
 from __future__ import annotations
 
 from collections import deque
-from typing import List, Optional
+from typing import List
 
 from .bitmap import Bitmap
 from .pose import HeuristicPoseEstimator

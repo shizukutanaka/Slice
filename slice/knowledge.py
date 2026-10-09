@@ -112,6 +112,29 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+    pred = doc.get("prediction")
+    if isinstance(pred, dict):
+        # the observed/predicted lists are the document's evidence
+        # claim — they must not contradict the joints' own states,
+        # or fill could be listed as sighted evidence
+        for n in pred.get("observed") or []:
+            j = joints.get(n)
+            if not isinstance(j, dict):
+                errors.append(
+                    f"prediction.observed {n} not in skeleton.joints")
+            elif j.get("state") != OBSERVED:
+                errors.append(
+                    f"prediction.observed {n} is {j.get('state')}"
+                    " in skeleton.joints")
+        for n in pred.get("predicted") or []:
+            j = joints.get(n)
+            if not isinstance(j, dict):
+                errors.append(
+                    f"prediction.predicted {n} not in skeleton.joints")
+            elif j.get("state") != PREDICTED:
+                errors.append(
+                    f"prediction.predicted {n} is {j.get('state')}"
+                    " in skeleton.joints")
     skel = doc.get("skeleton") or {}
     frame = skel.get("frame")
     if isinstance(frame, dict):

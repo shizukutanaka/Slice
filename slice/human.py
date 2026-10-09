@@ -71,9 +71,16 @@ def assess(comp: List[bytearray]) -> Dict:
     aspect = h / w
     a_sig = max(0.0, min(1.0, (aspect - 0.4) / 0.8))
 
-    # fill: area/bbox — people are <0.75 full (gaps at limbs/head)
+    # fill: area/bbox — people are lumpy, not dense (<0.75) and not
+    # empty (a 5% scatter of pixels is dust, not a body): full credit
+    # inside the plausible band, fading on both sides
     fill = area / (w * h)
-    f_sig = 1.0 if fill <= 0.75 else max(0.0, 1.0 - (fill - 0.75) / 0.2)
+    if fill < 0.15:
+        f_sig = max(0.0, fill / 0.15)
+    elif fill <= 0.75:
+        f_sig = 1.0
+    else:
+        f_sig = max(0.0, 1.0 - (fill - 0.75) / 0.2)
 
     # head_mass: share of area in top fifth, within centre 40% of
     # its own span at that height

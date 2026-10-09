@@ -18,7 +18,7 @@ average. Absent layers are skipped, never assumed.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 VERTICAL_MIN, VERTICAL_MAX = 60.0, 120.0  # axis angle = vertical
 

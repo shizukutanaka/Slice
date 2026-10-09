@@ -12,7 +12,7 @@ background colour.
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 from .bitmap import Bitmap, encode_png
 from .render import overlay

@@ -6,6 +6,8 @@
   退化支持基底で、任意の1px pelvis偏移が`com_outside_feet`を発火し
   detailが生pxを「足幅分率」と装っていた欠陥を修正（span<=0は不発火、
   leg軸の一致ケースも明示ガード）
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

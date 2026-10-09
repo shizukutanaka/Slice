@@ -5,6 +5,11 @@
 - `slice.grid` 新設 — 占有グリッド記述子（bboxを8×8セル分割、
   各セルの前景密度）。radial（極座標）と対になる直行グリッド
   版の局所形状ベクトル、match=L1距離
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

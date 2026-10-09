@@ -121,18 +121,17 @@ def _draw(out: Bitmap, skel: Skeleton,
         both_obs = (skel.get(a).state == OBSERVED
                     and skel.get(b).state == OBSERVED)
         color = strong if both_obs else faint
-        draw = _line if both_obs else _line_dashed
-        draw(out, pa[0], pa[1], pb[0], pb[1], color)
-        ja, jb = skel.get(a), skel.get(b)
-        color = (BLUE if ja.state == OBSERVED
-                 and jb.state == OBSERVED else ORANGE)
-        # Low-confidence links get dashed — the picture carries the
-        # same uncertainty the JSON records.
-        _line(out, pa[0], pa[1], pb[0], pb[1], color,
-              dash=min(ja.confidence, jb.confidence) < 0.55)
-    base = max(2, bmp.width // 160)
+        if both_obs:
+            ja, jb = skel.get(a), skel.get(b)
+            # Low-confidence links get dashed — the picture carries
+            # the same uncertainty the JSON records.
+            _line(out, pa[0], pa[1], pb[0], pb[1], color,
+                  dash=min(ja.confidence, jb.confidence) < 0.55)
+        else:
+            _line_dashed(out, pa[0], pa[1], pb[0], pb[1], color)
+    base = max(2, out.width // 160)
     for j in skel.joints.values():
-        r = max(2, out.width // 160)
+        r = max(2, round(base * (0.5 + j.confidence)))
         if j.state == OBSERVED:
             _disc(out, j.x * sx, j.y * sy, r, strong)
             _disc(out, j.x * sx, j.y * sy, 1, WHITE)
@@ -176,10 +175,6 @@ def overlay_multi(bmp: Bitmap, skels) -> Bitmap:
     out = Bitmap(bmp.width, bmp.height, bytearray(bmp.data))
     for i, skel in enumerate(skels):
         _draw(out, skel, PEOPLE_TINTS[i % len(PEOPLE_TINTS)])
-        color = BLUE if j.state == OBSERVED else ORANGE
-        r = max(2, round(base * (0.5 + j.confidence)))
-        _disc(out, j.x * sx, j.y * sy, r, color)
-        _disc(out, j.x * sx, j.y * sy, 1, WHITE)
     return out
 
 

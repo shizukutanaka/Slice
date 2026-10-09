@@ -42,6 +42,22 @@ class TestPlumb(unittest.TestCase):
             del self.skel.joints[n]
         self.assertIsNone(plumb.line(self.skel))
 
+    def test_degenerate_span_of_body_h_none(self):
+        # head/neck exist but no measurable scale (flat chain, no
+        # pelvis/ankle): of_body_h must be disclosed as unmeasurable,
+        # not raw px dressed as a fraction via `or 1.0`
+        from slice.skeleton import Joint, OBSERVED, Skeleton
+        skel = Skeleton(image_width=100, image_height=100)
+        for i, name in enumerate(("head", "neck", "chest")):
+            skel.joints[name] = Joint(name, 50 + i * 4, 50, 0.9,
+                                      OBSERVED)
+        r = plumb.line(skel)
+        self.assertIsNotNone(r)
+        for v in r["offsets"].values():
+            self.assertIsNone(v["of_body_h"])
+        out = plumb.assess(skel)
+        self.assertIsNone(out["stack_score"])
+
     def test_predicted_chest_no_forward_head(self):
         # a chord-placed chest can't anchor the torso line —
         # forward_head must abstain, not measure a prior

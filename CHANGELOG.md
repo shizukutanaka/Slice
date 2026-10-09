@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
+  時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
+  混入していた欠陥を修正（同ファイルの`forward_head`が宣言する
+  「scaleなし→unknown」ルールと整合。測定不能は`None`開示）
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

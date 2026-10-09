@@ -11,26 +11,15 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from .skeleton import Skeleton
-
-
-def _obs(skel: Skeleton, name: str):
-    """Observed-only lookup: a predicted joint is prior fill — a
-    prior-placed ankle/knee would fabricate the pelvis-offset or
-    unloaded-leg cue it feeds, so it is excluded like a missing
-    joint."""
-    j = skel.joints.get(name)
-    if j is None or j.state != "observed":
-        return None
-    return (j.x, j.y)
+from .skeleton import Skeleton, observed_point
 
 
 def cues(skel: Skeleton) -> List[dict]:
     """[{cue, side, strength 0-1}] — evidence, honest direction."""
     out: List[dict] = []
-    pelvis = _obs(skel, "pelvis")
-    al = _obs(skel, "ankle_l")
-    ar = _obs(skel, "ankle_r")
+    pelvis = observed_point(skel, "pelvis")
+    al = observed_point(skel, "ankle_l")
+    ar = observed_point(skel, "ankle_r")
     if pelvis and al and ar:
         mid = (al[0] + ar[0]) / 2.0
         span = abs(ar[0] - al[0]) or 1.0
@@ -45,9 +34,9 @@ def cues(skel: Skeleton) -> List[dict]:
                         "side": "even", "strength": 0.5})
 
     for side in ("l", "r"):
-        hip = _obs(skel, f"hip_{side}")
-        knee = _obs(skel, f"knee_{side}")
-        ankle = _obs(skel, f"ankle_{side}")
+        hip = observed_point(skel, f"hip_{side}")
+        knee = observed_point(skel, f"knee_{side}")
+        ankle = observed_point(skel, f"ankle_{side}")
         if not (hip and knee and ankle):
             continue
         # flexed knee unloads that leg → other side dominant

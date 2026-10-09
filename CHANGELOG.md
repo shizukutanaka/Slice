@@ -4,6 +4,8 @@
 
 - `slice lift <image> [-o out.json]` — lift層のCLI接続。向き手がかりによる擬似3D座標（側面時のみz推定、正面は正直な平坦0）＋depth_spread。BVH/glTF前段の3DブリッジをCLI化。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

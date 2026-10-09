@@ -4,6 +4,11 @@
 
 - smooth: 平滑化骨格が`centroid`を保持（マスク計測点の沈黙消失を解消 — pelvis未観測時にtrackのアンカーが失われフレームがempty化していた）。また異解像度フレーム混在時、近傍の生pxを中心フレーム空間に再スケールしてから平均（解像度差を関節位置に混入していた欠陥、motion #314/diff #315と同型）。`jitter`も異フレーム間で前フレーム空間に再スケール（解像度変更を「動き」と誤認しない）。
 
+- REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
+  全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
+  一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは
+  CIゲート可）
+
 - 未使用import一掃＋デッドヘルパ削除 — 31モジュールで参照のなくなったtyping/シンボルimport（Optional/Tuple/Dict/List/Joint/Skeleton/OBSERVED/PREDICTED等36件）と、一度も呼ばれない `balance._dist_to_segment` を除去。リント相当の静的棚卸しで死荷重を削減、挙動変更なし。
 
 - 重複ヘルパの統合 — 6モジュール（balance/dominance/dynamics/gait/plumb/reach）に同一ロジックで分散していたobserved限定ルックアップ `_obs` を `skeleton.observed_point` に一本化（`observed_body_span` と同じ置き場）。挙動変更なし、-52行。

@@ -39,16 +39,35 @@ def _joint_map(doc):
     return good, sorted(bad)
 
 
+def _frame_dims(doc):
+    """(w, h) a doc's joints were measured in, or (None, None)."""
+    cur = doc.get("skeleton") if isinstance(doc, dict) else None
+    fr = cur.get("frame") if isinstance(cur, dict) else None
+    if not isinstance(fr, dict):
+        return None, None
+    w, h = fr.get("width"), fr.get("height")
+    return (w if isinstance(w, (int, float)) and w else None,
+            h if isinstance(h, (int, float)) and h else None)
+
+
 def diff(a: dict, b: dict) -> dict:
-    """Field-level diff of two Knowledge documents."""
+    """Field-level diff of two Knowledge documents.
+
+    When the two docs declare different frame sizes, b's joint
+    coordinates are first rescaled into a's frame — raw px deltas
+    across resolutions would misreport scale difference as motion."""
     ja, bad_a = _joint_map(a)
     jb, bad_b = _joint_map(b)
+    aw, ah = _frame_dims(a)
+    bw, bh = _frame_dims(b)
+    scaled = all((aw, ah, bw, bh)) and (aw, ah) != (bw, bh)
+    sx, sy = (aw / bw, ah / bh) if scaled else (1.0, 1.0)
     added = sorted(set(jb) - set(ja))
     removed = sorted(set(ja) - set(jb))
     moved, state_changed, conf_delta = [], [], {}
     for name in sorted(set(ja) & set(jb)):
         x0, y0 = ja[name].get("x", 0), ja[name].get("y", 0)
-        x1, y1 = jb[name].get("x", 0), jb[name].get("y", 0)
+        x1, y1 = jb[name].get("x", 0) * sx, jb[name].get("y", 0) * sy
         dist = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
         if dist > _MOVE_EPS:
             moved.append({
@@ -84,6 +103,8 @@ def diff(a: dict, b: dict) -> dict:
     pb = _block(b, "pose").get("label")
 
     out = {
+        "frame_scaled": scaled,
+        "frame_b": (bw, bh) if scaled else None,
         "joints": {
             "added": added,
             "removed": removed,

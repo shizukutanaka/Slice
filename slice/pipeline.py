@@ -74,7 +74,7 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
     bmp = bitmap.decode(raw)
     estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
     skel = estimator.estimate(bmp, model or "adult")
-    if model:
+    if model and model in BODY_MODELS:
         # A user-selected model pins every prior AND the reported model —
         # mark it 'forced' so the JSON never reads it as an estimate.
         skel.body_model = {"name": model,

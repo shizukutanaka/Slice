@@ -10,9 +10,9 @@ two → line segment; missing feet → the honest answer is
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_point
 
 # segment name -> (mass fraction, joint(s) locating the segment's
 # approximate center). Winter 2009 proportions, both sides pooled.
@@ -30,23 +30,12 @@ def _centroid(points: List[Tuple[float, float]]) -> Tuple[float, float]:
     return (sum(p[0] for p in points) / n, sum(p[1] for p in points) / n)
 
 
-def _obs(skel: Skeleton, name: str):
-    """Observed-only lookup: a predicted joint is prior fill — a
-    "foot below ankle" foot or straight-limb prior would fabricate
-    the support polygon and the COM, so it is excluded like a
-    missing joint."""
-    j = skel.joints.get(name)
-    if j is None or j.state != "observed":
-        return None
-    return (j.x, j.y)
-
-
 def center_of_mass(skel: Skeleton) -> Optional[dict]:
     """{x, y, mass_covered, state} — None if fewer than 30% of the
     mass can be located. Estimated, not measured."""
     mx = my = covered = 0.0
     for _, frac, names in _SEGMENTS:
-        pts = [_obs(skel, n) for n in names]
+        pts = [observed_point(skel, n) for n in names]
         pts = [p for p in pts if p]
         if not pts:
             continue
@@ -60,23 +49,13 @@ def center_of_mass(skel: Skeleton) -> Optional[dict]:
             "mass_covered": round(covered, 2), "state": "estimated"}
 
 
-def _dist_to_segment(p: Tuple[float, float],
-                     a: Tuple[float, float],
-                     b: Tuple[float, float]) -> float:
-    ax, ay = b[0] - a[0], b[1] - a[1]
-    d2 = ax * ax + ay * ay
-    t = 0.0 if d2 < 1e-9 else max(
-        0.0, min(1.0, ((p[0] - a[0]) * ax + (p[1] - a[1]) * ay) / d2))
-    cx, cy = a[0] + t * ax, a[1] + t * ay
-    return ((p[0] - cx) ** 2 + (p[1] - cy) ** 2) ** 0.5
-
 
 def assess(skel: Skeleton) -> dict:
     """{com, support, projected, state} — projected inside the
     support region = stable. Margins are horizontal distance to the
     support boundary."""
     com = center_of_mass(skel)
-    feet = [_obs(skel, "foot_l"), _obs(skel, "foot_r")]
+    feet = [observed_point(skel, "foot_l"), observed_point(skel, "foot_r")]
     feet = [f for f in feet if f]
     out = {"com": com, "support_joints": len(feet),
            "state": "estimated"}
@@ -109,7 +88,7 @@ def assess(skel: Skeleton) -> dict:
 
 def com_span(skel: Skeleton) -> float:
     """Typical tolerable offset: half the hip width when known."""
-    hl, hr = _obs(skel, "hip_l"), _obs(skel, "hip_r")
+    hl, hr = observed_point(skel, "hip_l"), observed_point(skel, "hip_r")
     if hl and hr:
         return abs(hr[0] - hl[0]) / 2.0
     return 20.0

@@ -49,9 +49,11 @@ class TestScale(unittest.TestCase):
         # head→neck distance is half a head, so it is doubled — the
         # same px_per_cm the old formula produced, not a halved one.
         leg = Skeleton(100, 300)
-        leg.set(Joint("head", 50, 30, .9, basis="top blob centroid"))
-        leg.set(Joint("neck", 50, 50, .7, basis="head height prior"))
-        leg.set(Joint("foot_l", 40, 230, .9))
+        leg.set(Joint("head", 50, 30, .9, "observed",
+                      basis="top blob centroid"))
+        leg.set(Joint("neck", 50, 50, .7, "observed",
+                      basis="head height prior"))
+        leg.set(Joint("foot_l", 40, 230, .9, "observed"))
         self.assertAlmostEqual(
             scale.calibrate(leg)["px_per_cm"], 40 / 23, places=5)
         self.assertAlmostEqual(

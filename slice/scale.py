@@ -14,7 +14,7 @@ import math
 from typing import Dict, Optional
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL
-from .skeleton import Skeleton, head_length_px
+from .skeleton import NECK_CLAVICLE_BASIS, Skeleton, head_length_px
 
 # Mean adult head length (vertex→chin), anthropometric standard.
 HEAD_CM = {"adult": 23.0, "child": 19.0, "deformed": 20.0}
@@ -30,9 +30,6 @@ _BONES_CM = [
 ]
 
 
-def _head_px(skel: Skeleton) -> Optional[float]:
-    """Head length in px — convention-aware (clavicle vs chin neck)."""
-    return head_length_px(skel)
 def _obs_point(skel: Skeleton, name: str):
     """Observed-only lookup: a predicted joint is prior fill — a
     scale factor or cm length derived from it would measure the
@@ -44,11 +41,15 @@ def _obs_point(skel: Skeleton, name: str):
 
 
 def _head_px(skel: Skeleton) -> Optional[float]:
-    """Head length in px: crown (≈2×head radius above neck) to neck."""
+    """Head length in px — convention-aware (clavicle vs chin neck),
+    observed joints only: a predicted head/neck is prior fill, and
+    measuring it would measure the prior, not the person."""
     head, neck = _obs_point(skel, "head"), _obs_point(skel, "neck")
-    if head and neck:
-        return (neck[1] - head[1]) * 2.0
-    return None
+    if not head or not neck or neck[1] <= head[1]:
+        return None
+    neck_j = skel.joints.get("neck")
+    mult = 1.0 if neck_j.basis == NECK_CLAVICLE_BASIS else 2.0
+    return (neck[1] - head[1]) * mult
 
 
 def calibrate(skel: Skeleton, model: Optional[str] = None) -> dict:

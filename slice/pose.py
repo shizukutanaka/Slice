@@ -44,30 +44,6 @@ def _row_runs(mask: List[bytearray], y: int, w: int) -> List[Tuple[int, int]]:
     return runs
 
 
-def _rotations90(mask: List[bytearray], w: int, h: int):
-    """Yield (deg, rotated mask) for ±90° — a lying figure becomes
-    upright in exactly one of them."""
-    cw = [bytearray(h) for _ in range(w)]
-    ccw = [bytearray(h) for _ in range(w)]
-    for y in range(h):
-        row = mask[y]
-        for x in range(w):
-            if row[x]:
-                cw[x][h - 1 - y] = 1
-                ccw[w - 1 - x][y] = 1
-    yield 90, cw
-    yield -90, ccw
-
-
-def _unrotate90(pt: Tuple[float, float], deg: int,
-                w: int, h: int) -> Tuple[float, float]:
-    """Map a joint found on a rotated mask back to image coords."""
-    x, y = pt
-    if deg == 90:
-        return y, h - 1 - x
-    return w - 1 - y, x
-
-
 def _reaches_bottom(mask: List[bytearray], y: int,
                     run: Tuple[int, int], bottom: int, w: int) -> bool:
     """True when the run's x-band stays connected down to the bottom row.
@@ -128,6 +104,30 @@ def _head_band_width(mask: List[bytearray], w: int, h: int) -> int:
         for r in _row_runs(mask, y, w):
             best = max(best, r[1] - r[0] + 1)
     return best
+
+
+def _rotations90(mask: List[bytearray], w: int, h: int):
+    """Yield (deg, rotated mask) for ±90° — a lying figure becomes
+    upright in exactly one of them."""
+    cw = [bytearray(h) for _ in range(w)]
+    ccw = [bytearray(h) for _ in range(w)]
+    for y in range(h):
+        row = mask[y]
+        for x in range(w):
+            if row[x]:
+                cw[x][h - 1 - y] = 1
+                ccw[w - 1 - x][y] = 1
+    yield 90, cw
+    yield -90, ccw
+
+
+def _unrotate90(pt: Tuple[float, float], deg: int,
+                w: int, h: int) -> Tuple[float, float]:
+    """Map a joint found on a rotated mask back to image coords."""
+    x, y = pt
+    if deg == 90:
+        return y, h - 1 - x
+    return w - 1 - y, x
 
 
 class HeuristicPoseEstimator(PoseEstimator):
@@ -391,35 +391,6 @@ class HeuristicPoseEstimator(PoseEstimator):
         w, h = small.width, small.height
         mask = self._mask(small)
         comp, size = self._largest_component(mask, w, h)
-        sk = self._estimate_component(small, comp, size, w, h, model)
-        # Landscape silhouette: the upright scan mismeasures a lying
-        # figure. Retry on both 90° rotations and keep whichever yields
-        # the more consistent skeleton, un-rotated back to image space.
-        bbox = self._bbox(self._profile(comp, w, h), w, h)
-        if not sk.joints or not bbox:
-            return sk
-        if bbox[2] - bbox[0] + 1 <= bbox[3] - bbox[1] + 1:
-            return sk
-        from . import consistency
-        best_score = len(consistency.audit(sk, model))
-        best, best_deg = sk, 0
-        for deg, comp_r in _rotations90(comp, w, h):
-            cand = self._estimate_component(small, comp_r, size,
-                                            h, w, model)
-            if not cand.joints:
-                continue
-            score = len(consistency.audit(cand, model))
-            if score < best_score:
-                best_score, best, best_deg = score, cand, deg
-        if not best_deg:
-            return sk
-        for j in best.joints.values():
-            j.x, j.y = _unrotate90((j.x, j.y), best_deg, w, h)
-            j.basis = (j.basis + "; " if j.basis else "") \
-                + f"estimated on {best_deg}deg-rotated mask"
-        best.centroid = _unrotate90(best.centroid, best_deg, w, h)
-        best.image_width, best.image_height = w, h
-        return best
         return self._estimate_oriented(small, comp, size, w, h, model)
 
     def _estimate_oriented(self, small, comp, size, w, h,
@@ -484,6 +455,35 @@ class HeuristicPoseEstimator(PoseEstimator):
                 ori["facing"] = "left"
             ori["head_shift"] = -ori.get("head_shift", 0.0)
         best.orientation = ori
+        best.image_width, best.image_height = w, h
+        return best
+        sk = self._estimate_component(small, comp, size, w, h, model)
+        # Landscape silhouette: the upright scan mismeasures a lying
+        # figure. Retry on both 90° rotations and keep whichever yields
+        # the more consistent skeleton, un-rotated back to image space.
+        bbox = self._bbox(self._profile(comp, w, h), w, h)
+        if not sk.joints or not bbox:
+            return sk
+        if bbox[2] - bbox[0] + 1 <= bbox[3] - bbox[1] + 1:
+            return sk
+        from . import consistency
+        best_score = len(consistency.audit(sk, model))
+        best, best_deg = sk, 0
+        for deg, comp_r in _rotations90(comp, w, h):
+            cand = self._estimate_component(small, comp_r, size,
+                                            h, w, model)
+            if not cand.joints:
+                continue
+            score = len(consistency.audit(cand, model))
+            if score < best_score:
+                best_score, best, best_deg = score, cand, deg
+        if not best_deg:
+            return sk
+        for j in best.joints.values():
+            j.x, j.y = _unrotate90((j.x, j.y), best_deg, w, h)
+            j.basis = (j.basis + "; " if j.basis else "") \
+                + f"estimated on {best_deg}deg-rotated mask"
+        best.centroid = _unrotate90(best.centroid, best_deg, w, h)
         best.image_width, best.image_height = w, h
         return best
 

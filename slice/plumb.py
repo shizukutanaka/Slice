@@ -10,7 +10,7 @@ measure where pose classification only says "standing".
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from .skeleton import Skeleton, observed_point
 

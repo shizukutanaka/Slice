@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import threading
+import collections
 import unittest
 from http.server import ThreadingHTTPServer
 
@@ -65,13 +66,13 @@ class TestOverlayPersistence(unittest.TestCase):
         out = self._analyze_save()
         url = out["overlay_url"]
         # a restart loses the in-memory dict; the file must still serve
-        rest.Handler.overlays = {}
+        rest.Handler.overlays = collections.OrderedDict()
         status, body, _ = self._get(url)
         self.assertEqual(status, 200)
         self.assertTrue(body.startswith(b"\x89PNG"))
 
     def test_cache_is_bounded(self):
-        rest.Handler.overlays = {}
+        rest.Handler.overlays = collections.OrderedDict()
         inst = rest.Handler.__new__(rest.Handler)
         for i in range(rest.Handler.OVERLAY_CACHE_MAX + 5):
             inst._cache_overlay("k_%012x" % i, b"x")

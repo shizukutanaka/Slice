@@ -145,7 +145,6 @@ class HeuristicPoseEstimator(PoseEstimator):
                 n += 1
                 transparent += a < 128
                 key = (r // 32, g // 32, b // 32)
-                fallback[key] = fallback.get(key, 0) + 1
                 if a >= 128:
                     counts[key] = counts.get(key, 0) + 1
         for y in range(0, h, 4):
@@ -154,7 +153,8 @@ class HeuristicPoseEstimator(PoseEstimator):
                 n += 1
                 transparent += a < 128
                 key = (r // 32, g // 32, b // 32)
-                counts[key] = counts.get(key, 0) + 1
+                if a >= 128:
+                    counts[key] = counts.get(key, 0) + 1
         if n and transparent / n > 0.5:
             return None
         q = max(counts, key=counts.get)
@@ -201,21 +201,43 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     def _mask(self, bmp: Bitmap) -> List[bytearray]:
         bg = self._background(bmp)
-        thr = self.bg_threshold
-        w, h = bmp.width, bmp.height
-        n = len(bands)
-        mask = [bytearray(w) for _ in range(h)]
-        d = bmp.data
         if bg is None:
             # Transparent canvas: every opaque pixel is foreground.
+            w, h = bmp.width, bmp.height
+            mask = [bytearray(w) for _ in range(h)]
+            d = bmp.data
             for y in range(h):
                 row = mask[y]
                 base = y * w * 4
                 for x in range(w):
                     if d[base + x * 4 + 3] >= 128:
                         row[x] = 1
-            return mask
-        br, bgr, bb = bg
+        elif self.adaptive:
+            mask = self._mask_adaptive(bmp, bg)
+        else:
+            thr = self.bg_threshold + self.threshold_offset
+            self.last_threshold = (thr, "fixed")
+            mask = self._mask_fixed(bmp, self._background_bands(bmp), thr)
+        if self.reject_shadow:
+            from . import shadow
+            shadow_m = shadow.shadow_pixels(bmp, bg, mask)
+            mask, self.last_shadow_removed = shadow.remove(
+                mask, shadow_m)
+        if self.clean:
+            from . import morph
+            mask = morph.clean(mask)
+        return mask
+
+    @staticmethod
+    def _mask_fixed(bmp: Bitmap, bg_rgb,
+                    thr: float) -> List[bytearray]:
+        """Per-channel threshold mask. `bg_rgb` is one (r, g, b) or a
+        list of per-band estimates from `_background_bands`."""
+        bands = bg_rgb if isinstance(bg_rgb, list) else [bg_rgb]
+        w, h = bmp.width, bmp.height
+        n = len(bands)
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
         for y in range(h):
             br, bg, bb = bands[min(n - 1, y * n // h)]
             row = mask[y]
@@ -224,38 +246,82 @@ class HeuristicPoseEstimator(PoseEstimator):
                 i = base + x * 4
                 if d[i + 3] < 128:
                     continue
-                if (abs(d[i] - br) > thr or abs(d[i + 1] - bgr) > thr
+                if (abs(d[i] - br) > thr or abs(d[i + 1] - bg) > thr
                         or abs(d[i + 2] - bb) > thr):
                     row[x] = 1
         return mask
 
-    def _largest_component(self, mask: List[bytearray], w: int, h: int
-                           ) -> Tuple[List[bytearray], int]:
-        # Track pixels of the best component directly — a label-per-
-        # component array would overflow with >255 foreground islands.
-        visited = [bytearray(w) for _ in range(h)]
-        best: List[Tuple[int, int]] = []
+    def _mask_adaptive(self, bmp: Bitmap,
+                       bg_rgb) -> List[bytearray]:
+        """Otsu-thresholded mask: per-pixel distance to background
+        decides foreground, with the split chosen by the histogram.
+        When no bimodal split exists, falls back to the fixed
+        per-channel rule (method recorded on `last_threshold`)."""
+        from . import adapt
+        dist = adapt.distances(bmp, bg_rgb)
+        thr, method = adapt.threshold(dist, fallback=self.bg_threshold)
+        if method == "otsu":
+            thr += self.threshold_offset
+        self.last_threshold = (thr, method)
+        if method != "otsu":
+            return self._mask_fixed(bmp, self._background_bands(bmp),
+                                    self.bg_threshold +
+                                    self.threshold_offset)
+        w, h = bmp.width, bmp.height
+        mask = [bytearray(w) for _ in range(h)]
+        d = bmp.data
+        k = 0
+        for y in range(h):
+            row = mask[y]
+            for x in range(w):
+                if dist[k] > thr:
+                    row[x] = 1
+                k += 1
+        return mask
+
+    def _label_components(self, mask: List[bytearray], w: int,
+                          h: int) -> Tuple[list, dict]:
+        """4-connected component labelling. Returns (labels, sizes)
+        where sizes maps label -> pixel count."""
+        labels = [[0] * w for _ in range(h)]
+        sizes: dict = {}
+        label = 0
         for y0 in range(h):
             for x0 in range(w):
-                if not mask[y0][x0] or visited[y0][x0]:
+                if not mask[y0][x0] or labels[y0][x0]:
                     continue
-                pixels = [(x0, y0)]
-                visited[y0][x0] = 1
+                label += 1
+                size = 0
                 q = deque([(x0, y0)])
+                labels[y0][x0] = label
                 while q:
                     x, y = q.popleft()
+                    size += 1
                     for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
                         if (0 <= nx < w and 0 <= ny < h and mask[ny][nx]
-                                and not visited[ny][nx]):
-                            visited[ny][nx] = 1
-                            pixels.append((nx, ny))
+                                and not labels[ny][nx]):
+                            labels[ny][nx] = label
                             q.append((nx, ny))
-                if len(pixels) > len(best):
-                    best = pixels
+                sizes[label] = size
+        return labels, sizes
+
+    def _component_mask(self, labels, label: int, w: int,
+                        h: int) -> List[bytearray]:
         comp = [bytearray(w) for _ in range(h)]
-        for x, y in best:
-            comp[y][x] = 1
-        return comp, len(best)
+        for y in range(h):
+            lr, cr = labels[y], comp[y]
+            for x in range(w):
+                if lr[x] == label:
+                    cr[x] = 1
+        return comp
+
+    def _largest_component(self, mask: List[bytearray], w: int, h: int
+                           ) -> Tuple[List[bytearray], int]:
+        labels, sizes = self._label_components(mask, w, h)
+        if not sizes:
+            return [bytearray(w) for _ in range(h)], 0
+        best = max(sizes, key=sizes.get)
+        return self._component_mask(labels, best, w, h), sizes[best]
 
     # -- profile features -------------------------------------------------
 
@@ -306,11 +372,18 @@ class HeuristicPoseEstimator(PoseEstimator):
         torso_w = torso_runs[1] - torso_runs[0] if torso_runs else 0
         for y in range(max(0, y0), min(y1, len(mask) - 1)):
             runs = _row_runs(mask, y, w)
-            for i in range(len(runs) - 1):
-                gap = runs[i + 1][0] - runs[i][1]
-                if (runs[i][1] < cx < runs[i + 1][0]
-                        and gap >= max(2, torso_w * 0.08)):
-                    return y
+            # A split is a gap between *adjacent* runs containing the
+            # torso midline; comparing the first and last run spans
+            # everything in between and calls "arm | torso | arm" a
+            # crotch at chest height. The gap threshold scales with
+            # torso width but stays <=4px — a real leg gap doesn't
+            # grow with frame size, and the estimator's own downscale
+            # shrinks it further.
+            if any(runs[i][1] < cx < runs[i + 1][0]
+                   and runs[i + 1][0] - runs[i][1]
+                   >= max(2, min(4, torso_w * 0.08))
+                   for i in range(len(runs) - 1)):
+                return y
         return None
 
     # -- main ---------------------------------------------------------------

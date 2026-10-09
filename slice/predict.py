@@ -149,7 +149,7 @@ def _prior_joint(skel: Skeleton, name: str, prior: dict,
                     j = Joint(name, prev.x + dx / dist * seg,
                               prev.y + dy / dist * seg,
                               0.25, PREDICTED,
-                              f"prior off {prev.name}")
+                              f"prior off {prev.name} ({model_name})")
                     skel.set(j)
                     return j
             distal = next(

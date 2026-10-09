@@ -25,13 +25,10 @@ _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
 class Handler(BaseHTTPRequestHandler):
     store: "knowledge.KnowledgeStore" = None  # set by serve()
-    # bounded LRU — overlays are derivable, never let them grow the heap
+    # read-through LRU cache only — the overlay PNG itself is persisted
+    # beside the doc (see _save_overlay); bounded so a long-running
+    # server doesn't grow it forever
     overlays: "collections.OrderedDict" = collections.OrderedDict()
-    MAX_OVERLAYS = 32
-    # read-through cache only — the overlay PNG itself is persisted
-    # beside the doc (see _save_overlay); the dict is bounded so a
-    # long-running server doesn't grow it forever
-    overlays: dict = {}
     OVERLAY_CACHE_MAX = 128
     token: str = None                         # bearer token; None = open
     server_version = "Slice/" + __version__
@@ -140,11 +137,6 @@ class Handler(BaseHTTPRequestHandler):
             kid = self.store.save(out)
             out["overlay_url"] = f"/overlay/{kid}.png"
             if doc["_skeleton"].joints:
-                self.overlays[kid] = render.overlay_png(
-                    doc["_bitmap"], doc["_skeleton"])
-                self.overlays.move_to_end(kid)
-                while len(self.overlays) > self.MAX_OVERLAYS:
-                    self.overlays.popitem(last=False)
                 self._save_overlay(kid, render.overlay_png(
                     doc["_bitmap"], doc["_skeleton"]))
         self._json(out)
@@ -153,10 +145,10 @@ class Handler(BaseHTTPRequestHandler):
         return os.path.join(self.store.root, kid + ".overlay.png")
 
     def _cache_overlay(self, kid: str, png: bytes) -> None:
-        if len(self.overlays) >= self.OVERLAY_CACHE_MAX:
-            # insertion-ordered dict: drop the oldest entry
-            self.overlays.pop(next(iter(self.overlays)))
         self.overlays[kid] = png
+        self.overlays.move_to_end(kid)
+        while len(self.overlays) > self.OVERLAY_CACHE_MAX:
+            self.overlays.popitem(last=False)
 
     def _save_overlay(self, kid: str, png: bytes) -> None:
         # persist beside the doc (tmp+replace, same as store.save) so
@@ -169,7 +161,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get_overlay(self, kid: str):
         png = self.overlays.get(kid)
-        if png is None and re.fullmatch(r"k_[0-9a-f]{12}", kid):
+        if png is not None:
+            self.overlays.move_to_end(kid)
+            return png
+        if re.fullmatch(r"k_[0-9a-f]{12}", kid):
             try:
                 with open(self._overlay_path(kid), "rb") as f:
                     png = f.read()

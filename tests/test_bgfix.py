@@ -14,8 +14,11 @@ class TestBackgroundAlpha(unittest.TestCase):
         for y in range(15, 45):
             for x in range(20, 40):
                 bmp.set(x, y, (200, 200, 200, 255))
-        # all border pixels transparent → falls back to RGB
-        self.assertGreater(est._background(bmp)[0], 100)
+        # all border pixels transparent → no colour bg exists;
+        # the mask must segment on alpha instead
+        self.assertIsNone(est._background(bmp))
+        mask = foreground(bmp)
+        self.assertGreater(sum(sum(r) for r in mask), 100)
 
     def test_opaque_border_preferred(self):
         est = HeuristicPoseEstimator()

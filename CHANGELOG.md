@@ -4,6 +4,11 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

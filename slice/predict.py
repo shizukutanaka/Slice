@@ -44,8 +44,14 @@ def complete(skel: Skeleton, model: Optional[str] = None) -> List[Joint]:
     prior = BODY_MODELS.get(model_name, BODY_MODELS[DEFAULT_MODEL])
     added: List[Joint] = []
 
-    top = min((j.y for j in skel.joints.values()), default=0.0)
-    bottom = max((j.y for j in skel.joints.values()), default=skel.image_height)
+    # The body span that scales every prior distance must come from
+    # observed joints only — a predicted extremity is prior geometry,
+    # so letting it extend the span inflates the very table the new
+    # joints are then drawn from (round-trip fabrication).
+    ys = [j.y for j in skel.joints.values() if j.state == OBSERVED] \
+        or [j.y for j in skel.joints.values()]
+    top = min(ys, default=0.0)
+    bottom = max(ys, default=skel.image_height)
     body_h = max(1.0, bottom - top)
 
     def predict(name: str) -> Optional[Joint]:

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- predict: completeのbody_hを観測関節スパンに限定（predicted端点が
+  プライア配置スケールを膨張させ、プライア幾何が表に往復混入する
+  欠陥を解消。観測0件時は従来通り全関節にフォールバック）
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

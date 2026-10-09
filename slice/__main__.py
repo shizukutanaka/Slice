@@ -28,6 +28,10 @@ import math
 import os
 import sys
 
+from . import (__version__, bench, bitmap, calib, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
+               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -188,6 +192,24 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_bench(a) -> int:
+    """Accuracy/latency gate over ground-truth fixtures."""
+    rep = bench.run(repeats=a.repeats)
+    ok, fails = bench.gate(rep)
+    if a.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"estimate: {rep['ms_per_estimate']}ms/image "
+              f"({rep['cases']} cases x{rep['repeats']})")
+        print(f"detection={rep['detection_rate']} "
+              f"observed={rep['observed_rate']} "
+              f"err={rep['mean_error_px']}px "
+              f"oks={rep['mean_oks']}")
+    for f in fails:
+        print(f"FAIL {f}", file=sys.stderr)
+    return 0 if ok else 1
+
+
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -266,13 +288,9 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
-
-
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
-
-
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -296,8 +314,6 @@ def _cmd_probe(a) -> int:
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
-
-
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -830,6 +846,14 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
+    be = sub.add_parser(
+        "bench", help="accuracy/latency gate on fixtures")
+    be.add_argument("--repeats", type=int, default=1,
+                    help="latency repeats per case")
+    be.add_argument("--json", action="store_true",
+                    help="print the raw report JSON")
+    be.set_defaults(fn=_cmd_bench)
+
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -853,7 +877,6 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
-
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")

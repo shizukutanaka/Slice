@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

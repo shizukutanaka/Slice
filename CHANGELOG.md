@@ -6,6 +6,8 @@
   （labels/ratios/keypoints/信頼度統計）に書き出し。将来の学習用データ基盤
 - fix: CLI `--model` 未指定時に "adult" が強制指定扱いになるバグを修正
   （default=None で自動推定を維持）
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

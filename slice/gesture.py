@@ -59,7 +59,12 @@ def detect(skel: Skeleton) -> List[dict]:
         if ev is None or shoulder is None:
             continue
         w, e, s = ev[wrist_n], ev[elbow_n], ev[sh_n]
-        arm_len = _d(s, e) + _d(e, w) or 1.0
+        arm_len = _d(s, e) + _d(e, w)
+        if arm_len <= 0:
+            # a zero-length arm is no gesture evidence — `or 1.0`
+            # would shrink every threshold to ~1px and fabricate
+            # wave/hands_on_hips on a coincident joint cluster
+            continue
 
         # wave: wrist clearly above the head line
         if upright and w[1] < head[1] - 0.3 * arm_len:

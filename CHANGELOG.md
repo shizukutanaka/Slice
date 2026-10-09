@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
+  ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
+  「通過」しswing/stanceを捏造していた欠陥を修正
+  （arm_len<=0→証拠なし、leg_len<=0→phase unknown+degenerate_leg）
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

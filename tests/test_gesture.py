@@ -42,6 +42,21 @@ class TestGesture(unittest.TestCase):
         g = gesture.detect(self.skel)
         self.assertIn("point", [x["gesture"] for x in g])
 
+    def test_degenerate_arm_never_fires(self):
+        # shoulder/elbow/wrist collapsed to one point: arm_len=0 —
+        # `or 1.0` would shrink every threshold to ~1px and fire
+        # wave/hands_on_hips on a coincident joint cluster
+        head_y = self.skel.point("head")[1]
+        for n in ("shoulder_r", "elbow_r", "wrist_r"):
+            self.skel.joints[n].x = 0
+            self.skel.joints[n].y = head_y - 50  # above the head line
+        self.assertEqual(gesture.detect(self.skel), [])
+        hip = self.skel.point("hip_l")
+        for n in ("shoulder_l", "elbow_l", "wrist_l"):
+            self.skel.joints[n].x = hip[0]
+            self.skel.joints[n].y = hip[1]  # collapsed onto the hip
+        self.assertEqual(gesture.detect(self.skel), [])
+
     def test_inverted_skeleton_never_fires_wave(self):
         # on an inverted figure every wrist is "above the head" in
         # image space — wave must not be fabricated

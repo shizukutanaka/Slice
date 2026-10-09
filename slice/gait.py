@@ -42,7 +42,13 @@ def leg_phase(skel: Skeleton, side: str) -> dict:
         return out
 
     leg_len = _d(hip, knee) + _d(knee, ankle) if knee else _d(hip, ankle)
-    reach = _d(hip, ankle) or 1.0
+    reach = _d(hip, ankle)
+    if leg_len <= 0:
+        # coincident joints carry no phase evidence — `or 1.0` on
+        # reach would let a zero-length leg "pass" the extension
+        # test and report a fabricated swing/stance verdict
+        out["reasons"].append("degenerate_leg")
+        return out
     ka = _knee_angle(hip, knee, ankle) if knee else 180.0
     out["knee_angle"] = round(ka, 1)
 

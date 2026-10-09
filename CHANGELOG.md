@@ -5,6 +5,8 @@
 - `slice.radial` 新設 — 放射状シグネチャ（重心から64方向の
   輪郭距離、最長正規化）。matchは全循環シフト最良L1で回転
   不変 — 質量の伸び方を見るcompact形状照合
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

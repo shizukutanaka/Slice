@@ -7,6 +7,8 @@
   修正。弦配置のpredicted chestがforward_headの胴体基準を、
   predicted ankleが支持基準offsetを捏造していた → predictedは
   欠損扱い（forward_headはNoneで測定不能）。
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

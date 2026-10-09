@@ -24,7 +24,7 @@ audit reports what the table *says*, not what it "meant".
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from .anatomy import BODY_MODELS
 

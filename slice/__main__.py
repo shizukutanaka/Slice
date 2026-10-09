@@ -22,12 +22,9 @@ import argparse
 import json
 import math
 import os
+import os
 import sys
 
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
-               migrate, pipeline, render, rest, selfcheck)
-from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
-               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -36,6 +33,12 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               migrate, selfcheck)
+from . import (__version__, bitmap, knowledge, limbcov, migrate, pipeline,
+               render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               migrate, pipeline, render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -180,38 +183,6 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
-def _cmd_migrate(a) -> int:
-    """Upgrade stored docs to the current schema (dry-run default)."""
-    st = knowledge.KnowledgeStore(a.store)
-    results, changed, repaired = [], 0, 0
-    for entry in st.list():
-        kid = entry.get("id")
-        if not isinstance(kid, str):
-            continue
-        try:
-            doc = st.get(kid)
-        except (KeyError, OSError, json.JSONDecodeError):
-            results.append({"id": kid, "error": "unreadable"})
-            continue
-        res = migrate.upgrade(doc)
-        n = len(res["changes"])
-        if n:
-            changed += 1
-            if a.write and not res["valid_after"]:
-                st.save(res["document"])
-                repaired += 1
-        results.append({"id": kid, "changes": res["changes"],
-                        "valid_before": not res["valid_before"],
-                        "valid_after": not res["valid_after"],
-                        "written": bool(a.write and n
-                                        and not res["valid_after"])})
-    out = {"store": a.store, "docs": len(results), "changed": changed,
-           "written": repaired if a.write else 0,
-           "dry_run": not a.write, "results": results}
-    print(json.dumps(out, ensure_ascii=False, indent=2))
-    return 0
-
-
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -290,9 +261,13 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -315,6 +290,9 @@ def _cmd_probe(a) -> int:
         return 2
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -337,6 +315,7 @@ def _cmd_mirror(a) -> int:
         ja = actual.joints.get(name)
         if ja is None:
             drift[name] = None
+            continue
         drift[name] = round(math.hypot(
             ja.x - je.x, ja.y - je.y), 2)
     vals = [v for v in drift.values() if v is not None]
@@ -725,6 +704,38 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_migrate(a) -> int:
+    """Upgrade stored docs to the current schema (dry-run default)."""
+    st = knowledge.KnowledgeStore(a.store)
+    results, changed, repaired = [], 0, 0
+    for entry in st.list():
+        kid = entry.get("id")
+        if not isinstance(kid, str):
+            continue
+        try:
+            doc = st.get(kid)
+        except (KeyError, OSError, json.JSONDecodeError):
+            results.append({"id": kid, "error": "unreadable"})
+            continue
+        res = migrate.upgrade(doc)
+        n = len(res["changes"])
+        if n:
+            changed += 1
+            if a.write and not res["valid_after"]:
+                st.save(res["document"])
+                repaired += 1
+        results.append({"id": kid, "changes": res["changes"],
+                        "valid_before": not res["valid_before"],
+                        "valid_after": not res["valid_after"],
+                        "written": bool(a.write and n
+                                        and not res["valid_after"])})
+    out = {"store": a.store, "docs": len(results), "changed": changed,
+           "written": repaired if a.write else 0,
+           "dry_run": not a.write, "results": results}
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -778,15 +789,6 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
-    mg = sub.add_parser(
-        "migrate",
-        help="upgrade stored docs to the current schema")
-    mg.add_argument("--store", default="knowledge",
-                    help="KnowledgeStore directory")
-    mg.add_argument("--write", action="store_true",
-                    help="actually rewrite docs (default: dry-run)")
-    mg.set_defaults(fn=_cmd_migrate)
-
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -810,6 +812,7 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
+
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -937,6 +940,15 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    mg = sub.add_parser(
+        "migrate",
+        help="upgrade stored docs to the current schema")
+    mg.add_argument("--store", default="knowledge",
+                    help="KnowledgeStore directory")
+    mg.add_argument("--write", action="store_true",
+                    help="actually rewrite docs (default: dry-run)")
+    mg.set_defaults(fn=_cmd_migrate)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

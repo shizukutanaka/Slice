@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
+  全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
+  生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正
+  （scale未測定→0.0 = missingマーカー、骨ベクトル欠損と同じ扱い）
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

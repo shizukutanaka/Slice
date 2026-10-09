@@ -9,7 +9,7 @@ direction and strength, not a bare label.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .skeleton import Skeleton, observed_point
 from .skeleton import Skeleton, observed_body_span

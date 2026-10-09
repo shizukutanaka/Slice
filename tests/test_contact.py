@@ -51,6 +51,16 @@ class TestContact(unittest.TestCase):
         names = [c["contact"] for c in contact.detect(sk)]
         self.assertNotIn("hands_together", names)
 
+    def test_unmeasurable_scale_means_no_contact(self):
+        # only two observed wrists at one height: no head, no
+        # neck–pelvis pair → body height is unmeasurable. "near"
+        # is a fraction of it, so a raw-pixel default would
+        # fabricate the threshold that fires hands_together.
+        sk = Skeleton(100, 600)
+        sk.set(Joint("wrist_l", 40.0, 30.0, 0.9, state="observed"))
+        sk.set(Joint("wrist_r", 55.0, 30.0, 0.9, state="observed"))
+        self.assertEqual(contact.detect(sk), [])
+
     def test_summary_shape(self):
         s = contact.summary(self.skel)
         self.assertIsInstance(s["count"], int)

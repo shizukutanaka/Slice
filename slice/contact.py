@@ -33,13 +33,19 @@ _RULES: Tuple[Tuple[str, str, str, float], ...] = (
 
 def _body_h(skel: Skeleton) -> float:
     from .skeleton import observed_body_span
-    return observed_body_span(skel) or 200.0
+    return observed_body_span(skel)
 
 
 def detect(skel: Skeleton) -> List[dict]:
-    """[{pair, contact, distance, threshold_px}] — observed only."""
+    """[{pair, contact, distance, threshold_px}] — observed only.
+
+    Returns [] when no honest body scale exists: "near" is defined
+    as a fraction of body height, so a raw-pixel default would
+    fabricate the very threshold the rule measures against."""
     seen: Dict[Tuple[str, str], bool] = {}
     h = _body_h(skel)
+    if h <= 0:
+        return []
     found: List[dict] = []
     for a, b, name, frac in _RULES:
         if (a, b) in seen:

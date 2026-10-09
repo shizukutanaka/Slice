@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- contact/dynamics/ground: `or 200.0`の生pxデフォルトを除去
+  （観測スパンが測れない骨格で「近い/幅広/不揃い」の閾値を捏造
+  していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
+  で除算してはならない」に違反していた同型3箇所を一括修正。
+  スケール未測定時は該当判定を発火しない）。
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

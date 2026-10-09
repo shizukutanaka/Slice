@@ -22,6 +22,7 @@ import argparse
 import json
 import math
 import os
+import os
 import sys
 
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
@@ -32,6 +33,10 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               imgqual, selfcheck)
+from . import (__version__, bitmap, imgqual, knowledge, limbcov, pipeline,
+               render, rest, selfcheck)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -40,7 +45,6 @@ from . import (describe)
 from . import (autocrop, crop)
 from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
 from . import (evid)
-from . import (imgqual)
 from . import (imgqual)
 from . import (human)
 
@@ -597,19 +601,6 @@ def _cmd_imgqual(a) -> int:
     return 0 if res["verdict"] != "inadequate" else 1
 
 
-def _cmd_imgqual(a) -> int:
-    """Image evidence adequacy before estimation."""
-    try:
-        with open(a.image, "rb") as f:
-            bmp = bitmap.decode(f.read())
-    except (bitmap.UnsupportedFormat, OSError) as e:
-        print(f"cannot load {a.image}: {e}", file=sys.stderr)
-        return 2
-    res = imgqual.assess(bmp)
-    print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0 if res["verdict"] != "inadequate" else 1
-
-
 def _cmd_human(a) -> int:
     """Person-likeness score per foreground component."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -709,6 +700,19 @@ def _cmd_bias(a) -> int:
     if not measured or (worst.get("mean_error_px") or 0) > 10.0:
         return 1
     return 0
+
+
+def _cmd_imgqual(a) -> int:
+    """Image evidence adequacy before estimation."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = imgqual.assess(bmp)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] != "inadequate" else 1
 
 
 def _cmd_serve(a) -> int:
@@ -890,11 +894,6 @@ def main(argv=None) -> int:
     iq.add_argument("image")
     iq.set_defaults(fn=_cmd_imgqual)
 
-    iq = sub.add_parser(
-        "imgqual", help="image evidence adequacy")
-    iq.add_argument("image")
-    iq.set_defaults(fn=_cmd_imgqual)
-
     hu = sub.add_parser(
         "human", help="person-likeness per component")
     hu.add_argument("image")
@@ -920,6 +919,11 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    iq = sub.add_parser(
+        "imgqual", help="image evidence adequacy")
+    iq.add_argument("image")
+    iq.set_defaults(fn=_cmd_imgqual)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

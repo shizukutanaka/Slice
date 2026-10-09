@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import zipfile
 import zlib
-from typing import List, Optional
+from typing import List
 
 from .knowledge import validate
 

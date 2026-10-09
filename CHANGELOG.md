@@ -4,6 +4,8 @@
 
 - `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
 
+- 重複ヘルパの統合 — 6モジュール（balance/dominance/dynamics/gait/plumb/reach）に同一ロジックで分散していたobserved限定ルックアップ `_obs` を `skeleton.observed_point` に一本化（`observed_body_span` と同じ置き場）。挙動変更なし、-52行。
+
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
 - `slice human <image>` — human層のCLI接続。前景成分ごとに人物らしさ4信号（縦横比/充填率/頭部重心/左右対称）を採点、person_like判定。成分なし/全成分非人物は exit 1。

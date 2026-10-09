@@ -4,6 +4,8 @@
 
 - `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

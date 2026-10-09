@@ -8,9 +8,6 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import __version__, bitmap, classify, knowledge, pose, predict, ratio, style
-from .anatomy import BODY_MODELS
-from .skeleton import PREDICTED
 from . import (__version__, angles, balance, bitmap, classify,
                consistency, dynamics, framepos, gesture, knowledge,
                occlusion, pose, predict, ratio, spine, style, symmetry)
@@ -25,21 +22,6 @@ ROBUST_ESTIMATOR = pose.HeuristicPoseEstimator(
     adaptive=True, reject_shadow=True, clean=True)
 
 
-def analyze(raw: bytes, *, model: Optional[str] = None,
-            source_name: str = "") -> dict:
-    if model and model not in BODY_MODELS:
-        raise ValueError(f"unknown body model {model!r} "
-                         f"(expected one of {sorted(BODY_MODELS)})")
-    bmp = bitmap.decode(raw)
-    skel = ESTIMATOR.estimate(bmp, model or "adult")
-    if model:
-        # A user-selected model pins every prior AND the reported model —
-        # mark it 'forced' so the JSON never reads it as an estimate.
-        skel.body_model = {"name": model,
-                           "label": BODY_MODELS[model]["label"],
-                           "measured_head_ratio":
-                               skel.body_model.get("measured_head_ratio"),
-                           "state": "forced"}
 def _build_doc(skel, bmp, image_sha: str, source_name: str,
                model: Optional[str], estimator=None,
                robust: bool = False) -> dict:
@@ -92,6 +74,14 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
     bmp = bitmap.decode(raw)
     estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
     skel = estimator.estimate(bmp, model or "adult")
+    if model:
+        # A user-selected model pins every prior AND the reported model —
+        # mark it 'forced' so the JSON never reads it as an estimate.
+        skel.body_model = {"name": model,
+                           "label": BODY_MODELS[model]["label"],
+                           "measured_head_ratio":
+                               skel.body_model.get("measured_head_ratio"),
+                           "state": "forced"}
     return _build_doc(skel, bmp, knowledge.sha256(raw), source_name,
                       model, estimator=estimator, robust=robust)
 

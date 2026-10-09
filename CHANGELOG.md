@@ -6,6 +6,11 @@
   体幹関節未観測のオフセンター人物で、画像中央に鏡像を置き
   反対側の体を空想位置に出していた欠陥を修正（計測された
   centroidを軸として使用）
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

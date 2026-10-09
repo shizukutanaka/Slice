@@ -5,6 +5,11 @@
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。
   0.15–0.75 を人間らしい帯域として両側フェード）
+- 成分ラベリングの統合 — `people._components` が独自実装していた
+  4近接BFSラベリングを `pose._label_components` 呼出に置換
+  （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、
+  挙動変更なし。
+
 - REST `POST /audit`＋CLI `slice audit <dir>` — セルフ監査の
   全経路接続（RESTでもselfcheck全層を返却、CLIはディレクトリ
   一括監査で件ごとverdict＋pass/warn/fail集計、exit codeは

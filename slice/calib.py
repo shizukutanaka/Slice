@@ -24,7 +24,7 @@ import math
 from typing import Dict, List, Optional
 
 from .pose import HeuristicPoseEstimator
-from .skeleton import OBSERVED, Joint, Skeleton
+from .skeleton import OBSERVED, Skeleton
 
 BINS = 10
 # a joint counts as "hit" when its estimate is this close to truth

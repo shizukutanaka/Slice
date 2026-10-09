@@ -622,7 +622,20 @@ class HeuristicPoseEstimator(PoseEstimator):
         cr = rows[int(chest_y)] or torso_run
         put("chest", (cr[0] + cr[1]) / 2, chest_y, 0.65,
             "midpoint shoulders-pelvis")
-        put("spine", head_cx, (neck_y + hip_row) / 2, 0.6,
+        # The spine joint is the mirroring axis for predictions and
+        # the curvature reference for spine.curve — it must sit on
+        # the torso axis, not the head centroid: in profile the head
+        # leans toward the faced side (head_shift), which would pull
+        # the axis off the body exactly when mirrored prediction is
+        # needed most. Measure the torso column at spine height —
+        # the axis itself tilts with the torso, so a chest-height
+        # run alone still misses it.
+        spine_y = (neck_y + hip_row) / 2
+        spine_run = next(
+            (r for r in _row_runs(comp, int(spine_y), w)
+             if r[0] <= cx_spine <= r[1]),
+            torso_run)
+        put("spine", (spine_run[0] + spine_run[1]) / 2, spine_y, 0.6,
             "axis midpoint")
 
         # Legs: below the crotch, split the row runs.

@@ -2,6 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
+from slice import dominance, skeleton
 from slice import dominance, predict
 from slice.pose import HeuristicPoseEstimator
 
@@ -62,6 +63,32 @@ class TestDominance(unittest.TestCase):
         self.assertEqual(r["dominant"], "even")
         self.assertNotIn("unloaded_l", [c["cue"] for c in r["cues"]])
         self.assertIn("both_legs_flexed", [c["cue"] for c in r["cues"]])
+
+    def test_collinear_leg_not_flexed(self):
+        # hip–knee–ankle on one vertical: straight reads 0/0 and the
+        # px default made bend=0 — a straight leg firing "unloaded"
+        sk = skeleton.Skeleton(200, 400)
+        for n, (x, y) in {"hip_l": (80, 100), "knee_l": (80, 200),
+                          "ankle_l": (80, 300)}.items():
+            sk.set(skeleton.Joint(n, float(x), float(y), 0.9,
+                                  state="observed"))
+        cues = [c["cue"] for c in dominance.cues(sk)]
+        self.assertNotIn("unloaded_l", cues)
+
+    def test_feet_together_no_phantom_shift(self):
+        # ankles at one x → the half-stance denominator degenerates;
+        # a 1px pelvis offset must not read as a full-strength shift
+        sk = skeleton.Skeleton(200, 400)
+        sk.set(skeleton.Joint("head", 100.0, 10.0, 0.9,
+                              state="observed"))
+        sk.set(skeleton.Joint("pelvis", 101.0, 200.0, 0.9,
+                              state="observed"))
+        sk.set(skeleton.Joint("ankle_l", 100.0, 390.0, 0.9,
+                              state="observed"))
+        sk.set(skeleton.Joint("ankle_r", 100.0, 390.0, 0.9,
+                              state="observed"))
+        cues = [c["cue"] for c in dominance.cues(sk)]
+        self.assertNotIn("pelvis_shift", cues)
 
     def test_empty_skeleton_unknown(self):
         for n in list(self.skel.joints):

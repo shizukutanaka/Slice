@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

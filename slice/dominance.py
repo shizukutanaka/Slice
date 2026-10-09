@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from .skeleton import Skeleton, observed_point
+from .skeleton import Skeleton, observed_body_span
 
 
 def cues(skel: Skeleton) -> List[dict]:
@@ -22,16 +23,24 @@ def cues(skel: Skeleton) -> List[dict]:
     ar = observed_point(skel, "ankle_r")
     if pelvis and al and ar:
         mid = (al[0] + ar[0]) / 2.0
-        span = abs(ar[0] - al[0]) or 1.0
-        off = (pelvis[0] - mid) / (span / 2.0)  # -1..1 of half-span
-        if abs(off) > 0.15:
-            # +x = right-shifted → right dominant
-            out.append({"cue": "pelvis_shift",
-                        "side": "r" if off > 0 else "l",
-                        "strength": round(min(abs(off), 1.0), 2)})
-        else:
-            out.append({"cue": "pelvis_centered",
-                        "side": "even", "strength": 0.5})
+        span = abs(ar[0] - al[0])
+        # Normalise by half the stance; a feet-together pose gives a
+        # degenerate denominator where sub-pixel noise reads as a
+        # full-strength shift. Fall back to ~half-stance of body
+        # height; with no honest scale the offset is unmeasurable.
+        half = span / 2.0
+        if half < 1.0:
+            half = observed_body_span(skel) / 8.0
+        if half > 0:
+            off = (pelvis[0] - mid) / half
+            if abs(off) > 0.15:
+                # +x = right-shifted → right dominant
+                out.append({"cue": "pelvis_shift",
+                            "side": "r" if off > 0 else "l",
+                            "strength": round(min(abs(off), 1.0), 2)})
+            else:
+                out.append({"cue": "pelvis_centered",
+                            "side": "even", "strength": 0.5})
 
     for side in ("l", "r"):
         hip = observed_point(skel, f"hip_{side}")
@@ -41,8 +50,11 @@ def cues(skel: Skeleton) -> List[dict]:
             continue
         # flexed knee unloads that leg → other side dominant
         straight = abs(ankle[0] - hip[0])
-        leg = (abs(knee[0] - hip[0]) + abs(ankle[0] - knee[0])) or 1.0
-        bend = straight / leg
+        leg = abs(knee[0] - hip[0]) + abs(ankle[0] - knee[0])
+        # a perfectly collinear leg (hip–knee–ankle on one vertical)
+        # is straight, not maximally bent — 0/1.0 reported it as a
+        # full fold and fired "unloaded" on a straight-leg pose.
+        bend = straight / leg if leg else 1.0
         if bend < 0.5:
             out.append({"cue": f"unloaded_{side}",
                         "side": "r" if side == "l" else "l",

@@ -38,7 +38,9 @@ def curve(skel: Skeleton) -> Optional[dict]:
 
     chord = _d(neck, pelvis)
     chain = _d(neck, chest) + _d(chest, pelvis)
-    body_h = chord or 1.0
+    # degenerate neck≈pelvis: of_chord is unmeasurable, not a raw-px
+    # fraction reported against a 1px denominator
+    body_h = chord
 
     # signed lateral deflection: distance of chest from chord line
     ax, ay = pelvis[0] - neck[0], pelvis[1] - neck[1]
@@ -54,7 +56,7 @@ def curve(skel: Skeleton) -> Optional[dict]:
     # chord has |ax|≈0)
     lean = math.degrees(math.atan2(abs(ax), abs(ay))) if chord > 1e-9 else 0.0
     return {"lateral_deflection": round(sign * lat, 1),
-            "of_chord": round(lat / body_h, 3),
+            "of_chord": round(lat / body_h, 3) if body_h > 1e-9 else None,
             "lean_deg": round(lean, 1),
             "chord_len": round(chord, 1),
             "curvature": round(chain / chord, 3) if chord > 1e-9 else None,

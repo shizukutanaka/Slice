@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import copy
 import secrets
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from .knowledge import SCHEMA, validate
 from .landmarks import BONES, JOINTS

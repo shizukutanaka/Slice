@@ -14,9 +14,9 @@ counterpart (chest, pelvis, feet, neck) are listed under
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from .skeleton import OBSERVED, PREDICTED, Skeleton
+from .skeleton import OBSERVED, Skeleton
 
 # COCO keypoint order -> our joint name (None = no Slice counterpart)
 COCO_JOINTS = [

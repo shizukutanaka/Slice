@@ -12,29 +12,20 @@ from __future__ import annotations
 import math
 from typing import Dict, List
 
-from .skeleton import Skeleton, observed_body_span
+from .skeleton import Skeleton, observed_body_span, observed_point
 
 
 def _d(a, b) -> float:
     return math.hypot(b[0] - a[0], b[1] - a[1])
 
 
-def _obs(skel: Skeleton, name: str):
-    """Observed-only lookup: a predicted joint is prior fill —
-    a cue fired on prior geometry is a fabricated measurement."""
-    j = skel.joints.get(name)
-    if j is None or j.state != "observed":
-        return None
-    return (j.x, j.y)
-
-
 def cues(skel: Skeleton) -> List[dict]:
     """[{cue, weight, detail}] — all on observed joints."""
     out: List[dict] = []
-    pelvis = _obs(skel, "pelvis")
+    pelvis = observed_point(skel, "pelvis")
     for side in ("l", "r"):
-        hip = _obs(skel, f"hip_{side}")
-        ankle = _obs(skel, f"ankle_{side}")
+        hip = observed_point(skel, f"hip_{side}")
+        ankle = observed_point(skel, f"ankle_{side}")
         if hip and ankle:
             leg = _d(hip, ankle) or 1.0
             off = abs(ankle[0] - hip[0]) / leg
@@ -42,8 +33,8 @@ def cues(skel: Skeleton) -> List[dict]:
                 out.append({"cue": f"leg_off_axis_{side}",
                             "weight": 0.25,
                             "detail": round(off, 2)})
-        shoulder = _obs(skel, f"shoulder_{side}")
-        wrist = _obs(skel, f"wrist_{side}")
+        shoulder = observed_point(skel, f"shoulder_{side}")
+        wrist = observed_point(skel, f"wrist_{side}")
         if shoulder and wrist and pelvis:
             # wrist far laterally from torso → arm swing
             far = abs(wrist[0] - pelvis[0]) > 0.6 * _d(shoulder, wrist)
@@ -51,7 +42,7 @@ def cues(skel: Skeleton) -> List[dict]:
                 out.append({"cue": f"arm_out_{side}",
                             "weight": 0.15, "detail": None})
 
-    al, ar = _obs(skel, "ankle_l"), _obs(skel, "ankle_r")
+    al, ar = observed_point(skel, "ankle_l"), observed_point(skel, "ankle_r")
     if pelvis and al and ar:
         mid = (al[0] + ar[0]) / 2.0
         span = abs(ar[0] - al[0]) or 1.0

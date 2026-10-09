@@ -4,6 +4,8 @@
 
 - `slice bundle pack|unpack|manifest <zip> [DIR]` — bundle層のCLI接続。KnowledgeStoreのzip梱包（manifest付き、不正docはskipped記録）／復元／マニフェスト閲覧。ストア配布形式がライブラリ専用だった状態を解消。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

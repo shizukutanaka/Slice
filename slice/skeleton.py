@@ -155,6 +155,18 @@ def body_span(skel: Skeleton) -> float:
     return 0.0
 
 
+def observed_point(skel: Skeleton, name: str) -> Optional[Point]:
+    """The joint's position iff it is measured, else None.
+
+    A predicted joint is prior fill: treating its position as
+    evidence fabricates the measurements consumers derive from it
+    (support polygons, plumb offsets, phase cues, workspace radii),
+    so it is excluded exactly like a missing joint.
+    """
+    j = skel.joints.get(name)
+    return (j.x, j.y) if j and j.state == OBSERVED else None
+
+
 def observed_body_span(skel: Skeleton) -> float:
     """`body_span` measured over observed joints only.
 
@@ -164,10 +176,7 @@ def observed_body_span(skel: Skeleton) -> float:
     observable gives a scale.
     """
     obs = [j for j in skel.joints.values() if j.state == OBSERVED]
-
-    def pt(name: str):
-        j = skel.joints.get(name)
-        return (j.x, j.y) if j and j.state == OBSERVED else None
+    pt = lambda name: observed_point(skel, name)
 
     top = pt("head")
     lo = max((j.y for j in obs), default=0.0)

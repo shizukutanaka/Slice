@@ -63,12 +63,12 @@ class TestPredict(unittest.TestCase):
             return skel.get("chest").y
 
         a = Skeleton(100, 200)
-        a.set(Joint("neck", 50, 40, 0.8))
-        a.set(Joint("pelvis", 50, 100, 0.8))
+        a.set(Joint("neck", 50, 40, 0.8, OBSERVED))
+        a.set(Joint("pelvis", 50, 100, 0.8, OBSERVED))
 
         b = Skeleton(100, 200)
-        b.set(Joint("neck", 50, 40, 0.8))
-        b.set(Joint("pelvis", 50, 100, 0.8))
+        b.set(Joint("neck", 50, 40, 0.8, OBSERVED))
+        b.set(Joint("pelvis", 50, 100, 0.8, OBSERVED))
         b.set(Joint("head", 50, -400, 0.2, PREDICTED, "prior off neck"))
 
         self.assertEqual(chest_y(a), chest_y(b))

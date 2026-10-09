@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
+  「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
+  透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が
+  測定不能なので`contrast`は`unmeasurable`として開示（failでもpassでもない）。
+  `_stddev`/`_sharpness`も不透明画素のみ計測
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

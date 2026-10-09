@@ -4,6 +4,8 @@
 
 - `slice retarget <src> <dst> [-o sk.json]` — retarget層のCLI接続。src骨方向×dst骨長で体格間ポーズ転写。出力関節は全てpredicted（合成幾何であり観測証拠ではない）誠実設計を継承。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

@@ -12,7 +12,7 @@ from . import (__version__, angles, balance, bitmap, classify,
                consistency, dynamics, framepos, gesture, knowledge,
                occlusion, pose, predict, ratio, spine, style, symmetry)
 from .anatomy import BODY_MODELS
-from .skeleton import OBSERVED, PREDICTED
+from .skeleton import OBSERVED
 
 ESTIMATOR = pose.HeuristicPoseEstimator()
 # opt-in profile for noisy/uneven real photos: adaptive threshold,

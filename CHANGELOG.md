@@ -4,6 +4,8 @@
 
 - `slice smooth <dir> [-o dir]` — smooth層のCLI接続。フレーム列の関節軌跡を移動平均し、関節別ジッタ改善量をJSON報告。`-o`で平滑化済み骨格JSONを書き出し。欠損フレームの位置を捏造しない誠実設計を継承。
 
+- `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
+
 - 成分ラベリングの統合 — `people._components` が独自実装していた
   4近接BFSラベリングを `pose._label_components` 呼出に置換
   （bbox算出のみ単パスで残す）。重複アルゴリズムを1系統化、

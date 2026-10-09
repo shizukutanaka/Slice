@@ -10,7 +10,7 @@ here rather than at single-image pose.
 from __future__ import annotations
 
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 from .skeleton import Skeleton
 

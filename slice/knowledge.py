@@ -126,7 +126,8 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
-    skel = doc.get("skeleton") or {}
+    skel = doc.get("skeleton")
+    skel = skel if isinstance(skel, dict) else {}
     frame = skel.get("frame")
     if isinstance(frame, dict):
         for k in ("width", "height"):

@@ -33,7 +33,7 @@ def ratio(skel: Skeleton) -> Optional[float]:
     body_h = lo - head[1]
     if body_h <= 0:
         return None
-    head_len = (neck[1] - head[1]) * 2.0  # neck-to-crown ≈ half head
+    head_len = (neck[1] - head[1]) * 1.2  # crown to jaw ≈ head height
     return head_len / body_h
 
 

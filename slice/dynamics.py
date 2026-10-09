@@ -10,7 +10,7 @@ observed cues, labelled `implied`, never "the person is moving".
 from __future__ import annotations
 
 import math
-from typing import Dict, List
+from typing import List
 
 from .skeleton import Skeleton, observed_body_span, observed_point
 

@@ -12,28 +12,18 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional
 
-from .skeleton import Skeleton
+from .skeleton import Skeleton, observed_point
 
 # landmarks on the plumb chain, top to bottom
 _CHAIN = ("head", "neck", "chest", "pelvis")
-
-
-def _obs(skel: Skeleton, name: str):
-    """Observed-only lookup: a predicted joint is prior fill — a
-    chord-placed chest or "foot below ankle" ankle would fabricate a
-    plumb offset, so it is excluded like a missing joint."""
-    j = skel.joints.get(name)
-    if j is None or j.state != "observed":
-        return None
-    return (j.x, j.y)
 
 
 def line(skel: Skeleton) -> Optional[dict]:
     """{x, joints, offsets} — plumb x = head/neck average (the
     reference); offsets = each joint's horizontal deviation in px
     and as a fraction of body height."""
-    head = _obs(skel, "head")
-    neck = _obs(skel, "neck")
+    head = observed_point(skel, "head")
+    neck = observed_point(skel, "neck")
     if not head or not neck:
         return None
     ref_x = (head[0] + neck[0]) / 2.0
@@ -41,14 +31,14 @@ def line(skel: Skeleton) -> Optional[dict]:
 
     offsets: Dict[str, dict] = {}
     for name in _CHAIN:
-        p = _obs(skel, name)
+        p = observed_point(skel, name)
         if not p:
             continue
         dx = p[0] - ref_x
         offsets[name] = {"dx": round(dx, 1),
                          "of_body_h": round(dx / body_h, 3)}
     # support reference: mean ankle x
-    ankles = [p for p in (_obs(skel, "ankle_l"), _obs(skel, "ankle_r"))
+    ankles = [p for p in (observed_point(skel, "ankle_l"), observed_point(skel, "ankle_r"))
               if p]
     if ankles:
         ax = sum(p[0] for p in ankles) / len(ankles)
@@ -75,13 +65,13 @@ def forward_head(skel: Skeleton) -> Optional[dict]:
 def _span(skel: Skeleton) -> float:
     """Head-to-lowest span, torso-length fallback, 0 when neither
     is measurable."""
-    top = _obs(skel, "head")
+    top = observed_point(skel, "head")
     lo = max((j.y for j in skel.joints.values()
               if j.state == "observed"), default=0.0)
     s = (lo - top[1]) if top else 0.0
     if s > 0:
         return s
-    n, p = _obs(skel, "neck"), _obs(skel, "pelvis")
+    n, p = observed_point(skel, "neck"), observed_point(skel, "pelvis")
     return math.hypot(n[0] - p[0], n[1] - p[1]) if n and p else 0.0
 
 

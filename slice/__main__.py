@@ -36,6 +36,8 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, rig, selfcheck, storechk)
 from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
@@ -669,6 +671,36 @@ def _cmd_split(a) -> int:
     return 0 if figs else 1
 
 
+def _cmd_rig(a) -> int:
+    """Animation rig: bone hierarchy, lengths, directions."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    bones = rig.build(skel)
+    res = {"bones": bones,
+           "hierarchy": rig.hierarchy(bones),
+           "total_bone_length": rig.total_bone_length(bones),
+           "frame": {"width": skel.image_width,
+                     "height": skel.image_height},
+           "basis": "bone endpoints observed/predicted as given; "
+                    "no lengths inferred"}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_audit_store(a) -> int:
     res = storechk.audit_store(a.store)
     if a.output:
@@ -976,6 +1008,17 @@ def main(argv=None) -> int:
     sp.add_argument("--top-k", type=int, default=4,
                     help="max figures")
     sp.set_defaults(fn=_cmd_split)
+
+    rg = sub.add_parser(
+        "rig", help="animation rig export (bones + hierarchy)")
+    rg.add_argument("image")
+    rg.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    rg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rg.add_argument("-o", "--output",
+                    help="write the rig JSON here")
+    rg.set_defaults(fn=_cmd_rig)
 
     lc = sub.add_parser(
         "limbcov", help="bone coverage vs silhouette")

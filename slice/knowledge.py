@@ -250,6 +250,9 @@ class KnowledgeStore:
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
+            if ent is not None and not isinstance(ent, dict):
+                healed = True
+                ent = None
             if ent is not None and ent.get("id") != kid:
                 # a cached entry whose id disagrees with the filename
                 # names a document that can never be retrieved — drop

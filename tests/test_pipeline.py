@@ -102,6 +102,17 @@ class TestPipeline(unittest.TestCase):
         doc2 = pipeline.analyze(raw)
         self.assertEqual(doc2["engine"]["profile"], "default")
 
+    def test_mask_threshold_disclosed(self):
+        doc = pipeline.analyze(bitmap.encode_png(synthetic_person()))
+        mt = doc["engine"]["mask_threshold"]
+        self.assertEqual(mt["method"], "fixed")
+        self.assertEqual(mt["value"], 40)
+        raw = bitmap.encode_png(synthetic_person())
+        mt = pipeline.analyze(raw, robust=True
+                              )["engine"]["mask_threshold"]
+        self.assertIn(mt["method"], ("otsu", "fixed"))
+        self.assertGreater(mt["value"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

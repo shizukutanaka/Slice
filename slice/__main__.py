@@ -4,15 +4,18 @@
         [--model adult|child|deformed] [--robust] [--overlay out.png]
         [--store DIR]
     python -m slice batch <dir> --store DIR [--model M] [--robust] [-r]
-    python -m slice audit <image|dir> [--model M] [--robust] [-o audit.json]
-        — run every quality layer over one image (or a directory)
-          and print a verdict
+    python -m slice audit <image> [--model M] [--robust] [-o audit.json]
+        — run every quality layer over one image and print a verdict
     python -m slice audit --store DIR  — audit the stored documents
           (honesty lint, near-duplicates, joint observed-rate)
     python -m slice calib
         — confidence calibration vs ground-truth fixtures
     python -m slice bias
         — per-joint systematic vs random error on fixtures
+    python -m slice batch <dir> --store DIR [--model M] [-r]
+    python -m slice audit <image|dir> [--model M] [--robust] [-o audit.json]
+        — run every quality layer over one image (or a directory)
+          and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
 """
@@ -159,6 +162,9 @@ def _cmd_audit(a) -> int:
         print("audit: image path or --store DIR required",
               file=sys.stderr)
         return 2
+    import os
+    if os.path.isdir(a.image):
+        return _cmd_audit_dir(a)
     with open(a.image, "rb") as f:
         raw = f.read()
     try:
@@ -178,44 +184,6 @@ def _cmd_audit(a) -> int:
     print(f"verdict: {res['verdict']} "
           f"({res['n_reasons']} reasons)", file=sys.stderr)
     return 0 if res["verdict"] != "fail" else 1
-
-
-def _cmd_audit_dir(a) -> int:
-    """Audit every image under a directory; print a verdict per file."""
-    import os
-    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
-    paths = sorted(os.path.join(a.image, f) for f in os.listdir(a.image)
-                   if f.lower().endswith(exts)
-                   and os.path.isfile(os.path.join(a.image, f)))
-    if not paths:
-        print(f"no images under {a.image}", file=sys.stderr)
-        return 1
-    tally = {"pass": 0, "warn": 0, "fail": 0}
-    results = []
-    for p in paths:
-        try:
-            with open(p, "rb") as f:
-                raw = f.read()
-            res = selfcheck.run(raw, model=a.model, source_name=p,
-                                robust=a.robust)
-            tally[res["verdict"]] += 1
-            results.append({"image": p, **res})
-            print(f"{res['verdict']:>4}  {p}  "
-                  f"{','.join(res['reasons'][:3])}")
-        except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
-            tally["fail"] += 1
-            results.append({"image": p, "verdict": "fail",
-                            "reasons": [str(e)]})
-            print(f"fail  {p}  {e}", file=sys.stderr)
-    if a.output:
-        with open(a.output, "w", encoding="utf-8") as f:
-            json.dump({"results": results, "tally": tally}, f,
-                      ensure_ascii=False, indent=2)
-        print(f"wrote {a.output}", file=sys.stderr)
-    print(f"audit: {tally['pass']} pass / {tally['warn']} warn / "
-          f"{tally['fail']} fail ({len(paths)} images)",
-          file=sys.stderr)
-    return 0 if not tally["fail"] else 1
 
 
 def _diff_load(arg, store_dir, model, robust):
@@ -296,9 +264,13 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
+
+
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
+
+
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -312,6 +284,7 @@ def _cmd_probe(a) -> int:
     skel = est.estimate(bmp, a.model or "adult")
     if not skel.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     small = bmp.downscale(est.max_dim)
     mask = est._mask(small)
     res = _probe_dispatch(a.layer, skel, mask)
@@ -321,6 +294,8 @@ def _cmd_probe(a) -> int:
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
+
+
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -334,6 +309,7 @@ def _cmd_mirror(a) -> int:
     skel_a = est.estimate(bmp, a.model or "adult")
     if not skel_a.joints:
         print("no person detected", file=sys.stderr)
+        return 1
     expected = mirror.flip_skeleton(skel_a)
     actual = est.estimate(mirror.flip_bitmap(bmp),
                           a.model or "adult")
@@ -731,6 +707,44 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_audit_dir(a) -> int:
+    """Audit every image under a directory; print a verdict per file."""
+    import os
+    exts = (".png", ".bmp", ".jpg", ".jpeg", ".webp")
+    paths = sorted(os.path.join(a.image, f) for f in os.listdir(a.image)
+                   if f.lower().endswith(exts)
+                   and os.path.isfile(os.path.join(a.image, f)))
+    if not paths:
+        print(f"no images under {a.image}", file=sys.stderr)
+        return 1
+    tally = {"pass": 0, "warn": 0, "fail": 0}
+    results = []
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                raw = f.read()
+            res = selfcheck.run(raw, model=a.model, source_name=p,
+                                robust=a.robust)
+            tally[res["verdict"]] += 1
+            results.append({"image": p, **res})
+            print(f"{res['verdict']:>4}  {p}  "
+                  f"{','.join(res['reasons'][:3])}")
+        except (bitmap.UnsupportedFormat, OSError, ValueError) as e:
+            tally["fail"] += 1
+            results.append({"image": p, "verdict": "fail",
+                            "reasons": [str(e)]})
+            print(f"fail  {p}  {e}", file=sys.stderr)
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"results": results, "tally": tally}, f,
+                      ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(f"audit: {tally['pass']} pass / {tally['warn']} warn / "
+          f"{tally['fail']} fail ({len(paths)} images)",
+          file=sys.stderr)
+    return 0 if not tally["fail"] else 1
+
+
 def _cmd_serve(a) -> int:
     rest.serve(port=a.port, store_dir=a.store, token=a.token)
     return 0
@@ -777,6 +791,7 @@ def main(argv=None) -> int:
     au.add_argument("--store",
                     help="audit a KnowledgeStore directory instead "
                          "of an image")
+    au.add_argument("image", help="image file or directory")
     au.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     au.add_argument("--robust", action="store_true",
                     help="robust estimation profile")

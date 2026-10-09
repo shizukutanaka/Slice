@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- repro: 再検証がdoc記録のengine.profileをリプレイ。
+  robustプロファイルで作られたdocをデフォルト推定器で再推定すると
+  同一エンジンなのにdrift/changedと誤報していた欠陥を修正
+  （`engine_profile`を結果とbasisに開示）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

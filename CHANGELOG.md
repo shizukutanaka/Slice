@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- selfcheck: `reasons` の重複計上を修正。consistencyコードは
+  selfcheck自身の追記とgate内部の再監査の両方から列挙され、
+  同一所見が2回数えられ `n_reasons` が水増しされていた —
+  順序保持の重複排除で一所見一コードに。
+
 - pose: `spine` 関節のxを頭重心ではなくspine高の体幹ラン中心に
   修正。プロファイル時に頭が向き方向へ傾く（head_shift）と
   ミラー推定の軸・spine.curveの基準が体幹軸から偏移し、

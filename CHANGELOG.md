@@ -5,6 +5,30 @@
 - human: aspectシグナルを人間範囲上限でも減衰（1.2–4.0満点、
   8.0で0 — 電柱のような人間以上に細長い形状がアスペクト
   シグナルで満点を取っていた、docstring宣言範囲と実装の乖離）
+- predict: ミラー対称軸のフォールバックを画像中心→成分重心に変更。
+  体幹関節未観測のオフセンター人物で、画像中央に鏡像を置き
+  反対側の体を空想位置に出していた欠陥を修正（計測された
+  centroidを軸として使用）
+- ratio: `body_height_px` 正規化子を観測関節スパンに限定。
+  predictedの頭/足（プライア配置）が分母を捏造し全比率を
+  推論でスケーリングしていた欠陥を解消 — predict #345・
+  skeleton.body_span #346 と同型の残存。
+
+- lift: facing "left"/"right"（実際のプロファイル検出）でも遠側にzを付与
+  （facing "side"のみ対象だったため真の側面人物が平坦zになっていた欠陥。
+  遠側は向き方向側フランク＝facing "left"なら_l側。orientation["side"]の
+  未使用ヒント入力も"side"時に継続尊重）
+
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+
+- pose: `_symmetry` を画像中心ではなく体幹軸（肩ラン中心）まわりで
+  計測。非中央に構図された正面人物が symmetry≈0 に化けて
+  facing=front→three-quarter と誤判定されていた欠陥を解消
+  （オフセンターの同一人物で symmetry 0.0→0.981）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

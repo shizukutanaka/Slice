@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- selfcheck: 重複していた `from . import` ブロックを一本化。
+  #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
+  「冗長な方を消す」だけでNameError化する罠になっていた —
+  全必要名を含む単一宣言に統合（挙動変更なし）。
+
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

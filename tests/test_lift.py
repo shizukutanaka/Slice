@@ -27,6 +27,22 @@ class TestLift(unittest.TestCase):
         self.assertGreater(max(zs), 0.0)
         self.assertGreater(lift.depth_spread(d), 0.0)
 
+    def test_left_facing_lifts_far_flank(self):
+        """facing "left" is the real profile detection: the person's
+        left arm sits behind the sagittal axis, so _l joints get +z.
+        Before the fix, genuine left/right profiles lifted flat."""
+        self.skel.orientation = {"facing": "left"}
+        d = lift.lift(self.skel)
+        self.assertGreater(d["wrist_l"]["z"], 0.0)
+        self.assertEqual(d["wrist_r"]["z"], 0.0)
+        self.assertEqual(d["wrist_l"]["basis"], "facing_side")
+
+    def test_right_facing_lifts_far_flank(self):
+        self.skel.orientation = {"facing": "right"}
+        d = lift.lift(self.skel)
+        self.assertGreater(d["wrist_r"]["z"], 0.0)
+        self.assertEqual(d["wrist_l"]["z"], 0.0)
+
     def test_predicted_joints_keep_their_state(self):
         # x,y of a predicted joint is prior fill — the output must
         # say so, not present it indistinguishably from observed

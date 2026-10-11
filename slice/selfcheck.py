@@ -160,6 +160,9 @@ def run(raw: bytes, *, model: Optional[str] = None,
         estimator=est, robust=robust)
     layers["gate"] = gate.check(skel, doc, mdl)
     reasons += layers["gate"]["reasons"]
+    # the gate re-runs consistency.audit and re-reports the same
+    # codes this function already appended — one finding, one reason
+    reasons = list(dict.fromkeys(reasons))
 
     sev = {l: _severity(l, r) for l, r in layers.items()}
     worst = max((_SEV[s] for s in sev.values()), default=-1)

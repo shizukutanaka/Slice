@@ -731,7 +731,13 @@ class HeuristicPoseEstimator(PoseEstimator):
                     "arm blob mid-extent")
 
         # Orientation + body model selection.
-        sym = self._symmetry(comp, w, int(crotch), bottom)
+        # Symmetry is measured around the torso axis, not the image
+        # centre — a front-facing person framed off-centre reads
+        # symmetric about their own axis but lopsided about w//2,
+        # which flipped facing to three-quarter/profile purely by
+        # composition.
+        sym = self._symmetry(comp, w, int(crotch), bottom,
+                             int(cx_spine))
         aspect = body_w / body_h
         sh_span = abs(sr[1] - sr[0]) + 1
         torso_cx = (torso_run[0] + torso_run[1]) / 2
@@ -773,11 +779,11 @@ class HeuristicPoseEstimator(PoseEstimator):
                          "state": "estimated"}
         return sk
 
-    def _symmetry(self, mask, w, y0, y1) -> float:
-        """Left/right run-width agreement across the lower body."""
+    def _symmetry(self, mask, w, y0, y1, cx) -> float:
+        """Left/right run-width agreement across the lower body,
+        measured around the body axis `cx`."""
         diffs = 0
         n = 0
-        cx = w // 2
         for y in range(y0, min(y1, len(mask))):
             row = mask[y]
             lw = sum(row[x] for x in range(0, cx))

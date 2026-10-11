@@ -51,6 +51,24 @@ class TestRatio(unittest.TestCase):
         from slice.skeleton import Skeleton
         self.assertIn("error", ratio.analyze(Skeleton(10, 10)))
 
+    def test_predicted_extremity_does_not_inflate_normalizer(self):
+        # a prior-placed foot far below the observed span must not
+        # stretch body_h — every ratio normalizes on evidence only
+        from slice.skeleton import Joint, Skeleton, OBSERVED, PREDICTED
+        sk = Skeleton(120, 400)
+        for name, x, y in (("head", 50, 10), ("neck", 50, 30),
+                           ("shoulder_l", 30, 32), ("shoulder_r", 70, 32),
+                           ("pelvis", 50, 60), ("hip_l", 38, 60),
+                           ("hip_r", 62, 60), ("knee_r", 60, 85),
+                           ("ankle_r", 58, 105), ("foot_r", 55, 110),
+                           ("knee_l", 40, 85), ("ankle_l", 42, 105)):
+            sk.set(Joint(name, x, y, 0.9, OBSERVED))
+        sk.set(Joint("foot_l", 48, 300, 0.3, PREDICTED,
+                     "prior ankle ratio"))
+        r = ratio.analyze(sk)
+        self.assertNotIn("error", r)
+        self.assertEqual(r["body_height_px"], 100.0)  # 110-10, not 300-10
+
 
 if __name__ == "__main__":
     unittest.main()

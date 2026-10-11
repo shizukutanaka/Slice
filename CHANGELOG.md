@@ -4,6 +4,21 @@
 
 - `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。
 
+- lift: facing "left"/"right"（実際のプロファイル検出）でも遠側にzを付与
+  （facing "side"のみ対象だったため真の側面人物が平坦zになっていた欠陥。
+  遠側は向き方向側フランク＝facing "left"なら_l側。orientation["side"]の
+  未使用ヒント入力も"side"時に継続尊重）
+
+- pose: 向きリトライ採用時、orientationにも回転量を開示
+  （`estimated_on_rotated_deg`）し、180°ではfacing/head_shiftの
+  左右を反転補正。回転フレームの向きを原画像座標の値として
+  誤報していた欠陥（関節座標は逆回転済みだったが向きは未補正）
+
+- pose: `_symmetry` を画像中心ではなく体幹軸（肩ラン中心）まわりで
+  計測。非中央に構図された正面人物が symmetry≈0 に化けて
+  facing=front→three-quarter と誤判定されていた欠陥を解消
+  （オフセンターの同一人物で symmetry 0.0→0.981）。
+
 - `slice rig <image> [-o rig.json]` — rig層のCLI接続。骨階層（parent/head/tail/length/dir/confidence）＋hierarchy木＋合計骨長をJSON出力。アニメーションリグ入力。
 
 - 成分ラベリングの統合 — `people._components` が独自実装していた

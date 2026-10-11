@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from typing import Optional, Tuple
 
-from .skeleton import Skeleton, head_length_px
+from .skeleton import OBSERVED, Skeleton, head_length_px
 
 
 def _dist(a: Optional[Tuple[float, float]],
@@ -33,8 +33,7 @@ def analyze(skel: Skeleton, *, centroid: Optional[Tuple[float, float]] = None
     feet = [p for p in (skel.point("foot_l"), skel.point("foot_r")) if p]
     if not top or not feet:
         return {"error": "insufficient joints"}
-    bottom_y = max(p[1] for p in feet)
-    body_h = bottom_y - _top_y(skel)
+    body_h = _body_h(skel)
     if body_h <= 0:
         return {"error": "degenerate skeleton"}
 
@@ -84,8 +83,23 @@ def analyze(skel: Skeleton, *, centroid: Optional[Tuple[float, float]] = None
     return ratios
 
 
+def _body_h(skel: Skeleton) -> float:
+    """Observed vertical extent — the normalizer for every ratio
+    must come from evidence, not prior-placed endpoints. Predicted
+    head/feet sit at prior positions and can stretch the frame
+    beyond what was measured, scaling every ratio by inference."""
+    js = [j for j in skel.joints.values() if j.state == OBSERVED]
+    if not js:
+        js = list(skel.joints.values())
+    if not js:
+        return 0.0
+    return max(j.y for j in js) - min(j.y for j in js)
+
+
 def _top_y(skel: Skeleton) -> float:
-    ys = [j.y for j in skel.joints.values()]
+    ys = [j.y for j in skel.joints.values() if j.state == OBSERVED]
+    if not ys:
+        ys = [j.y for j in skel.joints.values()]
     return min(ys) if ys else 0.0
 
 

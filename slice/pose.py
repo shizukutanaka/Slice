@@ -622,7 +622,20 @@ class HeuristicPoseEstimator(PoseEstimator):
         cr = rows[int(chest_y)] or torso_run
         put("chest", (cr[0] + cr[1]) / 2, chest_y, 0.65,
             "midpoint shoulders-pelvis")
-        put("spine", head_cx, (neck_y + hip_row) / 2, 0.6,
+        # The spine joint is the mirroring axis for predictions and
+        # the curvature reference for spine.curve — it must sit on
+        # the torso axis, not the head centroid: in profile the head
+        # leans toward the faced side (head_shift), which would pull
+        # the axis off the body exactly when mirrored prediction is
+        # needed most. Measure the torso column at spine height —
+        # the axis itself tilts with the torso, so a chest-height
+        # run alone still misses it.
+        spine_y = (neck_y + hip_row) / 2
+        spine_run = next(
+            (r for r in _row_runs(comp, int(spine_y), w)
+             if r[0] <= cx_spine <= r[1]),
+            torso_run)
+        put("spine", (spine_run[0] + spine_run[1]) / 2, spine_y, 0.6,
             "axis midpoint")
 
         # Legs: below the crotch, split the row runs.
@@ -731,7 +744,13 @@ class HeuristicPoseEstimator(PoseEstimator):
                     "arm blob mid-extent")
 
         # Orientation + body model selection.
-        sym = self._symmetry(comp, w, int(crotch), bottom)
+        # Symmetry is measured around the torso axis, not the image
+        # centre — a front-facing person framed off-centre reads
+        # symmetric about their own axis but lopsided about w//2,
+        # which flipped facing to three-quarter/profile purely by
+        # composition.
+        sym = self._symmetry(comp, w, int(crotch), bottom,
+                             int(cx_spine))
         aspect = body_w / body_h
         sh_span = abs(sr[1] - sr[0]) + 1
         torso_cx = (torso_run[0] + torso_run[1]) / 2
@@ -773,11 +792,11 @@ class HeuristicPoseEstimator(PoseEstimator):
                          "state": "estimated"}
         return sk
 
-    def _symmetry(self, mask, w, y0, y1) -> float:
-        """Left/right run-width agreement across the lower body."""
+    def _symmetry(self, mask, w, y0, y1, cx) -> float:
+        """Left/right run-width agreement across the lower body,
+        measured around the body axis `cx`."""
         diffs = 0
         n = 0
-        cx = w // 2
         for y in range(y0, min(y1, len(mask))):
             row = mask[y]
             lw = sum(row[x] for x in range(0, cx))

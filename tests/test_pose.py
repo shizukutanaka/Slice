@@ -162,6 +162,20 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertTrue(any(jt.basis and "rotated" in jt.basis
                             for jt in j.values()))
 
+    def test_spine_sits_on_torso_axis_not_head(self):
+        """The spine joint is the mirroring axis for predictions.
+        Placing it on the head centroid pulls the axis toward the
+        faced side in profile — where mirrored prediction is needed
+        most. It must track the torso column instead."""
+        for side in (-1, 1):
+            sk = HeuristicPoseEstimator().estimate(
+                profile_person(side=side))
+            sp = sk.joints["spine"]
+            nk, pl = sk.joints["neck"], sk.joints["pelvis"]
+            axis = (nk.x + pl.x) / 2
+            head_x = sk.joints["head"].x
+            self.assertLess(abs(sp.x - axis), abs(head_x - axis))
+
     def test_rotated_retry_discloses_and_mirrors_orientation(self):
         """180°-flipped profile faces right in the image — but the
         rotated scan reads its facing in the mirrored frame ("left").
@@ -208,6 +222,22 @@ class TestHeuristicPose(unittest.TestCase):
         self.assertLess(left.orientation["head_shift"], 0)
         self.assertEqual(right.orientation["facing"], "right")
         self.assertGreater(right.orientation["head_shift"], 0)
+
+    def test_offcenter_figure_keeps_front_facing(self):
+        """Symmetry is measured around the body axis, not the image
+        centre — a front-facing person framed off-centre must not
+        degrade to three-quarter purely by composition."""
+        src = synthetic_person(width=160, height=300)
+        w, h = src.width, src.height
+        bg = src.get(0, 0)
+        wide = Bitmap.new(w + 120, h, bg)
+        for y in range(h):
+            for x in range(w):
+                if src.get(x, y) != bg:
+                    wide.set(x + 110, y, src.get(x, y))
+        ori = HeuristicPoseEstimator().estimate(wide).orientation
+        self.assertEqual(ori["facing"], "front")
+        self.assertGreater(ori["symmetry"], 0.75)
 
     def test_blank_image(self):
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,

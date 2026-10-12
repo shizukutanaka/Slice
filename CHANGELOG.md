@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
+  首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
+  計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
 - dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
   真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
   1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord

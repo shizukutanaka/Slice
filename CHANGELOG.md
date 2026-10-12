@@ -4,6 +4,10 @@
 
 - `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

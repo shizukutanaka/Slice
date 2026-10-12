@@ -92,12 +92,15 @@ def audit(doc: dict) -> dict:
     # misleads them exactly like a stale basis.
     obs_set = {n for n, j in joints.items()
                if isinstance(j, dict) and j.get("state") == OBSERVED}
+    torso = ("pelvis", "chest", "neck", "head")
     backed = {
         "few_observed_joints": len(obs_set) < 8,
+        "no_observed_torso": not any(n in torso for n in obs_set),
         "no_observed_wrists":
             not any(n.startswith("wrist") for n in obs_set),
         "no_observed_feet":
             not any(n.startswith(("ankle", "foot")) for n in obs_set),
+        "no_observed_head": "head" not in obs_set,
     }
     stale = sorted(w for w in (doc.get("warnings") or [])
                    if w in backed and not backed[w])

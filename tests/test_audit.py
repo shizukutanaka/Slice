@@ -103,6 +103,19 @@ class TestAudit(unittest.TestCase):
         codes = [w["code"] for w in a["warnings"]]
         self.assertNotIn("stale_warning", codes)
 
+    def test_stale_torso_and_head_warnings_flagged(self):
+        # the two newest pipeline codes must be audited too —
+        # a doc claiming no observed torso/head while those
+        # joints are observed is the same stale claim
+        doc = _doc()
+        doc["warnings"] = ["no_observed_torso", "no_observed_head"]
+        a = audit(doc)
+        codes = [w["code"] for w in a["warnings"]]
+        self.assertIn("stale_warning", codes)
+        stale = a["warnings"][codes.index("stale_warning")]["warnings"]
+        self.assertIn("no_observed_torso", stale)
+        self.assertIn("no_observed_head", stale)
+
     def test_unknown_warning_code_ignored(self):
         # codes outside the audited vocabulary are foreign, not stale
         doc = _doc()

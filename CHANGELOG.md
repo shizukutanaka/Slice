@@ -4,6 +4,10 @@
 
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

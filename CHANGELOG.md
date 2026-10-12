@@ -4,6 +4,16 @@
 
 - `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
 
+- selfcheck: 重複していた `from . import` ブロックを一本化。
+  #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
+  「冗長な方を消す」だけでNameError化する罠になっていた —
+  全必要名を含む単一宣言に統合（挙動変更なし）。
+
+- style: 透過画素を統計から除外（alpha=0領域がRGB=0として
+  パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
+  →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく
+  完全不透明近傍間のみ計測。`opaque_ratio`シグナルで証拠画素率を開示）。
+- pose: 向きリトライの誤反転を修正（腕上げ等のupright図形を回転しない — 回転候補にhead-band強化＋関節非減を必須化）
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

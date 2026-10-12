@@ -5,6 +5,10 @@
 - `slice.grid` 新設 — 占有グリッド記述子（bboxを8×8セル分割、
   各セルの前景密度）。radial（極座標）と対になる直行グリッド
   版の局所形状ベクトル、match=L1距離
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

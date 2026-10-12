@@ -4,6 +4,18 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
+- human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
+  「箱ではない」だけで満点を取っていた片側評価を修正。
+  0.15–0.75 を人間らしい帯域として両側フェード）
+- imgqual: contrastの前景/境界距離をmax→第75パーセンタイルに
+  （「median-ish」契約に対し孤立画素1個でゲートを通過していた
+  欠陥を修正。小さな被写体を弾かない頑健な順位統計）
+- repro: 再検証がdoc記録のengine.profileをリプレイ。
+  robustプロファイルで作られたdocをデフォルト推定器で再推定すると
+  同一エンジンなのにdrift/changedと誤報していた欠陥を修正
+  （`engine_profile`を結果とbasisに開示）。
+
 - knowledge: `validate` がpredictionブロックを検査するように。
   observed/predictedリストがskeleton.jointsのstateと矛盾する
   doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。

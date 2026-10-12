@@ -93,6 +93,14 @@ def validate(doc: dict) -> list:
     for key in ("id", "created_at", "engine", "skeleton", "export"):
         if key not in doc:
             errors.append(f"missing {key}")
+    if not re.fullmatch(r"k_[0-9a-f]{12}", str(doc.get("id") or "")):
+        errors.append(f"id {doc.get('id')!r} is not k_<12 hex>")
+    skel = doc.get("skeleton") or {}
+    frame = skel.get("frame") or {}
+    for f in ("width", "height"):
+        if not isinstance(frame.get(f), int) or frame[f] <= 0:
+            errors.append(f"skeleton.frame.{f} must be a positive int")
+    joints = skel.get("joints") or {}
     # v1.1 extension slot: `analysis` is a dict of named layer outputs;
     # each layer is a free-form dict (its own state/basis vocabulary).
     # Tolerated on v1 too — docs written before the version bump stay
@@ -112,6 +120,34 @@ def validate(doc: dict) -> list:
         c = j.get("confidence")
         if not isinstance(c, (int, float)) or not 0 <= c <= 1:
             errors.append(f"joint {name} bad confidence {c}")
+
+    # prediction lists must mirror the joints' declared states.
+    pred = doc.get("prediction") or {}
+    for key, want in (("observed", OBSERVED), ("predicted", PREDICTED)):
+        for n in pred.get(key) or []:
+            if (joints.get(n) or {}).get("state") != want:
+                errors.append(f"prediction.{key}: {n} is not {want}")
+
+    exp = doc.get("export") or {}
+    order = exp.get("keypoint_order") or []
+    flat = exp.get("keypoints_2d") or []
+    if len(flat) != len(order) * 3:
+        errors.append(
+            f"keypoints_2d has {len(flat)} values, "
+            f"expected {len(order) * 3}")
+    for n in order:
+        if n not in JOINTS:
+            errors.append(f"keypoint_order has unknown joint {n}")
+    for i in range(0, len(flat) - len(flat) % 3, 3):
+        x, y, c = flat[i:i + 3]
+        if not all(isinstance(v, (int, float)) for v in (x, y, c)):
+            errors.append(f"keypoint {i // 3} non-numeric")
+        elif not 0 <= c <= 1:
+            errors.append(f"keypoint {i // 3} confidence {c} out of range")
+    for a, b in (exp.get("bones") or skel.get("bones") or []):
+        for n in (a, b):
+            if n not in JOINTS:
+                errors.append(f"bone references unknown joint {n}")
     skel = doc.get("skeleton") or {}
     frame = skel.get("frame")
     if isinstance(frame, dict):

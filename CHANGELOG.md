@@ -2,10 +2,8 @@
 
 ## [Unreleased]
 
-- render: オーバーレイに信頼度反映 — 低信頼（<0.55）の骨を破線化、
-  関節円の半径を confidence に比例
-- デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
-
+- knowledge: `validate()` 強化 — id形式・frame正値・prediction↔関節state
+  整合・keypoints_2d長/範囲・bone関節名の既知チェックを追加
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

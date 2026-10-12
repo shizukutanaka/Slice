@@ -44,14 +44,18 @@ def verify(doc: dict, bmp: Bitmap,
     The document's frame size and joint list come from
     `doc["skeleton"]`; the model from `doc["engine"]`-adjacent fields
     is not part of schema v1, so `model` falls back to the estimator
-    default — disclosed in `basis`.
+    default — disclosed in `basis`. The engine *profile* the doc
+    recorded (`engine.profile`, e.g. "robust") is replayed too —
+    re-estimating a robust doc under the default profile reports
+    configuration drift, not engine drift.
     """
     rec = (doc.get("skeleton") or {}).get("joints") or {}
     frame = (doc.get("skeleton") or {}).get("frame") or {}
     model = ((doc.get("skeleton") or {}).get("body_model") or {}) \
         .get("name") or DEFAULT_MODEL
 
-    est = estimator or HeuristicPoseEstimator()
+    profile = (doc.get("engine") or {}).get("profile") or "default"
+    est = estimator or _estimator_for(profile)
     sk = est.estimate(bmp, model)
     # docs built by the analyze pipeline carry predicted joints —
     # complete the re-run the same way when the record shows them,
@@ -92,10 +96,19 @@ def verify(doc: dict, bmp: Bitmap,
         "missing": sorted(missing),
         "added": sorted(added),
         "tolerance_px": tolerance,
+        "engine_profile": profile,
         "state": "measured",
         "basis": "re-estimate on source image vs recorded joints "
-                 "(frame-rescaled)",
+                 "(frame-rescaled, profile=%s)" % profile,
     }
+
+
+def _estimator_for(profile: str) -> HeuristicPoseEstimator:
+    """Estimator matching a doc's recorded engine profile."""
+    if profile == "robust":
+        return HeuristicPoseEstimator(adaptive=True, reject_shadow=True,
+                                      clean=True)
+    return HeuristicPoseEstimator()
 
 
 def reproducible(result: Dict) -> bool:

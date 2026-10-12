@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
+  時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
+  混入していた欠陥を修正（同ファイルの`forward_head`が宣言する
+  「scaleなし→unknown」ルールと整合。測定不能は`None`開示）
 - pose: 直立推定が0関節に飢えたときも向きリトライを走査。
   直立ゲート（body_h<24px）を通らない横たわり人物は、リトライが
   最も必要なケースでありながら早期returnで回転スキャンすら

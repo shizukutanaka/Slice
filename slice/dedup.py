@@ -27,7 +27,12 @@ def _vec(doc: dict) -> Optional[dict]:
     p0, p1 = joints.get(_TORSO[0]), joints.get(_TORSO[1])
     if not p0 or not p1:
         return None
-    scale = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) or 1.0
+    scale = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"])
+    if scale <= 0:
+        # coincident torso anchors: the normalised space is
+        # undefined — `or 1.0` would silently switch to raw px and
+        # the doc is unmeasurable, not 1px-tall
+        return None
     return {n: ((j["x"] - p1["x"]) / scale,
                 (j["y"] - p1["y"]) / scale)
             for n, j in joints.items()

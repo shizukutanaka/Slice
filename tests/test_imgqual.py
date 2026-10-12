@@ -36,6 +36,22 @@ class TestImgqual(unittest.TestCase):
         r = imgqual.assess(bmp)
         self.assertIn("blur", r["failed"])
 
+    def test_lone_outlier_cannot_pass_contrast(self):
+        # a few bright pixels in a centre that otherwise matches the
+        # border must not satisfy the contrast gate — the declared
+        # statistic is median-ish, so sparse outliers cannot carry it
+        bmp = Bitmap.new(200, 300, (60, 60, 60, 255))
+        for y in range(300):
+            for x in range(200):
+                if (x * 31 + y * 17) % 23 == 0:
+                    v = 60 + (x * y) % 40  # mild texture for dynamic
+                    bmp.set(x, y, (v, v, v, 255))
+        for y in range(75, 225, 12):
+            for x in range(50, 150, 12):
+                bmp.set(x, y, (255, 255, 255, 255))  # sparse outliers
+        r = imgqual.assess(bmp)
+        self.assertIn("contrast", r["failed"])
+
     def test_flag_values_measured(self):
         bmp, _ = evaluate.draw_case(160, 300)
         r = imgqual.assess(bmp)

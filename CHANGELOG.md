@@ -4,6 +4,21 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
+  「箱ではない」だけで満点を取っていた片側評価を修正。
+  0.15–0.75 を人間らしい帯域として両側フェード）
+- imgqual: contrastの前景/境界距離をmax→第75パーセンタイルに
+  （「median-ish」契約に対し孤立画素1個でゲートを通過していた
+  欠陥を修正。小さな被写体を弾かない頑健な順位統計）
+- repro: 再検証がdoc記録のengine.profileをリプレイ。
+  robustプロファイルで作られたdocをデフォルト推定器で再推定すると
+  同一エンジンなのにdrift/changedと誤報していた欠陥を修正
+  （`engine_profile`を結果とbasisに開示）。
+
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

@@ -56,6 +56,10 @@ class Skeleton:
     # were offered for skeletonization when estimate_multi/split ran
     # — 0 means the skeleton came from the single-person path
     component_count: int = 0
+    # runtime-only (never serialized): the (threshold, method) mask
+    # decision this skeleton was estimated under — set by the
+    # estimator so the doc can disclose it per call, thread-safely
+    mask_threshold: Optional[tuple] = None
 
     def set(self, joint: Joint) -> None:
         self.joints[joint.name] = joint

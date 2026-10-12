@@ -37,6 +37,14 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
                 "slice": __version__,
                 "profile": "robust" if robust else "default"},
     )
+    # the mask decision that produced every joint's evidence —
+    # Otsu value or the fixed fallback, whichever actually ran.
+    # Carried on the skeleton (not read off the shared estimator) so
+    # concurrent REST calls can't cross-attribute each other's choice
+    thr = getattr(skel, "mask_threshold", None)
+    if thr:
+        doc["engine"]["mask_threshold"] = {
+            "value": round(thr[0], 1), "method": thr[1]}
     doc["prediction"]["filled"] = [j.name for j in added]
     doc["style"] = style.analyze(bmp)
     analysis = {

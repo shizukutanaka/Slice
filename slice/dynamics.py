@@ -49,15 +49,18 @@ def cues(skel: Skeleton) -> List[dict]:
         if abs(pelvis[0] - mid) > 0.5 * span:
             out.append({"cue": "com_outside_feet", "weight": 0.35,
                         "detail": round(abs(pelvis[0] - mid) / span, 2)})
-        if span > 0.5 * _span(skel):
+        body_h = _span(skel)
+        # "wide" is a fraction of body height — with no honest
+        # scale a raw-pixel default fabricates the threshold.
+        if body_h > 0 and span > 0.5 * body_h:
             out.append({"cue": "wide_step", "weight": 0.2,
-                        "detail": round(span / _span(skel), 2)})
+                        "detail": round(span / body_h, 2)})
     return out
 
 
 def _span(skel: Skeleton) -> float:
     # observed-only span: a predicted head/foot is prior fill
-    return observed_body_span(skel) or 200.0
+    return observed_body_span(skel)
 
 
 def score(skel: Skeleton) -> dict:

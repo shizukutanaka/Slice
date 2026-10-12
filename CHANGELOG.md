@@ -4,6 +4,11 @@
 
 - knowledge: `validate()` 強化 — id形式・frame正値・prediction↔関節state
   整合・keypoints_2d長/範囲・bone関節名の既知チェックを追加
+- selfcheck: 重複していた `from . import` ブロックを一本化。
+  #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
+  「冗長な方を消す」だけでNameError化する罠になっていた —
+  全必要名を含む単一宣言に統合（挙動変更なし）。
+
 - style: 透過画素を統計から除外（alpha=0領域がRGB=0として
   パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
   →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく

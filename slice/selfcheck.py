@@ -23,13 +23,10 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from . import (anatomy, axis, balance, bitmap, classify, contrad,
-               evid, fit,
-               gate, ground, human, imgqual, knowledge, limbcov,
-               mask as mask_mod, pipeline, stability)
-from . import (axis, balance, bitmap, classify, consistency, contrad,
-               evid, fit, gate, ground, human, imgqual, knowledge,
-               limbcov, mask as mask_mod, pipeline, stability)
+from . import (anatomy, axis, balance, bitmap, classify, consistency,
+               contrad, evid, fit, gate, ground, human, imgqual,
+               knowledge, limbcov, mask as mask_mod, pipeline,
+               stability)
 
 _SEV = {"ok": 0, "advisory": 1, "problem": 2, "unmeasured": -1}
 

@@ -4,6 +4,10 @@
 
 - `slice consensus <image> [-o sk.json]` — consensus層のCLI接続。閾値±25%・解像度±25%の5変体で中央値投票骨格＋disputed関節列挙を報告。confidenceは観測率割引、`-o`で合意骨格JSON書き出し。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

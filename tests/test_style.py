@@ -37,6 +37,30 @@ def skin_image(w=128, h=128, seed=1):
 
 
 class TestStyle(unittest.TestCase):
+    def test_transparent_pixels_are_not_black_evidence(self):
+        # a photo-like textured figure on an alpha=0 canvas used to be
+        # classified from a fabricated 88% "flat black" — transparent
+        # pixels are absent content, not a dominant color
+        rng = random.Random(1)
+        bmp = bitmap.Bitmap.new(200, 240, (0, 0, 0, 0))
+        for y in range(240):
+            for x in range(200):
+                if 60 <= y < 200 and 80 <= x < 120:
+                    bmp.set(x, y, (rng.randrange(256),
+                                   rng.randrange(256),
+                                   rng.randrange(256), 255))
+        rep = style.analyze(bmp)
+        self.assertLess(rep["signals"]["top_color_coverage"], 0.25)
+        self.assertAlmostEqual(rep["signals"]["opaque_ratio"],
+                               40 * 140 / (200 * 240), places=2)
+        self.assertEqual(rep["style"], "real")
+
+    def test_fully_transparent_is_unknown(self):
+        bmp = bitmap.Bitmap.new(64, 64, (0, 0, 0, 0))
+        rep = style.analyze(bmp)
+        self.assertEqual(rep["style"], "unknown")
+        self.assertEqual(rep["signals"]["opaque_ratio"], 0.0)
+
     def test_flat_figure_is_anime(self):
         r = style.analyze(synthetic_person(240, 420))
         self.assertEqual(r["style"], "anime")

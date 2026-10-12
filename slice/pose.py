@@ -366,8 +366,13 @@ class HeuristicPoseEstimator(PoseEstimator):
         small = bmp.downscale(self.max_dim)
         w, h = small.width, small.height
         mask = self._mask(small)
-        comp, size = self._largest_component(mask, w, h)
-        return self._estimate_oriented(small, comp, size, w, h, model)
+        thr = self.last_threshold  # capture this call's decision — a
+        comp, size = self._largest_component(mask, w, h)  # later call
+        sk = self._estimate_oriented(small, comp, size, w, h, model)
+        # may overwrite the shared attribute, so carry it on the
+        # skeleton instead of reading it back
+        sk.mask_threshold = thr
+        return sk
 
     def _estimate_oriented(self, small, comp, size, w, h,
                            model: str) -> Skeleton:
@@ -454,6 +459,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         small = bmp.downscale(self.max_dim)
         w, h = small.width, small.height
         mask = self._mask(small)
+        thr = self.last_threshold  # captured once — one mask per call
         labels, sizes = self._label_components(mask, w, h)
         out: List[Skeleton] = []
         for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
@@ -462,6 +468,7 @@ class HeuristicPoseEstimator(PoseEstimator):
             comp = self._component_mask(labels, lab, w, h)
             sk = self._estimate_oriented(small, comp, sizes[lab],
                                          w, h, model)
+            sk.mask_threshold = thr
             if sk.joints:
                 out.append(sk)
         return out
@@ -481,6 +488,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         small = bmp.downscale(self.max_dim)
         w, h = small.width, small.height
         mask = self._mask(small)
+        thr = self.last_threshold  # captured once — one mask per call
         labels, sizes = self._label_components(mask, w, h)
         out: List[Skeleton] = []
         for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
@@ -510,6 +518,7 @@ class HeuristicPoseEstimator(PoseEstimator):
                 size = sum(sum(r) for r in sub)
                 sk = self._estimate_component(small, sub, size,
                                               w, h, model)
+                sk.mask_threshold = thr
                 if not sk.joints:
                     continue
                 for j in sk.joints.values():

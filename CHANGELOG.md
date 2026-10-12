@@ -7,6 +7,8 @@
   ビューアにモデル切替ドロップダウン追加
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

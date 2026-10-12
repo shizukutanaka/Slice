@@ -4,6 +4,7 @@ from tests import synthetic_person
 
 from slice import ground, predict
 from slice.pose import HeuristicPoseEstimator
+from slice.skeleton import Joint, Skeleton
 
 
 class TestGround(unittest.TestCase):
@@ -37,6 +38,16 @@ class TestGround(unittest.TestCase):
         r = ground.estimate(self.skel)
         self.assertEqual(r["contact"], "grounded")
         self.assertEqual(ground.clearance(self.skel), 0)
+
+    def test_unmeasurable_scale_skips_uneven_support(self):
+        # feet observed at different heights, nothing else: the
+        # uneven tolerance is a fraction of body height — without
+        # an honest span a raw-pixel default fabricates the verdict.
+        sk = Skeleton(100, 400)
+        sk.set(Joint("foot_l", 50.0, 280.0, 0.9, state="observed"))
+        sk.set(Joint("foot_r", 50.0, 300.0, 0.9, state="observed"))
+        r = ground.estimate(sk)
+        self.assertNotIn("uneven_support", r["reasons"])
 
     def test_floating_figure_airborne(self):
         # a hand below the feet reads as airborne

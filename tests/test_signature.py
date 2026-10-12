@@ -63,6 +63,18 @@ class TestSignature(unittest.TestCase):
         # torso-lean scalar = 0.0 (missing), not prior geometry
         self.assertEqual(v[-4], 0.0)
 
+    def test_no_scale_scalars_are_missing_not_raw_px(self):
+        # torso/head/feet all unmeasured: body scale is undefined —
+        # `else 1.0` would write raw-px spans into normalised slots
+        other = Skeleton(self.skel.image_width, self.skel.image_height)
+        keep = {"wrist_l", "wrist_r", "ankle_l", "ankle_r"}
+        for n, j in self.skel.joints.items():
+            if n in keep:
+                other.set(Joint(n, j.x, j.y, j.confidence, state="observed"))
+        v = sig.signature(other)
+        # last 4 slots: torso-lean + wrist/ankle/shoulder spans
+        self.assertEqual(v[-4:], [0.0, 0.0, 0.0, 0.0])
+
     def test_bent_arm_changes_signature(self):
         other = Skeleton(self.skel.image_width, self.skel.image_height)
         for n, j in self.skel.joints.items():

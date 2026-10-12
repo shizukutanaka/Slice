@@ -728,13 +728,16 @@ def _cmd_bias(a) -> int:
                        evaluate.draw_case(width=240, height=320)):
         pairs.append((est.estimate(bmp).joints, truth))
     rep = bias.profile(pairs)
-    measured = bool(rep.get("joints"))
-    rep["state"] = "estimated" if measured else "unmeasured"
+    # an entry in joints only means a joint was observed once —
+    # "insufficient" is still unmeasured. measured = at least one
+    # joint cleared the sample minimum, else the gate passes on
+    # zero evidence precisely when the estimator is degraded.
+    worst = rep.get("worst_joint")
+    rep["state"] = "estimated" if worst is not None else "unmeasured"
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     # unmeasured must not pass; a worst joint beyond the bench gate is
     # a real estimator defect
-    worst = rep.get("worst_joint") or {}
-    if not measured or (worst.get("mean_error_px") or 0) > 10.0:
+    if worst is None or worst["mean_error_px"] > 10.0:
         return 1
     return 0
 

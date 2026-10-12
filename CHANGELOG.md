@@ -4,6 +4,8 @@
 
 - `slice trust <image>` — trust層のCLI接続。evid（証拠位置）＋stability（摂動感度）を実行し関節ごとの high/medium/low グレード＋格下げ要因を報告。calib正解データ非依存で動作。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

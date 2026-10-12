@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
 - selfcheck: 重複していた `from . import` ブロックを一本化。
   #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
   「冗長な方を消す」だけでNameError化する罠になっていた —

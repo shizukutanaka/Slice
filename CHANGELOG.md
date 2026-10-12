@@ -4,6 +4,8 @@
 
 - `slice fit <image>` — fit層の単体CLI接続。前景画素が骨/関節のcover_radius内に占める割合（explained fraction）＋未説明領域重心。空マスクはunmeasurable（0証拠≠100%一致）。good以外は exit 1。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

@@ -6,6 +6,10 @@
   observed平均confidence(0.3)＋4身体領域の証拠分散(0.2)を
   加重して0–1スコア＋A–E等級。「証拠の評価」であって
   「ポーズの正しさ」ではないとbasis明記
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

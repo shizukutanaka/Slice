@@ -9,6 +9,7 @@
   `out_of_frame`リスト＋coverageにout_of_frameカウントを追加。
   migrateは該当stateをpredictedへ書き換えず保持。
 
+- pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。
   0.15–0.75 を人間らしい帯域として両側フェード）

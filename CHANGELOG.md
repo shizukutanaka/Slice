@@ -7,6 +7,7 @@
   TypeErrorを送出し、bundle.unpack/dataset.from_storeが
   docをスキップできず中断していた（#254レビュー指摘）。
 
+- pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。
   0.15–0.75 を人間らしい帯域として両側フェード）

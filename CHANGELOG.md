@@ -7,6 +7,7 @@
   修正。弦配置のpredicted chestがforward_headの胴体基準を、
   predicted ankleが支持基準offsetを捏造していた → predictedは
   欠損扱い（forward_headはNoneで測定不能）。
+- pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。
   0.15–0.75 を人間らしい帯域として両側フェード）

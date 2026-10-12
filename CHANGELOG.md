@@ -4,6 +4,8 @@
 
 - `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

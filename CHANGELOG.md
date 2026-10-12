@@ -6,6 +6,41 @@
   torso正規化空間が未定義なのに生px比較へ沈黙切替、全関節同yの
   0高クラウドでbody_fractionが1px分捏造されていた欠陥を修正
   （dedup: unmeasurable→比較対象外、framepos: fraction=0）
+- contact/dynamics/ground: `or 200.0`の生pxデフォルトを除去
+  （観測スパンが測れない骨格で「近い/幅広/不揃い」の閾値を捏造
+  していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
+  で除算してはならない」に違反していた同型3箇所を一括修正。
+  スケール未測定時は該当判定を発火しない）。
+- gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
+  ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
+  「通過」しswing/stanceを捏造していた欠陥を修正
+  （arm_len<=0→証拠なし、leg_len<=0→phase unknown+degenerate_leg）
+- predict: completeのbody_hを観測関節スパンに限定（predicted端点が
+  プライア配置スケールを膨張させ、プライア幾何が表に往復混入する
+  欠陥を解消。観測0件時は従来通り全関節にフォールバック）
+
+- signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
+  全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
+  生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正
+  （scale未測定→0.0 = missingマーカー、骨ベクトル欠損と同じ扱い）
+- cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
+  =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
+  でexit 0を返していたフェイルオープン。「unmeasured must not
+  pass」宣言通り、実測0件はexit 1。推定器劣化時にこそゲートが
+  効く方向へ修正）。
+- imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
+  「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
+  透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が
+  測定不能なので`contrast`は`unmeasurable`として開示（failでもpassでもない）。
+  `_stddev`/`_sharpness`も不透明画素のみ計測
+- scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
+  首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
+  計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
 - selfcheck: 重複していた `from . import` ブロックを一本化。
   #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
   「冗長な方を消す」だけでNameError化する罠になっていた —

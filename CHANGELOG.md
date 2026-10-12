@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 - bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
+- signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
+  全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
+  生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正
+  （scale未測定→0.0 = missingマーカー、骨ベクトル欠損と同じ扱い）
+- cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
+  =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
+  でexit 0を返していたフェイルオープン。「unmeasured must not
+  pass」宣言通り、実測0件はexit 1。推定器劣化時にこそゲートが
+  効く方向へ修正）。
+- imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
+  「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
+  透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が
+  測定不能なので`contrast`は`unmeasurable`として開示（failでもpassでもない）。
+  `_stddev`/`_sharpness`も不透明画素のみ計測
+- scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
+  首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
+  計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
 - selfcheck: 重複していた `from . import` ブロックを一本化。
   #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
   「冗長な方を消す」だけでNameError化する罠になっていた —

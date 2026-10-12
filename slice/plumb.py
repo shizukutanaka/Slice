@@ -27,7 +27,10 @@ def line(skel: Skeleton) -> Optional[dict]:
     if not head or not neck:
         return None
     ref_x = (head[0] + neck[0]) / 2.0
-    body_h = _span(skel) or 1.0
+    body_h = _span(skel)
+    # a 0 span means no measurable body scale — `or 1.0` would emit
+    # raw px dressed as body-height fractions (the rule
+    # forward_head() already honours), so report None instead
 
     offsets: Dict[str, dict] = {}
     for name in _CHAIN:
@@ -36,14 +39,17 @@ def line(skel: Skeleton) -> Optional[dict]:
             continue
         dx = p[0] - ref_x
         offsets[name] = {"dx": round(dx, 1),
-                         "of_body_h": round(dx / body_h, 3)}
+                         "of_body_h": (round(dx / body_h, 3)
+                                       if body_h > 0 else None)}
     # support reference: mean ankle x
     ankles = [p for p in (observed_point(skel, "ankle_l"), observed_point(skel, "ankle_r"))
               if p]
     if ankles:
         ax = sum(p[0] for p in ankles) / len(ankles)
-        offsets["base"] = {"dx": round(ax - ref_x, 1),
-                           "of_body_h": round((ax - ref_x) / body_h, 3)}
+        dx = ax - ref_x
+        offsets["base"] = {"dx": round(dx, 1),
+                           "of_body_h": (round(dx / body_h, 3)
+                                         if body_h > 0 else None)}
     return {"plumb_x": round(ref_x, 1), "offsets": offsets}
 
 
@@ -83,7 +89,7 @@ def assess(skel: Skeleton) -> dict:
     out = {"plumb": r, "forward_head": fh, "stack_score": None}
     if r:
         vals = [abs(v["of_body_h"]) for k, v in r["offsets"].items()
-                if k in _CHAIN]
+                if k in _CHAIN and v["of_body_h"] is not None]
         if vals:
             out["stack_score"] = round(sum(vals) / len(vals), 3)
     return out

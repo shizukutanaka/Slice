@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 - multi: `people.components`に骨格化に回った成分数を開示（ゲートで落ちた成分が`count`から読めず「画像内の人数」を過小申告していた穴を解消）
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

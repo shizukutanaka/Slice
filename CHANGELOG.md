@@ -4,6 +4,10 @@
 
 - `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

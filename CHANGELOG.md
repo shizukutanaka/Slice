@@ -4,6 +4,10 @@
 
 - `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

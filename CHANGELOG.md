@@ -6,6 +6,8 @@
   observed平均confidence(0.3)＋4身体領域の証拠分散(0.2)を
   加重して0–1スコア＋A–E等級。「証拠の評価」であって
   「ポーズの正しさ」ではないとbasis明記
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

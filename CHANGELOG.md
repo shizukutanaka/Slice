@@ -4,6 +4,16 @@
 
 - `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。
 
+- selfcheck: 重複していた `from . import` ブロックを一本化。
+  #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
+  「冗長な方を消す」だけでNameError化する罠になっていた —
+  全必要名を含む単一宣言に統合（挙動変更なし）。
+
+- style: 透過画素を統計から除外（alpha=0領域がRGB=0として
+  パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
+  →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく
+  完全不透明近傍間のみ計測。`opaque_ratio`シグナルで証拠画素率を開示）。
+- pose: 向きリトライの誤反転を修正（腕上げ等のupright図形を回転しない — 回転候補にhead-band強化＋関節非減を必須化）
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

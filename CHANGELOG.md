@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
+  全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
+  生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正
+  （scale未測定→0.0 = missingマーカー、骨ベクトル欠損と同じ扱い）
 - cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
   =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
   でexit 0を返していたフェイルオープン。「unmeasured must not

@@ -45,17 +45,21 @@ def signature(skel: Skeleton) -> List[float]:
         # feet missing or the figure is inverted — normalise by the
         # torso unit like compare/dedup do, never raw pixels
         body_h = math.hypot(neck[0] - pelvis[0], neck[1] - pelvis[1]) \
-            if neck and pelvis else 1.0
-    vec.append((neck[0] - pelvis[0]) / body_h if neck and pelvis else 0.0)
+            if neck and pelvis else 0.0
+    scale = body_h if body_h > 0 else None
+    # no measurable body scale: emit 0.0 (the missing marker), not
+    # raw px dressed as a body-height fraction via `else 1.0`
+    vec.append((neck[0] - pelvis[0]) / scale
+               if neck and pelvis and scale else 0.0)
     wl, wr = obs("wrist_l"), obs("wrist_r")
-    vec.append(math.hypot(wl[0] - wr[0], wl[1] - wr[1]) / body_h
-               if wl and wr else 0.0)
+    vec.append(math.hypot(wl[0] - wr[0], wl[1] - wr[1]) / scale
+               if wl and wr and scale else 0.0)
     al, ar = obs("ankle_l"), obs("ankle_r")
-    vec.append(math.hypot(al[0] - ar[0], al[1] - ar[1]) / body_h
-               if al and ar else 0.0)
+    vec.append(math.hypot(al[0] - ar[0], al[1] - ar[1]) / scale
+               if al and ar and scale else 0.0)
     sl, sr = obs("shoulder_l"), obs("shoulder_r")
-    vec.append(math.hypot(sl[0] - sr[0], sl[1] - sr[1]) / body_h
-               if sl and sr else 0.0)
+    vec.append(math.hypot(sl[0] - sr[0], sl[1] - sr[1]) / scale
+               if sl and sr and scale else 0.0)
     return vec
 
 

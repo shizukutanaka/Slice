@@ -38,6 +38,16 @@ class TestHuman(unittest.TestCase):
         r = human.assess(_rect_mask(y0=140, y1=160))
         self.assertFalse(r["person_like"], r["signals"])
 
+    def test_sparse_scatter_rejected(self):
+        # a dust cloud inside a person-shaped bbox is not lumpy —
+        # it is empty; fill must lose credit below the body band
+        comp = [bytearray(160) for _ in range(300)]
+        for y in range(40, 260, 4):
+            comp[y][78 + (y % 9 - 4)] = 1
+        r = human.assess(comp)
+        self.assertLess(r["signals"]["fill"]["score"], 1.0)
+        self.assertFalse(r["person_like"], r["signals"])
+
     def test_too_tall_pole_loses_aspect_credit(self):
         # a lamp post is taller than any person — the aspect signal
         # must fade out above the human range, not score a perfect 1.0

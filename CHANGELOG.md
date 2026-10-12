@@ -4,6 +4,10 @@
 
 - `slice signature <img> [img2]` — signature層のCLI接続。1枚でポーズ指紋（骨方向固定長ベクトル）、2枚でRMS距離（同一ポーズ=0）。解像度・構図非依存のポーズ類似検索が1コマンドに。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

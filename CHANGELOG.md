@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
+  =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
+  でexit 0を返していたフェイルオープン。「unmeasured must not
+  pass」宣言通り、実測0件はexit 1。推定器劣化時にこそゲートが
+  効く方向へ修正）。
 - imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
   「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
   透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が

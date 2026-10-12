@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- predict: completeのbody_hを観測関節スパンに限定（predicted端点が
+  プライア配置スケールを膨張させ、プライア幾何が表に往復混入する
+  欠陥を解消。観測0件時は従来通り全関節にフォールバック）
+
 - signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
   全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
   生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正

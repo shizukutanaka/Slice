@@ -55,6 +55,17 @@ class TestDedup(unittest.TestCase):
         r = dedup([a, b])
         self.assertEqual(r["n_pairs"], 0)
 
+    def test_coincident_torso_returns_none(self):
+        # neck==pelvis: the torso-normalised space is undefined —
+        # `or 1.0` would silently switch to raw px comparison
+        a, b = _doc(), _doc()
+        neck = b["skeleton"]["joints"]["neck"]
+        b["skeleton"]["joints"]["pelvis"]["x"] = neck["x"]
+        b["skeleton"]["joints"]["pelvis"]["y"] = neck["y"]
+        self.assertIsNone(distance(a, b))
+        r = dedup([a, b])
+        self.assertEqual(r["n_pairs"], 0)
+
     def test_predicted_joint_is_not_evidence(self):
         # a predicted wrist moved far must not count as a difference
         # — the guess is prior fill, not a measurement

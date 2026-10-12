@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
+  ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
+  「通過」しswing/stanceを捏造していた欠陥を修正
+  （arm_len<=0→証拠なし、leg_len<=0→phase unknown+degenerate_leg）
 - predict: completeのbody_hを観測関節スパンに限定（predicted端点が
   プライア配置スケールを膨張させ、プライア幾何が表に往復混入する
   欠陥を解消。観測0件時は従来通り全関節にフォールバック）

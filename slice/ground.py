@@ -53,7 +53,11 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
         out["reasons"].append("support_is_lowest")
         # both support joints on one level?
         ys = [y for _, y in supports]
-        if len(ys) > 1 and max(ys) - min(ys) > 0.08 * _span(skel):
+        span = _span(skel)
+        # "uneven" is a fraction of body height — a raw-pixel
+        # default would fabricate the tolerance.
+        if len(ys) > 1 and span > 0 \
+                and max(ys) - min(ys) > 0.08 * span:
             out["reasons"].append("uneven_support")
     else:
         out["contact"] = "airborne"
@@ -64,7 +68,7 @@ def estimate(skel: Skeleton, frame_h: Optional[int] = None) -> dict:
 
 def _span(skel: Skeleton) -> float:
     # observed-only span: a predicted head/foot is prior fill
-    return observed_body_span(skel) or 200.0
+    return observed_body_span(skel)
 
 
 def clearance(skel: Skeleton) -> Optional[float]:

@@ -74,6 +74,27 @@ class TestPredict(unittest.TestCase):
         self.assertIn("(predicted anchor)", sk.get("knee_l").basis)
         self.assertIn("(predicted anchor)", sk.get("foot_l").basis)
 
+    def test_predicted_extremity_does_not_inflate_prior_scale(self):
+        # A predicted head far above the observed body must not stretch
+        # the body_h that scales every prior distance — otherwise prior
+        # geometry feeds back into the table it draws from.
+        from slice.skeleton import Joint
+
+        def chest_y(skel):
+            predict.complete(skel)
+            return skel.get("chest").y
+
+        a = Skeleton(100, 200)
+        a.set(Joint("neck", 50, 40, 0.8, OBSERVED))
+        a.set(Joint("pelvis", 50, 100, 0.8, OBSERVED))
+
+        b = Skeleton(100, 200)
+        b.set(Joint("neck", 50, 40, 0.8, OBSERVED))
+        b.set(Joint("pelvis", 50, 100, 0.8, OBSERVED))
+        b.set(Joint("head", 50, -400, 0.2, PREDICTED, "prior off neck"))
+
+        self.assertEqual(chest_y(a), chest_y(b))
+
     def test_mirror_axis_uses_centroid_not_image_center(self):
         # a right-of-centre figure with only a shoulder observed:
         # mirroring about the IMAGE centre (x=50) would plant the

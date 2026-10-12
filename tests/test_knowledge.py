@@ -46,6 +46,19 @@ class TestKnowledge(unittest.TestCase):
         flat = doc["export"]["keypoints_2d"]
         self.assertEqual(len(flat), len(JOINTS) * 3)
 
+    def test_validate_catches_prediction_falsification(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        # claim a joint as observed while skeleton says predicted —
+        # and list a joint that does not exist at all
+        doc["prediction"]["observed"] += ["bogus_joint"]
+        errors = knowledge.validate(doc)
+        self.assertTrue(any("bogus_joint" in e for e in errors))
+        pred = doc["prediction"]["predicted"]
+        if pred:
+            doc["prediction"]["observed"].append(pred[0])
+            errors = knowledge.validate(doc)
+            self.assertTrue(any(pred[0] in e for e in errors))
+
     def test_keypoints_state_aligns_with_order(self):
         doc = analyze_synth()
         ex = doc["export"]

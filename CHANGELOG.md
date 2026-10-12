@@ -3,6 +3,34 @@
 ## [Unreleased]
 
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- cli: `slice bias`のゲートを実測関節ベースに（全関節がinsufficient
+  =1症例のみ観測でも `joints` 非空→measured→`worst=None→or 0`
+  でexit 0を返していたフェイルオープン。「unmeasured must not
+  pass」宣言通り、実測0件はexit 1。推定器劣化時にこそゲートが
+  効く方向へ修正）。
+- imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
+  「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
+  透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が
+  測定不能なので`contrast`は`unmeasurable`として開示（failでもpassでもない）。
+  `_stddev`/`_sharpness`も不透明画素のみ計測
+- scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
+  首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
+  計測しpredictedは欠損扱い（px_per_cm None / length欠損）。
+- dominance/spine: `or 1.0`の退化デフォルトを除去（完全共線の
+  真っ直ぐな脚が最大屈曲=unloaded発火、足揃えで半スタンス分母が
+  1px化しサブピクセル偏移がpelvis_shiftに、neck≈pelvisでof_chord
+  が生px値を装っていた同型3箇所。退化時は正直なフォールバック
+  またはunmeasurable）。
+- selfcheck: 重複していた `from . import` ブロックを一本化。
+  #306マージ時の残骸で、第2ブロックが `anatomy` を含まず
+  「冗長な方を消す」だけでNameError化する罠になっていた —
+  全必要名を含む単一宣言に統合（挙動変更なし）。
+
+- style: 透過画素を統計から除外（alpha=0領域がRGB=0として
+  パレットに投票し、切り抜きPNGで支配色~88%の「黒い平面」を捏造
+  →写真系ルールを抑止していた欠陥。勾配も切り抜き境界ではなく
+  完全不透明近傍間のみ計測。`opaque_ratio`シグナルで証拠画素率を開示）。
+- pose: 向きリトライの誤反転を修正（腕上げ等のupright図形を回転しない — 回転候補にhead-band強化＋関節非減を必須化）
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

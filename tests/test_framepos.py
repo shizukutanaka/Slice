@@ -59,6 +59,14 @@ class TestFramepos(unittest.TestCase):
         self.assertEqual(framepos.framing(self.skel, self.W, self.H),
                          "tight")
 
+    def test_flat_cloud_fraction_zero(self):
+        # all observed joints on one row: the cloud has zero height —
+        # `or 1.0` would fabricate a 1px row and inflate body_fraction
+        for j in self.skel.joints.values():
+            j.y = 100
+        r = framepos.analyze(self.skel, self.W, self.H)
+        self.assertEqual(r["body_fraction"], 0)
+
     def test_empty_none(self):
         for n in list(self.skel.joints):
             del self.skel.joints[n]

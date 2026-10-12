@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- imgqual: contrastの前景/境界距離をmax→第75パーセンタイルに
+  （「median-ish」契約に対し孤立画素1個でゲートを通過していた
+  欠陥を修正。小さな被写体を弾かない頑健な順位統計）
 - repro: 再検証がdoc記録のengine.profileをリプレイ。
   robustプロファイルで作られたdocをデフォルト推定器で再推定すると
   同一エンジンなのにdrift/changedと誤報していた欠陥を修正

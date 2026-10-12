@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- pose: 向きリトライの誤反転を修正（腕上げ等のupright図形を回転しない — 回転候補にhead-band強化＋関節非減を必須化）
 - selfcheck: `reasons` の重複計上を修正。consistencyコードは
   selfcheck自身の追記とgate内部の再監査の両方から列挙され、
   同一所見が2回数えられ `n_reasons` が水増しされていた —

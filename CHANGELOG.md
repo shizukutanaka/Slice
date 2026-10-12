@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- contact/dynamics/ground: `or 200.0`の生pxデフォルトを除去
+  （観測スパンが測れない骨格で「近い/幅広/不揃い」の閾値を捏造
+  していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
+  で除算してはならない」に違反していた同型3箇所を一括修正。
+  スケール未測定時は該当判定を発火しない）。
 - gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
   ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
   「通過」しswing/stanceを捏造していた欠陥を修正

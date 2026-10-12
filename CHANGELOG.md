@@ -4,6 +4,8 @@
 
 - `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

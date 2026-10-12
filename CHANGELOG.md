@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- imgqual: 透過画素を統計から除外 — 切り抜きPNGのalpha=0枠がRGB=0として
+  「黒い背景」参照を捏造し`contrast`が捏造証拠で判定、`_fg_bg_dist`も
+  透過画素を前景として計上していた欠陥を修正。全透過枠ではbg参照が
+  測定不能なので`contrast`は`unmeasurable`として開示（failでもpassでもない）。
+  `_stddev`/`_sharpness`も不透明画素のみ計測
 - scale: predicted関節からスケール/実寸を捏造しない。推測の頭・
   首でpx→cm係数が出ていた（6.15px/cmの虚構）、observed関節のみで
   計測しpredictedは欠損扱い（px_per_cm None / length欠損）。

@@ -4,6 +4,10 @@
 
 - Pose Classification: 腕ラベル追加（両手上げ=arms_up、T字=t_pose）。
   歩行・しゃがみ等より後段で判定し、両手首は observed の場合のみ
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

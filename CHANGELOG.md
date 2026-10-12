@@ -5,6 +5,18 @@
 - `slice.grid` 新設 — 占有グリッド記述子（bboxを8×8セル分割、
   各セルの前景密度）。radial（極座標）と対になる直行グリッド
   版の局所形状ベクトル、match=L1距離
+- pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
+- human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
+  「箱ではない」だけで満点を取っていた片側評価を修正。
+  0.15–0.75 を人間らしい帯域として両側フェード）
+- imgqual: contrastの前景/境界距離をmax→第75パーセンタイルに
+  （「median-ish」契約に対し孤立画素1個でゲートを通過していた
+  欠陥を修正。小さな被写体を弾かない頑健な順位統計）
+- repro: 再検証がdoc記録のengine.profileをリプレイ。
+  robustプロファイルで作られたdocをデフォルト推定器で再推定すると
+  同一エンジンなのにdrift/changedと誤報していた欠陥を修正
+  （`engine_profile`を結果とbasisに開示）。
+
 - knowledge: `validate` がpredictionブロックを検査するように。
   observed/predictedリストがskeleton.jointsのstateと矛盾する
   doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。

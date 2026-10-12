@@ -52,6 +52,10 @@ class Skeleton:
     orientation: dict = field(default_factory=dict)
     body_model: dict = field(default_factory=dict)
     centroid: Optional[Point] = None
+    # runtime-only (never serialized): the (threshold, method) mask
+    # decision this skeleton was estimated under — set by the
+    # estimator so the doc can disclose it per call, thread-safely
+    mask_threshold: Optional[tuple] = None
 
     def set(self, joint: Joint) -> None:
         self.joints[joint.name] = joint

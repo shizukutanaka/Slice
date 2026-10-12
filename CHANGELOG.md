@@ -5,6 +5,8 @@
 - `slice.radial` 新設 — 放射状シグネチャ（重心から64方向の
   輪郭距離、最長正規化）。matchは全循環シフト最良L1で回転
   不変 — 質量の伸び方を見るcompact形状照合
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

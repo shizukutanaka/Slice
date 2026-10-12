@@ -8,6 +8,33 @@
   端点を欠損扱い（[0,0]）に変更、距離0.23へ復元。
   スカラー部（腕/脚/肩幅・トルソ傾き）も同様にobserved限定。
 
+- plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
+  時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
+  混入していた欠陥を修正（同ファイルの`forward_head`が宣言する
+  「scaleなし→unknown」ルールと整合。測定不能は`None`開示）
+- pose: 直立推定が0関節に飢えたときも向きリトライを走査。
+  直立ゲート（body_h<24px）を通らない横たわり人物は、リトライが
+  最も必要なケースでありながら早期returnで回転スキャンすら
+  されず空骨格で沈黙見逃しされていた欠陥を修正
+  （採用規則は厳格のまま — 完全にクリーンな回転候補のみ採用）。
+
+- dedup/framepos: 退化スケールの`or 1.0`を除去 — neck==pelvis一致で
+  torso正規化空間が未定義なのに生px比較へ沈黙切替、全関節同yの
+  0高クラウドでbody_fractionが1px分捏造されていた欠陥を修正
+  （dedup: unmeasurable→比較対象外、framepos: fraction=0）
+- contact/dynamics/ground: `or 200.0`の生pxデフォルトを除去
+  （観測スパンが測れない骨格で「近い/幅広/不揃い」の閾値を捏造
+  していた欠陥。`observed_body_span`自身の契約「生pxデフォルト
+  で除算してはならない」に違反していた同型3箇所を一括修正。
+  スケール未測定時は該当判定を発火しない）。
+- gesture/gait: 退化セグメントの`or 1.0`を除去 — ゼロ長腕で閾値が
+  ~1pxに縮退しwave/hands_on_hipsを捏造、ゼロ長脚がextensionテストを
+  「通過」しswing/stanceを捏造していた欠陥を修正
+  （arm_len<=0→証拠なし、leg_len<=0→phase unknown+degenerate_leg）
+- predict: completeのbody_hを観測関節スパンに限定（predicted端点が
+  プライア配置スケールを膨張させ、プライア幾何が表に往復混入する
+  欠陥を解消。観測0件時は従来通り全関節にフォールバック）
+
 - signature: body_h最終フォールバック`else 1.0`を除去 — 体幹・頭・足の
   全てが未測定でbody scaleが未定義なのに、wrist/ankle/shoulder spanが
   生pxを「body高分率」として署名スロットに書き込んでいた欠陥を修正

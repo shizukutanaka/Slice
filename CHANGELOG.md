@@ -4,6 +4,8 @@
 
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
+- audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
+  no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）
 - human: fillシグナルに下限側減衰を追加（疎な画素の散らばりが
   「箱ではない」だけで満点を取っていた片側評価を修正。

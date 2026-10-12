@@ -4,6 +4,10 @@
 
 - `slice retarget <src> <dst> [-o sk.json]` — retarget層のCLI接続。src骨方向×dst骨長で体格間ポーズ転写。出力関節は全てpredicted（合成幾何であり観測証拠ではない）誠実設計を継承。
 
+- knowledge: `validate` がpredictionブロックを検査するように。
+  observed/predictedリストがskeleton.jointsのstateと矛盾する
+  doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。
+
 - plumb: `line()`の`or 1.0`退化デフォルトを除去 — 尺度未測定（`_span`=0）
   時に`of_body_h`が生pxを「body高分数」として報告し`stack_score`に
   混入していた欠陥を修正（同ファイルの`forward_head`が宣言する

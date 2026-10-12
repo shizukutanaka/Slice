@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- repro: 再検証がdoc記録のengine.profileをリプレイ。
+  robustプロファイルで作られたdocをデフォルト推定器で再推定すると
+  同一エンジンなのにdrift/changedと誤報していた欠陥を修正
+  （`engine_profile`を結果とbasisに開示）。
+
 - knowledge: `validate` がpredictionブロックを検査するように。
   observed/predictedリストがskeleton.jointsのstateと矛盾する
   doc（推測関節を観測と虚偽申告・不在関節の列挙）を拒否。

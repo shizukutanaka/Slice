@@ -7,6 +7,16 @@
   信号を追加
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
+- `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
+
+- `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。
+
+- `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
+
+- `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
+
+- `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。
+
 - audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
   no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）

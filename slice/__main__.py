@@ -18,6 +18,8 @@
           and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
     python -m slice list [--store DIR]
+    python -m slice priorchk
+        — audit the BODY_MODELS prior tables
 """
 
 from __future__ import annotations
@@ -41,6 +43,10 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, priorchk,
+               render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, priorchk, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, knowledge, pipeline, render, rest,
                mutate, selfcheck)
 from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
@@ -783,6 +789,13 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _cmd_priorchk(a) -> int:
+    """Structural audit of the BODY_MODELS prior tables."""
+    res = priorchk.audit()
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "sane" else 1
+
+
 def _parse_rect(s: str):
     try:
         x0, y0, x1, y1 = (int(v) for v in s.split(","))
@@ -1089,6 +1102,10 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    pc = sub.add_parser(
+        "priorchk", help="BODY_MODELS structural audit")
+    pc.set_defaults(fn=_cmd_priorchk)
 
     mu = sub.add_parser(
         "mutate", help="robustness transforms (noise/occlude/crop)")

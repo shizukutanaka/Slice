@@ -4,6 +4,8 @@
 
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
 
+- `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
+
 - `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
 
 - `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。

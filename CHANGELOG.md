@@ -4,6 +4,10 @@
 
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
 
+- `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
+
+- `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。
+
 - audit: stale_warningの監査語彙を全警告コードへ拡張（no_observed_torso /
   no_observed_headが関節状態と矛盾しても見逃されていた）
 - pipeline: engine.mask_thresholdに実適用閾値を開示（Otsu値/固定フォールバックの別も記録—全関節の証拠を決めた画像ごとのパラメータ）

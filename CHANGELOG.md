@@ -4,6 +4,8 @@
 
 - `slice smooth <dir> [-o dir]` — smooth層のCLI接続。フレーム列の関節軌跡を移動平均し、関節別ジッタ改善量をJSON報告。`-o`で平滑化済み骨格JSONを書き出し。欠損フレームの位置を捏造しない誠実設計を継承。
 
+- `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
+
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
 
 - `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。

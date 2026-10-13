@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- `slice priorchk` — priorchk層のCLI接続（画像不要）。BODY_MODELS全モデルの構造監査: keyset/bounds/limb_order/thigh≥shin/stack合計/head_order（幼少→等身大の頭身比単調性）。suspiciousは exit 1。
+
 - `slice mutate <image> --noise N|--occlude X,Y,X,Y|--crop X,Y,X,Y -o out.png` — mutate層のCLI接続。seed指定の決定的ノイズ／遮蔽／クロップで頑健性フィクスチャをCLI生成可能。
 
 - `slice bench [--json] [--repeats N]` — bench層のCLI接続。正解フィクスチャ上の検出率/観測率/位置誤差/OKS＋レイテンシのゲート（`python -m slice.bench` と同結果、gate失敗は exit 1）。

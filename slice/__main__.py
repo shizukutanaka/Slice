@@ -26,8 +26,13 @@ import argparse
 import json
 import math
 import os
+import os
 import sys
 
+from . import (__version__, bench, bitmap, calib, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
+               pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
@@ -36,6 +41,12 @@ from . import (__version__, axis, bias, bitmap, calib, contact, dominance,
                evaluate, extjoints, framefit, ground, handpos, horizon,
                knowledge, limbcov, limbs, mass, mirror, pipeline, plumb, reach,
                render, rest, rom, selfcheck, storechk)
+from . import (__version__, bitmap, knowledge, pipeline, render, rest,
+               mutate, selfcheck)
+from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
+               render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, sample, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
@@ -190,6 +201,24 @@ def _cmd_audit(a) -> int:
     return 0 if res["verdict"] != "fail" else 1
 
 
+def _cmd_bench(a) -> int:
+    """Accuracy/latency gate over ground-truth fixtures."""
+    rep = bench.run(repeats=a.repeats)
+    ok, fails = bench.gate(rep)
+    if a.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"estimate: {rep['ms_per_estimate']}ms/image "
+              f"({rep['cases']} cases x{rep['repeats']})")
+        print(f"detection={rep['detection_rate']} "
+              f"observed={rep['observed_rate']} "
+              f"err={rep['mean_error_px']}px "
+              f"oks={rep['mean_oks']}")
+    for f in fails:
+        print(f"FAIL {f}", file=sys.stderr)
+    return 0 if ok else 1
+
+
 def _diff_load(arg, store_dir, model, robust):
     """arg = image path or k_<id> in the store."""
     import os
@@ -268,13 +297,9 @@ def _probe_dispatch(layer, skel, mask):
                            for n, j in derived.items()},
                 "vocabulary": extjoints.vocabulary()}
     return None
-
-
 _PROBE_LAYERS = ("axis", "plumb", "limbs", "rom", "contact",
                  "dominance", "handpos", "framefit", "ground",
                  "reach", "horizon", "mass", "extjoints")
-
-
 def _cmd_probe(a) -> int:
     """Run one semantic layer directly on an image."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -298,8 +323,6 @@ def _cmd_probe(a) -> int:
     print(json.dumps({"layer": a.layer, "result": res},
                      ensure_ascii=False, indent=2))
     return 0
-
-
 def _cmd_mirror(a) -> int:
     """Estimator left/right consistency: est(flip(img)) vs flip(est(img))."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -771,6 +794,45 @@ def _cmd_bias(a) -> int:
     return 0
 
 
+def _parse_rect(s: str):
+    try:
+        x0, y0, x1, y1 = (int(v) for v in s.split(","))
+    except ValueError:
+        raise SystemExit("rect must be x0,y0,x1,y1")
+    return x0, y0, x1, y1
+
+
+def _cmd_mutate(a) -> int:
+    """Deterministic robustness transforms: noise/occlude/crop."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    if a.noise is not None:
+        out = mutate.add_noise(bmp, a.noise, seed=a.seed)
+        op = {"op": "noise", "amount": a.noise, "seed": a.seed}
+    elif a.occlude:
+        x0, y0, x1, y1 = _parse_rect(a.occlude)
+        out = mutate.occlude(bmp, x0, y0, x1, y1)
+        op = {"op": "occlude", "rect": [x0, y0, x1, y1]}
+    elif a.crop:
+        x0, y0, x1, y1 = _parse_rect(a.crop)
+        out = mutate.crop(bmp, x0, y0, x1, y1)
+        op = {"op": "crop", "rect": [x0, y0, x1, y1]}
+    else:
+        print("specify --noise N, --occlude or --crop",
+              file=sys.stderr)
+        return 2
+    with open(a.output, "wb") as f:
+        f.write(bitmap.encode_png(out))
+    print(json.dumps({**op, "output": a.output,
+                      "size": [out.width, out.height]},
+                     ensure_ascii=False))
+    return 0
+
+
 def _cmd_audit_dir(a) -> int:
     """Audit every image under a directory; print a verdict per file."""
     import os
@@ -862,6 +924,14 @@ def main(argv=None) -> int:
                     help="write the full audit JSON (all layers + doc)")
     au.set_defaults(fn=_cmd_audit)
 
+    be = sub.add_parser(
+        "bench", help="accuracy/latency gate on fixtures")
+    be.add_argument("--repeats", type=int, default=1,
+                    help="latency repeats per case")
+    be.add_argument("--json", action="store_true",
+                    help="print the raw report JSON")
+    be.set_defaults(fn=_cmd_bench)
+
     di = sub.add_parser("diff",
                         help="diff two images or stored documents")
     di.add_argument("a", help="image path or k_<id>")
@@ -885,7 +955,6 @@ def main(argv=None) -> int:
     pr.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     pr.set_defaults(fn=_cmd_probe)
-
     mi = sub.add_parser(
         "mirror",
         help="estimator left/right consistency audit")
@@ -1033,6 +1102,21 @@ def main(argv=None) -> int:
     bi = sub.add_parser(
         "bias", help="per-joint systematic vs random error profile")
     bi.set_defaults(fn=_cmd_bias)
+
+    mu = sub.add_parser(
+        "mutate", help="robustness transforms (noise/occlude/crop)")
+    mu.add_argument("image")
+    mu.add_argument("--noise", type=int, default=None,
+                    help="uniform noise amplitude (seeded)")
+    mu.add_argument("--occlude", metavar="X0,Y0,X1,Y1",
+                    help="black-box occlusion rect")
+    mu.add_argument("--crop", metavar="X0,Y0,X1,Y1",
+                    help="crop rect")
+    mu.add_argument("--seed", type=int, default=0,
+                    help="noise seed (deterministic)")
+    mu.add_argument("-o", "--output", required=True,
+                    help="output PNG path")
+    mu.set_defaults(fn=_cmd_mutate)
 
     s = sub.add_parser("serve", help="run the REST viewer server")
     s.add_argument("--port", type=int, default=8000)

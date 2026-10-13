@@ -7,6 +7,8 @@
   ビューアにモデル切替ドロップダウン追加
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
+- `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
+
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
 
 - `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。

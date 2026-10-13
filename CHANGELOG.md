@@ -4,6 +4,8 @@
 
 - smooth: 平滑化骨格が`centroid`を保持（マスク計測点の沈黙消失を解消 — pelvis未観測時にtrackのアンカーが失われフレームがempty化していた）。また異解像度フレーム混在時、近傍の生pxを中心フレーム空間に再スケールしてから平均（解像度差を関節位置に混入していた欠陥、motion #314/diff #315と同型）。`jitter`も異フレーム間で前フレーム空間に再スケール（解像度変更を「動き」と誤認しない）。
 
+- `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
+
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。
 
 - `slice stability <image> [--delta N]` — stability層の単体CLI接続。bg_threshold±deltaの3回推定で関節変位を計測（stable/sensitive/unstable、1runのみ観測はsingle_run＝不明）。unstable関節または計測不能は exit 1。

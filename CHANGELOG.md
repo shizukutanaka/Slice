@@ -4,6 +4,8 @@
 
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
 
+- `slice people <image> [--min-frac F]` — people層のCLI接続。前景成分を人物候補としてランク列挙（size/fraction/bbox/aspect/touches_edge＋「成分≠人物」警告文）。複数人検出の前段診断。
+
 - `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
 
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。

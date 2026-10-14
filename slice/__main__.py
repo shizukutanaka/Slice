@@ -72,6 +72,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               people, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, sample, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                norm, pipeline, render, rest, selfcheck, storechk)
@@ -725,6 +727,21 @@ def _cmd_lift(a) -> int:
         print(f"wrote {a.output}", file=sys.stderr)
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0
+
+
+def _cmd_people(a) -> int:
+    """Enumerate foreground components as person candidates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = people.candidates(bmp, est, min_frac=a.min_frac)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["candidates"] else 1
 
 
 def _cmd_sample(a) -> int:
@@ -1459,6 +1476,15 @@ def main(argv=None) -> int:
     li.add_argument("-o", "--output",
                     help="write the lifted joints JSON")
     li.set_defaults(fn=_cmd_lift)
+
+    pp = sub.add_parser(
+        "people", help="rank foreground components as people")
+    pp.add_argument("image")
+    pp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    pp.add_argument("--min-frac", type=float, default=0.02,
+                    help="min component fraction (default 0.02)")
+    pp.set_defaults(fn=_cmd_people)
 
     sa = sub.add_parser(
         "sample", help="joint colour sampling (bare vs covered)")

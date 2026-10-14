@@ -56,6 +56,32 @@ python3 -m slice serve --port 8000
 | GET | `/knowledge/<id>` | 個別取得 |
 | GET | `/overlay/<id>.png` | 骨格オーバーレイPNG |
 | GET | `/health` | 生存確認 |
+| GET | `/usage` | APIキーの当月利用量（キー認証時） |
+| POST | `/audit` | 画像bytes → 品質監査JSON |
+
+### 収益化: API従量課金（プラン×月間クォータ）
+
+支払いは運営者が別途受け付け、入金後にAPIキーを発行します。既定プランは
+`free`（月100回）、`pro`（月10,000回）、`enterprise`（無制限）です。
+キー設定JSONの`plans`でプランを追加・上書きできます。
+
+```bash
+# 支払い確認後、顧客ごとにキーを発行（キーは stdout に一度だけ表示）
+python3 -m slice keys issue --keys keys.json --plan pro --owner acme
+
+# APIキー認証と月間クォータを有効にして起動
+python3 -m slice serve --keys keys.json
+
+# 月次請求用の利用実績（省略時は現在のUTC月）
+python3 -m slice keys usage --keys keys.json --month 2025-01
+```
+
+`/analyze`（multiを含む）と`/audit`は成功したリクエストのみ1回として記録し、
+クォータ超過は`429`（`quota exceeded`）を返します。並行処理中のリクエストは
+個別に事前判定されるため、超過は最大で同時実行数分になる場合があります。
+キー設定ファイルと既定の`<keys>.usage.json`台帳は機密情報・請求記録として
+アクセス制限し、安全なバックアップを保管してください。これらをGitへ
+コミットしないでください。
 
 ## パイプライン
 

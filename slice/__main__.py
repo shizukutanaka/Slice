@@ -19,6 +19,9 @@
         — run every quality layer over one image (or a directory)
           and print a verdict
     python -m slice serve [--port 8000] [--store DIR]
+    python -m slice serve --keys keys.json
+    python -m slice keys issue --keys keys.json --plan pro [--owner NAME]
+    python -m slice keys usage --keys keys.json [--month YYYY-MM]
     python -m slice list [--store DIR]
     python -m slice modelchk <image>
         — chosen BODY_MODEL vs measured ratios
@@ -29,14 +32,16 @@
 from __future__ import annotations
 
 import argparse
+import calendar
 import json
 import math
 import os
 import os
 import sys
+import time
 
 from . import (__version__, bench, bitmap, calib, evaluate, knowledge,
-               limbcov, pipeline, render, rest, selfcheck)
+               limbcov, pipeline, plans, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
@@ -1306,7 +1311,45 @@ def _cmd_audit_dir(a) -> int:
 
 
 def _cmd_serve(a) -> int:
-    rest.serve(port=a.port, store_dir=a.store, token=a.token)
+    rest.serve(port=a.port, store_dir=a.store, token=a.token, keys=a.keys)
+    return 0
+
+
+def _cmd_keys_issue(a) -> int:
+    try:
+        key = plans.issue_key(a.keys, a.plan, owner=a.owner)
+    except (OSError, ValueError) as e:
+        print(f"cannot issue API key: {e}", file=sys.stderr)
+        return 2
+    print(key)
+    return 0
+
+
+def _cmd_keys_usage(a) -> int:
+    month = a.month or time.strftime("%Y-%m", time.gmtime())
+    try:
+        parsed = time.strptime(month, "%Y-%m")
+        if time.strftime("%Y-%m", parsed) != month:
+            raise ValueError
+        now = calendar.timegm(parsed)
+        meter = plans.Metering(a.keys)
+        rows = []
+        for key in meter._keys:
+            plan = meter.plan_for(key)
+            if plan is None:
+                continue
+            usage = meter.usage(key, now=now)
+            rows.append({
+                "owner": usage["owner"],
+                "plan": usage["plan"],
+                "month": usage["month"],
+                "used": usage["used"],
+                "quota": usage["quota"],
+            })
+    except (OSError, ValueError) as e:
+        print(f"cannot read API usage: {e}", file=sys.stderr)
+        return 2
+    print(json.dumps(rows, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -1710,7 +1753,24 @@ def main(argv=None) -> int:
     s.add_argument("--token", default=None,
                    help="require 'Authorization: Bearer TOKEN' on API "
                         "routes (default: SLICE_TOKEN env, else open)")
+    s.add_argument("--keys", default=None,
+                   help="require API keys from FILE with monthly quotas "
+                        "(default: SLICE_KEYS env)")
     s.set_defaults(fn=_cmd_serve)
+
+    k = sub.add_parser("keys", help="issue API keys and report usage")
+    ks = k.add_subparsers(dest="keys_cmd", required=True)
+    ki = ks.add_parser("issue", help="issue a key for a plan")
+    ki.add_argument("--keys", required=True,
+                    help="API keys configuration file")
+    ki.add_argument("--plan", required=True)
+    ki.add_argument("--owner", default="")
+    ki.set_defaults(fn=_cmd_keys_issue)
+    ku = ks.add_parser("usage", help="report usage for invoicing")
+    ku.add_argument("--keys", required=True,
+                    help="API keys configuration file")
+    ku.add_argument("--month", default=None, help="UTC month (YYYY-MM)")
+    ku.set_defaults(fn=_cmd_keys_usage)
 
     l = sub.add_parser("list", help="list stored knowledge")
     l.add_argument("--store", default="knowledge")

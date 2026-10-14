@@ -16,6 +16,7 @@ import hmac
 import json
 import os
 import re
+import time
 from typing import Optional
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -45,7 +46,8 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         extra_headers = dict(headers or {})
         if meter_key is not None and 200 <= code < 300:
-            usage = self.metering.record(meter_key)
+            usage = self.metering.record(
+                meter_key, now=self._billing_now)
             if usage["remaining"] is not None:
                 extra_headers["X-Quota-Remaining"] = str(
                     usage["remaining"])
@@ -138,12 +140,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(404, "not found")
         meter_key = (self._api_key()
                      if self.metering is not None else None)
-        if (meter_key is not None
-                and not self.metering.allowed(meter_key)):
-            return self._json({
-                "error": "quota exceeded",
-                "usage": self.metering.usage(meter_key),
-            }, 429)
+        if meter_key is not None:
+            self._billing_now = time.time()
+            if not self.metering.allowed(
+                    meter_key, now=self._billing_now):
+                return self._json({
+                    "error": "quota exceeded",
+                    "usage": self.metering.usage(
+                        meter_key, now=self._billing_now),
+                }, 429)
         length = int(self.headers.get("Content-Length") or 0)
         if not 0 < length <= 25 * 1024 * 1024:
             return self._error(400, "empty or >25MB body")
@@ -239,9 +244,13 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(port: int = 8000, store_dir: str = "knowledge",
           token: str = None, keys: str = None):
+    keys = keys or os.environ.get("SLICE_KEYS")
+    if keys and not os.path.isfile(keys):
+        raise ValueError(
+            f"API keys file not found: {keys} "
+            "(create one with 'slice keys issue')")
     Handler.store = knowledge.KnowledgeStore(store_dir)
     Handler.token = token or os.environ.get("SLICE_TOKEN")
-    keys = keys or os.environ.get("SLICE_KEYS")
     Handler.metering = plans.Metering(keys) if keys else None
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"Slice {__version__} listening on http://127.0.0.1:{port}")

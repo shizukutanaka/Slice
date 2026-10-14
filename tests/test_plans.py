@@ -1,7 +1,10 @@
 """Tests for API-key plans and monthly usage metering."""
 
+from argparse import Namespace
 import calendar
+from contextlib import redirect_stderr, redirect_stdout
 import http.client
+from io import StringIO
 import json
 import os
 import tempfile
@@ -9,7 +12,9 @@ import threading
 import time
 import unittest
 from http.server import ThreadingHTTPServer
+from unittest.mock import patch
 
+from slice import __main__ as cli
 from slice import bitmap, knowledge, plans, rest
 from tests import synthetic_person
 
@@ -107,6 +112,95 @@ class TestMetering(unittest.TestCase):
             before.st_atime_ns, before.st_mtime_ns + 1_000_000_000))
         self.assertEqual(meter.plan_for(key)["owner"], "new")
 
+    def test_report_preserves_usage_for_inactive_keys(self):
+        path = os.path.join(self.tmp.name, "report-keys.json")
+        key_a, key_b, key_c, key_d = (
+            "api-key-a", "api-key-b", "api-key-c", "api-key-d")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({
+                "plans": {"pro": 10},
+                "keys": {
+                    key_a: {"plan": "pro", "owner": "Alice"},
+                    key_b: {"plan": "pro", "owner": "Bob"},
+                    key_c: {"plan": "pro", "owner": "Carol"},
+                    key_d: {"plan": "pro", "owner": "Zero"},
+                },
+            }, f)
+        meter = plans.Metering(path)
+        january = _utc("2025-01")
+        february = _utc("2025-02")
+        meter.record(key_a, units=3, now=january)
+        meter.record(key_b, units=2, now=january)
+        meter.record(key_c, units=4, now=january)
+        meter.record(key_d, now=february)
+
+        before = os.stat(path)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({
+                "plans": {"pro": 10},
+                "keys": {
+                    key_a: {"plan": "pro", "owner": "Alice"},
+                    key_b: {"plan": "revoked", "owner": "Bob"},
+                },
+            }, f)
+        os.utime(path, ns=(
+            before.st_atime_ns, before.st_mtime_ns + 1_000_000_000))
+
+        rows = meter.report(now=january)
+        self.assertEqual(rows, [
+            {
+                "owner": "Alice", "plan": "pro", "month": "2025-01",
+                "used": 3, "quota": 10, "status": "active",
+            },
+            {
+                "owner": "Bob", "plan": "revoked", "month": "2025-01",
+                "used": 2, "quota": None, "status": "inactive",
+            },
+            {
+                "owner": None, "plan": None, "month": "2025-01",
+                "used": 4, "quota": None, "status": "inactive",
+            },
+        ])
+        for key in (key_a, key_b, key_c, key_d):
+            self.assertNotIn(key, repr(rows))
+
+    def test_keys_usage_cli_includes_report_status(self):
+        self.meter.record("test-key", now=_utc("2025-01"))
+        output = StringIO()
+        args = Namespace(keys=self.keys_path, month="2025-01")
+        with redirect_stdout(output):
+            result = cli._cmd_keys_usage(args)
+        self.assertEqual(result, 0)
+        rows = json.loads(output.getvalue())
+        self.assertEqual(rows[0]["status"], "active")
+        self.assertEqual(rows[0]["used"], 1)
+
+
+class TestServeKeys(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.missing = os.path.join(self.tmp.name, "missing-keys.json")
+
+    def test_serve_rejects_missing_keys_file_before_binding(self):
+        with patch.object(rest, "ThreadingHTTPServer") as server:
+            with self.assertRaisesRegex(
+                    ValueError, "API keys file not found:"):
+                rest.serve(
+                    port=0, store_dir=self.tmp.name, keys=self.missing)
+        server.assert_not_called()
+
+    def test_serve_cli_returns_two_for_missing_keys_file(self):
+        args = Namespace(
+            port=0, store=self.tmp.name, token=None, keys=self.missing)
+        stderr = StringIO()
+        with patch.object(rest, "ThreadingHTTPServer") as server:
+            with redirect_stderr(stderr):
+                result = cli._cmd_serve(args)
+        self.assertEqual(result, 2)
+        self.assertIn("cannot start server:", stderr.getvalue())
+        server.assert_not_called()
+
 
 class TestMeteredRest(unittest.TestCase):
     def setUp(self):
@@ -165,6 +259,30 @@ class TestMeteredRest(unittest.TestCase):
             "POST", "/analyze", key="test-key", body=raw_png)
         self.assertEqual(status, 429)
         self.assertEqual(json.loads(raw)["error"], "quota exceeded")
+
+    def test_request_crossing_month_boundary_is_charged_to_admission_month(
+            self):
+        meter = rest.Handler.metering
+        meter.record("test-key", now=_utc("2025-02"))
+        january = calendar.timegm(
+            (2025, 1, 31, 23, 59, 59, 0, 0, 0))
+        february = calendar.timegm(
+            (2025, 2, 1, 0, 0, 1, 0, 0, 0))
+        clock_values = [january, february]
+
+        def clock():
+            return clock_values.pop(0) if clock_values else february
+
+        raw_png = bitmap.encode_png(synthetic_person())
+        with patch("slice.rest.time.time", side_effect=clock):
+            status, _, _ = self._request(
+                "POST", "/analyze", key="test-key", body=raw_png)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(meter.usage(
+            "test-key", now=january)["used"], 1)
+        self.assertEqual(meter.usage(
+            "test-key", now=february)["used"], 1)
 
 
 if __name__ == "__main__":

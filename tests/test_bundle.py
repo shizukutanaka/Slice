@@ -161,6 +161,43 @@ class TestBundle(unittest.TestCase):
             self.assertEqual(m["count"], 1)
             self.assertEqual(m["skipped"], 1)
 
+    def test_pack_skips_unsafe_member_id(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            # a valid-schema doc whose id would escape docs/ on
+            # extraction must be refused, not shipped (reached via
+            # a stale index entry — knowledge.list() now filters
+            # id-mismatched docs, so feed pack a store stub that
+            # still yields one)
+            good = _doc()
+            evil = _doc()
+            evil["id"] = "../evil"
+
+            class _StaleStore:
+                def list(self):
+                    return [{"id": good["id"]}, {"id": "k_stale000000"}]
+
+                def get(self, kid):
+                    if kid == good["id"]:
+                        return good
+                    return evil
+
+            zpath = os.path.join(tmp, "out.zip")
+            m = pack(_StaleStore(), zpath)
+            self.assertEqual(m["count"], 1)
+            self.assertEqual(m["skipped"], 1)
+            with zipfile.ZipFile(zpath) as z:
+                self.assertNotIn("docs/../evil.json", z.namelist())
+
+    def test_manifest_missing_member(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            zpath = os.path.join(tmp, "x.zip")
+            with zipfile.ZipFile(zpath, "w") as z:
+                z.writestr("docs/k_xxxxxxxxxxxx.json", "{}")
+            with self.assertRaises(ValueError):
+                manifest(zpath)
+
     def test_empty_store(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeStore(tmp)

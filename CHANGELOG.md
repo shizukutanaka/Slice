@@ -7,6 +7,7 @@
   そのまま名乗っていた欠陥を解消（位置・confidence・stateは
   不変、由来の開示のみ）。
 
+- bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
 - knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
 

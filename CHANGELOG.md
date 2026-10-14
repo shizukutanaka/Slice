@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 - multi: `people.components`に骨格化に回った成分数を開示（ゲートで落ちた成分が`count`から読めず「画像内の人数」を過小申告していた穴を解消）
+- `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
+
+- `slice contour <image> [-o contour.json]` — contour層のCLI接続。輪郭の形状記述子（area/perimeter/bbox/aspect/compactness/centroid）＋`-o` でトレース座標列を出力。前景なしは exit 1。
+
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
 - `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。

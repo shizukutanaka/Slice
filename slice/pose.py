@@ -64,6 +64,50 @@ def _reaches_bottom(mask: List[bytearray], y: int,
     return True
 
 
+def _arm_candidates(comp, w, sign, tx, cx_spine, scan_top, crotch_y,
+                    bottom) -> list:
+    """Return pixels of one arm on the `sign` side of torso edge `tx`,
+    tracked past the crotch while excluding leg runs that reach the
+    bottom row."""
+    cand = []
+    band = None  # x-range of the arm beside the torso
+    # Start below the head band, not at the shoulder row —
+    # arms raised above shoulder line (V-pose) live in the
+    # rows between neck and shoulders that a shoulder-anchored
+    # scan never reaches.
+    for y in range(scan_top, bottom + 1):
+        runs = _row_runs(comp, y, w)
+        if y <= crotch_y:
+            for run in runs:
+                if (sign < 0 and run[1] < tx - 2) \
+                        or (sign > 0 and run[0] > tx + 2):
+                    cand += [(x, y) for x in range(run[0], run[1] + 1)]
+        else:
+            # Below the torso, legs are the runs whose band still
+            # reaches the bottom row; any other run on
+            # the arm's side inside the arm band is a limb. The
+            # band grows with accepted runs so arms drifting
+            # outward stay tracked.
+            if len(runs) <= 2 or band is None:
+                continue
+            for run in runs:
+                mid = (run[0] + run[1]) / 2
+                if (sign < 0) != (mid < cx_spine):
+                    continue
+                if _reaches_bottom(comp, y, run, bottom, w):
+                    continue  # leg — connected to the floor line
+                if run[1] < band[0] - 4 or run[0] > band[1] + 4:
+                    continue
+                cand += [(x, y)
+                         for x in range(run[0], run[1] + 1)]
+                band = (min(band[0], run[0]),
+                        max(band[1], run[1]))
+        if cand and y <= crotch_y:
+            band = (min(p[0] for p in cand),
+                    max(p[0] for p in cand))
+    return cand
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -706,42 +750,8 @@ class HeuristicPoseEstimator(PoseEstimator):
                 continue  # strip joints already placed
             shoulder = sk.get(f"shoulder_{side}")
             tx = torso_run[0] if sign < 0 else torso_run[1]
-            cand = []
-            band = None  # x-range of the arm beside the torso
-            # Start below the head band, not at the shoulder row —
-            # arms raised above shoulder line (V-pose) live in the
-            # rows between neck and shoulders that a shoulder-anchored
-            # scan never reaches.
-            for y in range(int(top + head_h), bottom + 1):
-                runs = _row_runs(comp, y, w)
-                if y <= crotch_y:
-                    for run in runs:
-                        if (sign < 0 and run[1] < tx - 2) \
-                                or (sign > 0 and run[0] > tx + 2):
-                            cand += [(x, y) for x in range(run[0], run[1] + 1)]
-                else:
-                    # Below the torso, legs are the runs whose band still
-                    # reaches the bottom row; any other run on
-                    # the arm's side inside the arm band is a limb. The
-                    # band grows with accepted runs so arms drifting
-                    # outward stay tracked.
-                    if len(runs) <= 2 or band is None:
-                        continue
-                    for run in runs:
-                        mid = (run[0] + run[1]) / 2
-                        if (sign < 0) != (mid < cx_spine):
-                            continue
-                        if _reaches_bottom(comp, y, run, bottom, w):
-                            continue  # leg — connected to the floor line
-                        if run[1] < band[0] - 4 or run[0] > band[1] + 4:
-                            continue
-                        cand += [(x, y)
-                                 for x in range(run[0], run[1] + 1)]
-                        band = (min(band[0], run[0]),
-                                max(band[1], run[1]))
-                if cand and y <= crotch_y:
-                    band = (min(p[0] for p in cand),
-                            max(p[0] for p in cand))
+            cand = _arm_candidates(comp, w, sign, tx, cx_spine,
+                                   int(top + head_h), crotch_y, bottom)
             if cand and shoulder:
                 far = max(cand,
                           key=lambda p: (p[0] - shoulder.x) ** 2

@@ -4,8 +4,53 @@ from tests import (crouch_person, raised_arms_person,
                    synthetic_person, wide_hand_person)
 
 from slice.bitmap import Bitmap
-from slice.pose import HeuristicPoseEstimator
+from slice.pose import HeuristicPoseEstimator, _arm_candidates
 from slice.skeleton import OBSERVED
+
+
+class TestArmCandidates(unittest.TestCase):
+    def test_candidates_stay_on_requested_side(self):
+        comp = [bytearray(12) for _ in range(8)]
+        for y in range(8):
+            for x in range(7, 10):
+                comp[y][x] = 1
+        for x in range(2, 5):
+            comp[2][x] = 1
+
+        left = _arm_candidates(comp, 12, -1, 7, 8, 1, 4, 7)
+        right = _arm_candidates(comp, 12, 1, 9, 8, 1, 4, 7)
+
+        self.assertEqual(left, [(2, 2), (3, 2), (4, 2)])
+        self.assertEqual(right, [])
+
+    def test_dangling_hand_is_kept_and_grounded_legs_are_excluded(self):
+        comp = [bytearray(18) for _ in range(10)]
+        for y in range(10):
+            comp[y][9] = comp[y][10] = 1
+        for y in range(5, 10):
+            for x in (6, 7, 12, 13):
+                comp[y][x] = 1
+        for y in (2, 5, 6, 7):
+            for x in range(2, 5):
+                comp[y][x] = 1
+
+        cand = _arm_candidates(comp, 18, -1, 9, 10, 1, 4, 9)
+        expected = ([(x, 2) for x in range(2, 5)]
+                    + [(x, y) for y in range(5, 8)
+                       for x in range(2, 5)])
+
+        self.assertEqual(cand, expected)
+        self.assertNotIn((6, 5), cand)
+        self.assertNotIn((12, 5), cand)
+
+    def test_no_protrusion_returns_empty(self):
+        comp = [bytearray(12) for _ in range(8)]
+        for row in comp:
+            for x in range(5, 8):
+                row[x] = 1
+
+        self.assertEqual(_arm_candidates(comp, 12, -1, 5, 6, 1, 4, 7),
+                         [])
 
 
 def profile_person(width=100, height=300, side=-1, bg=235, fg=60):

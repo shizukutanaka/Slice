@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- pose: 腕候補走査を `_estimate_component` から `_arm_candidates` に分離（挙動不変・単体テスト追加）。
 - metering: 月境界をまたぐ請求の月を固定し、無効化・削除済みキーの利用実績も請求レポートに保持。
 
 - smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で

@@ -8,6 +8,7 @@
   推測の上に推測を積んだ位置が観測由来の補間/ドロップと
   区別できなかった欠陥を解消（挙動は不変・開示のみ）。
 
+- selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
 - diff: 異フレームdocの関節差分をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（#314と対、解像度差を移動と誤認していた欠陥）
 - bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
 - knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）

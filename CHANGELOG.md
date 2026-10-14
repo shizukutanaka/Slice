@@ -5,6 +5,8 @@
 - `slice.query` 新設 — ポーズ検索（by example）。クエリ骨格と
   候補の共有骨方向コサイン類似度でランク付け、compared数を
   開示（欠骨は投票しない）。kmeans・signatureに並ぶ検索層
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

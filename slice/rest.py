@@ -7,6 +7,7 @@
     GET  /knowledge            list stored knowledge ids
     GET  /knowledge/<id>       one stored document
     GET  /overlay/<id>         PNG overlay (requires ?save=1 at analyze)
+    GET  /usage                caller's monthly API usage (when metering enabled)
 """
 
 from __future__ import annotations
@@ -15,10 +16,11 @@ import hmac
 import json
 import os
 import re
+from typing import Optional
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from . import __version__, bitmap, knowledge, pipeline, render, selfcheck
+from . import __version__, bitmap, knowledge, pipeline, plans, render, selfcheck
 
 _VIEWER = os.path.join(os.path.dirname(__file__), "viewer.html")
 
@@ -31,6 +33,7 @@ class Handler(BaseHTTPRequestHandler):
     overlays: dict = {}
     OVERLAY_CACHE_MAX = 128
     token: str = None                         # bearer token; None = open
+    metering: Optional["plans.Metering"] = None
     server_version = "Slice/" + __version__
 
     def log_message(self, fmt, *args):
@@ -38,11 +41,19 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- helpers ----------------------------------------------------------
 
-    def _json(self, obj, code=200):
+    def _json(self, obj, code=200, headers=None, meter_key=None):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        extra_headers = dict(headers or {})
+        if meter_key is not None and 200 <= code < 300:
+            usage = self.metering.record(meter_key)
+            if usage["remaining"] is not None:
+                extra_headers["X-Quota-Remaining"] = str(
+                    usage["remaining"])
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        for name, value in extra_headers.items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -61,11 +72,23 @@ class Handler(BaseHTTPRequestHandler):
         `Authorization: Bearer <token>`. `/` and `/health` stay open
         so the viewer page loads and probes work; the data it fetches
         is still gated."""
-        if not self.token or path in ("/", "/health"):
+        if path in ("/", "/health"):
             return True
         auth = self.headers.get("Authorization", "")
+        if self.metering is not None:
+            if not auth.startswith("Bearer "):
+                return False
+            return self.metering.plan_for(auth[len("Bearer "):]) is not None
+        if not self.token:
+            return True
         expected = "Bearer " + self.token
         return hmac.compare_digest(auth, expected)
+
+    def _api_key(self):
+        auth = self.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            return auth[len("Bearer "):]
+        return None
 
     def _require_auth(self) -> bool:
         if self._authorized(urlparse(self.path).path):
@@ -84,6 +107,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._bytes(f.read(), "text/html; charset=utf-8")
         elif path == "/health":
             self._json({"ok": True, "version": __version__})
+        elif path == "/usage":
+            if self.metering is None:
+                self._error(404, "metering disabled")
+            else:
+                self._json(self.metering.usage(self._api_key()))
         elif path == "/knowledge":
             self._json({"items": self.store.list()})
         elif path.startswith("/knowledge/"):
@@ -108,6 +136,14 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path not in ("/analyze", "/audit"):
             return self._error(404, "not found")
+        meter_key = (self._api_key()
+                     if self.metering is not None else None)
+        if (meter_key is not None
+                and not self.metering.allowed(meter_key)):
+            return self._json({
+                "error": "quota exceeded",
+                "usage": self.metering.usage(meter_key),
+            }, 429)
         length = int(self.headers.get("Content-Length") or 0)
         if not 0 < length <= 25 * 1024 * 1024:
             return self._error(400, "empty or >25MB body")
@@ -115,9 +151,9 @@ class Handler(BaseHTTPRequestHandler):
         qs = parse_qs(url.query)
         model = (qs.get("model") or [None])[0]
         if url.path == "/audit":
-            return self._audit(raw, qs, model)
+            return self._audit(raw, qs, model, meter_key)
         if qs.get("multi"):
-            return self._analyze_multi(raw, qs, model)
+            return self._analyze_multi(raw, qs, model, meter_key)
         try:
             doc = pipeline.analyze(raw, model=model,
                                    source_name=self.headers.get(
@@ -134,9 +170,9 @@ class Handler(BaseHTTPRequestHandler):
             if doc["_skeleton"].joints:
                 self._save_overlay(kid, render.overlay_png(
                     doc["_bitmap"], doc["_skeleton"]))
-        self._json(out)
+        self._json(out, meter_key=meter_key)
 
-    def _audit(self, raw, qs, model):
+    def _audit(self, raw, qs, model, meter_key=None):
         try:
             res = selfcheck.run(
                 raw, model=model,
@@ -146,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(415, str(e))
         except Exception as e:  # noqa: BLE001
             return self._error(422, f"audit failed: {e}")
-        self._json(res)
+        self._json(res, meter_key=meter_key)
 
     def _overlay_path(self, kid: str) -> str:
         return os.path.join(self.store.root, kid + ".overlay.png")
@@ -177,7 +213,7 @@ class Handler(BaseHTTPRequestHandler):
                 png = None
         return png
 
-    def _analyze_multi(self, raw, qs, model):
+    def _analyze_multi(self, raw, qs, model, meter_key=None):
         try:
             docs = pipeline.analyze_multi(
                 raw, model=model,
@@ -197,17 +233,23 @@ class Handler(BaseHTTPRequestHandler):
                     self._save_overlay(kid, render.overlay_png(
                         d["_bitmap"], d["_skeleton"]))
             people.append(out)
-        self._json({"people": people, "count": len(people)})
+        self._json({"people": people, "count": len(people)},
+                   meter_key=meter_key)
 
 
 def serve(port: int = 8000, store_dir: str = "knowledge",
-          token: str = None):
+          token: str = None, keys: str = None):
     Handler.store = knowledge.KnowledgeStore(store_dir)
     Handler.token = token or os.environ.get("SLICE_TOKEN")
+    keys = keys or os.environ.get("SLICE_KEYS")
+    Handler.metering = plans.Metering(keys) if keys else None
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"Slice {__version__} listening on http://127.0.0.1:{port}")
     print(f"Knowledge store: {os.path.abspath(store_dir)}")
-    print("auth: " + ("bearer token required for API routes"
-                     if Handler.token else "open (set SLICE_TOKEN or "
-                     "--token to require auth)"))
+    if Handler.metering:
+        print(f"auth: api keys + monthly quota ({os.path.abspath(keys)})")
+    else:
+        print("auth: " + ("bearer token required for API routes"
+                         if Handler.token else "open (set SLICE_TOKEN or "
+                         "--token to require auth)"))
     httpd.serve_forever()

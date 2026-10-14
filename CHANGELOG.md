@@ -4,6 +4,8 @@
 
 - `slice recover <image>` — recover層のCLI接続。primary→成分別リトライ→閾値半減の段階的フォールバックを1コマンド化。回復段と試行数を報告し、全段失敗は`failed`（捏造しない設計を継承）、exit 0=回復。
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。

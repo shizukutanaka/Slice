@@ -4,6 +4,8 @@
 
 - smooth: 平滑化骨格が`centroid`を保持（マスク計測点の沈黙消失を解消 — pelvis未観測時にtrackのアンカーが失われフレームがempty化していた）。また異解像度フレーム混在時、近傍の生pxを中心フレーム空間に再スケールしてから平均（解像度差を関節位置に混入していた欠陥、motion #314/diff #315と同型）。`jitter`も異フレーム間で前フレーム空間に再スケール（解像度変更を「動き」と誤認しない）。
 
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

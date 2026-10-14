@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。

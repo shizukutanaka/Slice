@@ -4,6 +4,8 @@
 
 - CI: `python -m slice.bench` をワークフローに接続 — 精度ゲート（detection/observed/mean_error/OKS）がCIで実効化。併せて閾値を実測ベースライン（3.5px/0.92）の3倍程度に引き締め（20px→10px, 0.5→0.8）— #147/#149レベルの系統誤差リグレッションを検出可能に。
 
+- `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。
+
 - `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
 
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。

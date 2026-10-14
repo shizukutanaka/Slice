@@ -72,6 +72,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               mask as _mask_mod, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                people, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, sample, selfcheck, storechk)
@@ -697,6 +699,38 @@ def _cmd_human(a) -> int:
     if not comps:
         return 1
     return 0 if any(c["person_like"] for c in comps) else 1
+
+
+def _cmd_mask(a) -> int:
+    """Foreground mask PNG, or alpha-cutout of the input."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    if a.cutout:
+        out = _mask_mod.cutout(bmp, est)
+        note = "background alpha=0 at input resolution"
+    else:
+        small = bmp.downscale(est.max_dim)
+        m = _mask_mod.foreground(small, est)
+        out = _mask_mod.to_bitmap(m, small.width,
+                                  small.height)
+        note = ("mask at estimator resolution "
+                f"{small.width}x{small.height}")
+    with open(a.output, "wb") as f:
+        f.write(bitmap.encode_png(out))
+    small = bmp.downscale(est.max_dim)
+    m = _mask_mod.foreground(small, est)
+    print(json.dumps({"output": a.output,
+                      "coverage": round(
+                          _mask_mod.coverage(m), 4),
+                      "size": [out.width, out.height],
+                      "basis": note}, ensure_ascii=False))
+    return 0
 
 
 def _cmd_lift(a) -> int:
@@ -1465,6 +1499,16 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    mk = sub.add_parser(
+        "mask", help="export the foreground mask PNG")
+    mk.add_argument("image")
+    mk.add_argument("-o", "--output", required=True)
+    mk.add_argument("--cutout", action="store_true",
+                    help="write an alpha cutout at full res")
+    mk.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mk.set_defaults(fn=_cmd_mask)
 
     li = sub.add_parser(
         "lift", help="pseudo-3D joint coordinates")

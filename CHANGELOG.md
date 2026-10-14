@@ -4,6 +4,8 @@
 
 - REST `GET /export/<id>.<fmt>` — 保存ドキュメントの骨格をbvh/gltf/coco/svg/ascii/paf/heatmapで直接ダウンロード。`skeleton.from_dict`（`to_dict`の逆変換）を新設し、Knowledgeドキュメント→Skeleton復元経路を共通化（エクスポート以外のdoc→Skeleton用途にも利用可能）。
 
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

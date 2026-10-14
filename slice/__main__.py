@@ -1311,7 +1311,11 @@ def _cmd_audit_dir(a) -> int:
 
 
 def _cmd_serve(a) -> int:
-    rest.serve(port=a.port, store_dir=a.store, token=a.token, keys=a.keys)
+    try:
+        rest.serve(port=a.port, store_dir=a.store, token=a.token, keys=a.keys)
+    except (OSError, ValueError) as e:
+        print(f"cannot start server: {e}", file=sys.stderr)
+        return 2
     return 0
 
 
@@ -1333,19 +1337,7 @@ def _cmd_keys_usage(a) -> int:
             raise ValueError
         now = calendar.timegm(parsed)
         meter = plans.Metering(a.keys)
-        rows = []
-        for key in meter._keys:
-            plan = meter.plan_for(key)
-            if plan is None:
-                continue
-            usage = meter.usage(key, now=now)
-            rows.append({
-                "owner": usage["owner"],
-                "plan": usage["plan"],
-                "month": usage["month"],
-                "used": usage["used"],
-                "quota": usage["quota"],
-            })
+        rows = meter.report(now=now)
     except (OSError, ValueError) as e:
         print(f"cannot read API usage: {e}", file=sys.stderr)
         return 2

@@ -144,6 +144,44 @@ class Metering:
                 "remaining": None if quota is None else max(0, quota - used),
             }
 
+    def report(self, now=None) -> list:
+        with self._lock:
+            self._reload_keys()
+            month = _month(now)
+            rows = []
+            active_keys = set()
+            for key, entry in self._keys.items():
+                if not isinstance(entry, dict):
+                    continue
+                name = entry.get("plan")
+                if not isinstance(name, str) or name not in self._plans:
+                    continue
+                active_keys.add(key)
+                rows.append({
+                    "owner": entry.get("owner", ""),
+                    "plan": name,
+                    "month": month,
+                    "used": self._ledger.get(key, {}).get(month, 0),
+                    "quota": self._plans[name],
+                    "status": "active",
+                })
+            for key, months in self._ledger.items():
+                used = months.get(month, 0)
+                if used <= 0 or key in active_keys:
+                    continue
+                entry = self._keys.get(key)
+                name = entry.get("plan") if isinstance(entry, dict) else None
+                rows.append({
+                    "owner": entry.get("owner") if isinstance(entry, dict)
+                    else None,
+                    "plan": name if isinstance(name, str) else None,
+                    "month": month,
+                    "used": used,
+                    "quota": None,
+                    "status": "inactive",
+                })
+            return rows
+
     def allowed(self, key, now=None) -> bool:
         usage = self.usage(key, now=now)
         return usage["quota"] is None or usage["used"] < usage["quota"]

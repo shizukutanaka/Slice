@@ -4,6 +4,10 @@
 
 - `slice migrate --store DIR [--write]` — migrate層のCLI接続。ストア内旧ドキュメントを現行スキーマへ正規化。デフォルトはドライラン（変更点のみ報告）、`--write`で原子的に書き込み。全修復をchanges列挙＋修復不能docは書き込まない誠実設計。
 
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。

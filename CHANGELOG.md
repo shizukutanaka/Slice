@@ -4,6 +4,10 @@
 
 - `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
 
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。

@@ -7,6 +7,8 @@
   信号を追加
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。

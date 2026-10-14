@@ -5,6 +5,8 @@
 - `slice.radial` 新設 — 放射状シグネチャ（重心から64方向の
   輪郭距離、最長正規化）。matchは全循環シフト最良L1で回転
   不変 — 質量の伸び方を見るcompact形状照合
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

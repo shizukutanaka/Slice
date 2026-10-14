@@ -4,6 +4,8 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

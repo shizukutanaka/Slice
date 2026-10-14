@@ -43,6 +43,8 @@ from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, ik, knowledge, limbcov,
                pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, diag, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, contour, evaluate, knowledge,
                limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, distfield, evaluate, knowledge,
@@ -716,6 +718,21 @@ def _cmd_ik(a) -> int:
     return 0
 
 
+def _cmd_diag(a) -> int:
+    """Why did detection fail — replay the estimator's gates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = diag.diagnose(bmp, est)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("ok") else 1
+
+
 def _cmd_split(a) -> int:
     """Split a fused silhouette into per-person skeletons."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -1379,6 +1396,13 @@ def main(argv=None) -> int:
     iks.add_argument("--bend", type=float, default=1.0,
                      help="bend direction +1/-1")
     iks.set_defaults(fn=_cmd_ik)
+
+    dg = sub.add_parser(
+        "diag", help="diagnose detection (reason codes)")
+    dg.add_argument("image")
+    dg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    dg.set_defaults(fn=_cmd_diag)
 
     sp = sub.add_parser(
         "split", help="watershed-split fused silhouettes")

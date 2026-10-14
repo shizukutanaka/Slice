@@ -4,6 +4,8 @@
 
 - デッド公開面の削除 — `paf.direction_at`（PAF生成後に誰も参照しないクエリヘルパ）と `pipeline.predicted_count`（未参照の対称アクセサ）を除去。スペキュラティブAPIは保守コストだけを払うので、YAGNI原則で消去。利用者向け挙動の変更なし。
 
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

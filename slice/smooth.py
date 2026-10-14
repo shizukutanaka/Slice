@@ -21,7 +21,9 @@ from .skeleton import OBSERVED, Joint, Skeleton
 def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
     """Return per-frame skeletons with positions averaged over
     [t-radius, t+radius]. Confidence and state are taken from the
-    center frame — only position is smoothed."""
+    center frame — only position is smoothed. Basis gets a
+    `; smoothed` suffix: the position is now a temporal average,
+    not the single-frame measurement the original basis names."""
     n = len(series)
     out: List[Skeleton] = []
     for t in range(n):
@@ -45,7 +47,8 @@ def smooth(series: List[Skeleton], radius: int = 1) -> List[Skeleton]:
                 ys += o.y
                 cnt += 1
             dst.set(Joint(name, xs / cnt, ys / cnt, j.confidence,
-                          state=j.state, basis=j.basis))
+                          state=j.state,
+                          basis=(j.basis or "") + "; smoothed"))
         out.append(dst)
     return out
 

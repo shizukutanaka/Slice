@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で
+  移した位置が「top blob centroid」等の単フレーム計測由来を
+  そのまま名乗っていた欠陥を解消（位置・confidence・stateは
+  不変、由来の開示のみ）。
+
 - predict: 推測関節をアンカーにした連鎖推測をbasisで開示。
   `prior off X`・`interpolated A-B`・`foot below ankle` の
   アンカー関節がpredictedのとき `(predicted anchor)` を付記。

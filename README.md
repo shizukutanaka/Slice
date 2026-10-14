@@ -74,11 +74,16 @@ python3 -m slice serve --keys keys.json
 
 # 月次請求用の利用実績（省略時は現在のUTC月）
 python3 -m slice keys usage --keys keys.json --month 2025-01
+# 出力: [{owner, plan, month, used, quota, status}, ...]
 ```
 
 `/analyze`（multiを含む）と`/audit`は成功したリクエストのみ1回として記録し、
 クォータ超過は`429`（`quota exceeded`）を返します。並行処理中のリクエストは
 個別に事前判定されるため、超過は最大で同時実行数分になる場合があります。
+キーを停止する際は削除せず、`keys.json`の`plan`を`"revoked"`など
+未定義の名前に変更してください。リクエストは`401`となり、利用実績には
+所有者を`status: "inactive"`として残せます。キーを完全に削除した場合も
+記録済み利用は`owner: null`で表示され、請求記録から失われません。
 キー設定ファイルと既定の`<keys>.usage.json`台帳は機密情報・請求記録として
 アクセス制限し、安全なバックアップを保管してください。これらをGitへ
 コミットしないでください。

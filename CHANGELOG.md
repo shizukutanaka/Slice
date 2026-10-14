@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- metering: 月境界をまたぐ請求の月を固定し、無効化・削除済みキーの利用実績も請求レポートに保持。
+
 - smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で
   移した位置が「top blob centroid」等の単フレーム計測由来を
   そのまま名乗っていた欠陥を解消（位置・confidence・stateは

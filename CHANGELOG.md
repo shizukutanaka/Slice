@@ -7,6 +7,8 @@
   そのまま名乗っていた欠陥を解消（位置・confidence・stateは
   不変、由来の開示のみ）。
 
+- `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
+
 - `slice lift <image> [-o out.json]` — lift層のCLI接続。向き手がかりによる擬似3D座標（側面時のみz推定、正面は正直な平坦0）＋depth_spread。BVH/glTF前段の3DブリッジをCLI化。
 
 - `slice people <image> [--min-frac F]` — people層のCLI接続。前景成分を人物候補としてランク列挙（size/fraction/bbox/aspect/touches_edge＋「成分≠人物」警告文）。複数人検出の前段診断。

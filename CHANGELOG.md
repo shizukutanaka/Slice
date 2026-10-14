@@ -4,6 +4,8 @@
 
 - `slice segment <image> [-o map.png]` — segment層のCLI接続。部位別ピクセルラベル（DensePose式、証拠画素のみ）の集計＋`-o`で色分けマップPNG。マスク・骨格ともに推定器解像度で処理。
 
+- `slice norm <image> --unit|--resize WxH` — norm層のCLI接続。推定骨格を0-1正規化または任意解像度へスケールして出力（mode/from付き）。解像度非依存の比較・データセット前処理。
+
 - `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
 
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。

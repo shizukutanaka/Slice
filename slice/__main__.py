@@ -41,6 +41,8 @@ from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, distfield, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, consistency, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, gait, knowledge,
@@ -718,6 +720,35 @@ def _cmd_split(a) -> int:
     return 0 if figs else 1
 
 
+def _cmd_distfield(a) -> int:
+    """Distance transform: local thickness at each joint."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    w, h = small.width, small.height
+    m = est._mask(small)
+    dist = distfield.distance_transform(m)
+    skel = est.estimate(bmp, a.model or "adult")
+    joints = {n: round(distfield.thickness_at(
+                      dist, w, j.x, j.y), 2)
+              for n, j in skel.joints.items()
+              if j.state == "observed"}
+    res = {"profile": distfield.thickness_profile(
+               dist, w, h, m),
+           "joint_thickness_px": joints,
+           "frame": [w, h],
+           "basis": "chamfer distance transform; thickness = "
+                    "2 x local distance"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["profile"]["max"] else 1
+
+
 def _cmd_norm(a) -> int:
     """Estimate, then emit the skeleton in another coord frame."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -1295,6 +1326,15 @@ def main(argv=None) -> int:
     sp.add_argument("--top-k", type=int, default=4,
                     help="max figures")
     sp.set_defaults(fn=_cmd_split)
+
+    df = sub.add_parser(
+        "distfield", help="limb thickness via distance transform")
+    df.add_argument("image")
+    df.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    df.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    df.set_defaults(fn=_cmd_distfield)
 
     no = sub.add_parser(
         "norm", help="skeleton in another coordinate frame")

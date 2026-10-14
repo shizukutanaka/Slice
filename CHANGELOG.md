@@ -6,6 +6,8 @@
   変換でフレーム外に出た関節が gain 1.0 のフル強度ガウスを
   フレーム端に焼き付け、変換前の古い証拠が新鮮な観測を装っていた。
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。

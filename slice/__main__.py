@@ -64,6 +64,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               norm, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, repro, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, selfcheck, topology, storechk)
@@ -714,6 +716,46 @@ def _cmd_distfield(a) -> int:
     return 0 if res["profile"]["max"] else 1
 
 
+def _cmd_norm(a) -> int:
+    """Estimate, then emit the skeleton in another coord frame."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    w, h = skel.image_width, skel.image_height
+    if a.unit:
+        out = norm.to_unit(skel, w, h)
+        mode = "unit (0-1 per frame side)"
+    elif a.resize:
+        try:
+            nw, nh = (int(v) for v in a.resize.split("x"))
+        except ValueError:
+            print("--resize must be WxH", file=sys.stderr)
+            return 2
+        out = norm.resize(skel, w, h, nw, nh)
+        mode = f"resize {w}x{h} -> {nw}x{nh}"
+    else:
+        print("specify --unit or --resize WxH", file=sys.stderr)
+        return 2
+    doc = out.to_dict()
+    doc["norm"] = {"mode": mode,
+                   "from": [w, h]}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(doc, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_repro(a) -> int:
     """Re-estimate the source image and diff against a stored doc."""
     try:
@@ -1249,6 +1291,21 @@ def main(argv=None) -> int:
     df.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     df.set_defaults(fn=_cmd_distfield)
+
+    no = sub.add_parser(
+        "norm", help="skeleton in another coordinate frame")
+    no.add_argument("image")
+    no.add_argument("--unit", action="store_true",
+                    help="emit 0-1 normalized coordinates")
+    no.add_argument("--resize", metavar="WxH",
+                    help="emit joints scaled to WxH")
+    no.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    no.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    no.add_argument("-o", "--output",
+                    help="write the skeleton JSON")
+    no.set_defaults(fn=_cmd_norm)
 
     rp = sub.add_parser(
         "repro", help="reproducibility check doc vs image")

@@ -6,6 +6,8 @@
   `w or 10**9`で任意の正座標が「フレーム内検証済み」を装っていた
   （x=5000でもTrue）。負座標・既知frame超過のみFalse→truncated、
   寸法なしの正座標はNone→unobservedの誠実な三値に
+- `slice repro <doc.json> <image>` — repro層のCLI接続。記録骨格を元画像から再推定して関節別diff（drift/state_flip/missing/added→reproducible/drifted/changed）。決定性の回帰ゲートをCLI化。reproducible以外は exit 1。
+
 - `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
 
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的

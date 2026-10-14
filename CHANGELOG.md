@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+- smooth: 平滑化後のbasisに `; smoothed` を付記。時系列平均で
+  移した位置が「top blob centroid」等の単フレーム計測由来を
+  そのまま名乗っていた欠陥を解消（位置・confidence・stateは
+  不変、由来の開示のみ）。
+
+- predict: 推測関節をアンカーにした連鎖推測をbasisで開示。
+  `prior off X`・`interpolated A-B`・`foot below ankle` の
+  アンカー関節がpredictedのとき `(predicted anchor)` を付記。
+  推測の上に推測を積んだ位置が観測由来の補間/ドロップと
+  区別できなかった欠陥を解消（挙動は不変・開示のみ）。
+
+- multi: `people.components`に骨格化に回った成分数を開示（ゲートで落ちた成分が`count`から読めず「画像内の人数」を過小申告していた穴を解消）
+- selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- diff: 異フレームdocの関節差分をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（#314と対、解像度差を移動と誤認していた欠陥）
+- bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
+- knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）
+- `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
+
+- `slice lift <image> [-o out.json]` — lift層のCLI接続。向き手がかりによる擬似3D座標（側面時のみz推定、正面は正直な平坦0）＋depth_spread。BVH/glTF前段の3DブリッジをCLI化。
+
+- `slice people <image> [--min-frac F]` — people層のCLI接続。前景成分を人物候補としてランク列挙（size/fraction/bbox/aspect/touches_edge＋「成分≠人物」警告文）。複数人検出の前段診断。
+
+- `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
+
+- `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
+
+- `slice diag <image>` — diag層のCLI接続。推定ゲートをリプレイし no_foreground/too_small/foreground_at_edge/low_contrast/too_short の理由コードを出力。失敗時 exit 1。
+
+- `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
+
+- `slice contour <image> [-o contour.json]` — contour層のCLI接続。輪郭の形状記述子（area/perimeter/bbox/aspect/compactness/centroid）＋`-o` でトレース座標列を出力。前景なしは exit 1。
+
 - `slice distfield <image>` — distfield層のCLI接続。chamfer距離変換で全関節の局所肢体太さ（2×距離）＋胴体コアmax/medianプロファイルを計測。関節位置での太さはobserved関節のみ。
 
 - rest/cli: APIキー別プラン×月間クォータ×利用台帳を追加。成功した

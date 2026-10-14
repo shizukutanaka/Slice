@@ -63,6 +63,21 @@ class TestEstimateMulti(unittest.TestCase):
             wide, top_k=3)
         self.assertEqual(len(skels), 3)
 
+    def test_component_count_disclosed(self):
+        # how many components shared the frame — not how many
+        # skeletons survived the gates
+        est = pose.HeuristicPoseEstimator()
+        skels = est.estimate_multi(_two_people())
+        self.assertTrue(all(s.component_count == 2 for s in skels))
+        # and the people block carries it into the document
+        from slice import pipeline, bitmap
+        docs = pipeline.analyze_multi(
+            bitmap.encode_png(_two_people()))
+        self.assertEqual(len(docs), 2)
+        for d in docs:
+            self.assertEqual(d["people"]["components"], 2)
+            self.assertEqual(d["people"]["count"], 2)
+
     def test_lying_person_retried(self):
         # a sideways figure is a separate component: it must get the
         # same orientation retry the single-person path applies

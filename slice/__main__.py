@@ -46,6 +46,14 @@ from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, knowledge, lift,
+               limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, evaluate, ik, knowledge, limbcov,
+               pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, diag, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, contour, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, distfield, evaluate, knowledge,
                limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, consistency, evaluate,
@@ -68,6 +76,12 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
                render, rest, selfcheck)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               mask as _mask_mod, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               people, pipeline, render, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, sample, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                norm, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
@@ -690,6 +704,209 @@ def _cmd_human(a) -> int:
     if not comps:
         return 1
     return 0 if any(c["person_like"] for c in comps) else 1
+
+
+def _cmd_mask(a) -> int:
+    """Foreground mask PNG, or alpha-cutout of the input."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    if a.cutout:
+        out = _mask_mod.cutout(bmp, est)
+        note = "background alpha=0 at input resolution"
+    else:
+        small = bmp.downscale(est.max_dim)
+        m = _mask_mod.foreground(small, est)
+        out = _mask_mod.to_bitmap(m, small.width,
+                                  small.height)
+        note = ("mask at estimator resolution "
+                f"{small.width}x{small.height}")
+    with open(a.output, "wb") as f:
+        f.write(bitmap.encode_png(out))
+    small = bmp.downscale(est.max_dim)
+    m = _mask_mod.foreground(small, est)
+    print(json.dumps({"output": a.output,
+                      "coverage": round(
+                          _mask_mod.coverage(m), 4),
+                      "size": [out.width, out.height],
+                      "basis": note}, ensure_ascii=False))
+    return 0
+
+
+def _cmd_lift(a) -> int:
+    """Pseudo-3D joint coordinates from facing cues."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    lifted = lift.lift(skel)
+    res = {"joints": lifted,
+           "depth_spread": lift.depth_spread(lifted),
+           "frame": {"width": skel.image_width,
+                     "height": skel.image_height},
+           "facing": skel.orientation.get("facing", "unknown"),
+           "basis": "z is a cue-driven guess only when side-facing; "
+                    "flat 0 otherwise"}
+    if a.output:
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
+        print(f"wrote {a.output}", file=sys.stderr)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_people(a) -> int:
+    """Enumerate foreground components as person candidates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = people.candidates(bmp, est, min_frac=a.min_frac)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["candidates"] else 1
+
+
+def _cmd_sample(a) -> int:
+    """Sample colour at each joint; label bare skin vs covered."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    mask = est._mask(small)
+    rep = sample.joints_report(small, skel, mask)
+    res = {"joints": rep,
+           "cover": sample.body_cover_summary(rep),
+           "frame": {"width": small.width,
+                     "height": small.height},
+           "basis": "skin-like = rgb window; a colour cue, "
+                    "not segmentation"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_ik(a) -> int:
+    """2-bone IK: where does the mid joint land."""
+    try:
+        rx, ry = (float(v) for v in a.root.split(","))
+        tx, ty = (float(v) for v in a.target.split(","))
+        l1, l2 = (float(v) for v in a.lengths.split(","))
+    except ValueError:
+        print("root/target/lengths must be comma floats",
+              file=sys.stderr)
+        return 2
+    r = ik.solve_ik((rx, ry), (tx, ty), l1, l2, bend=a.bend)
+    if r is None:
+        print("degenerate segment lengths", file=sys.stderr)
+        return 1
+    mid, end = r
+    reached = math.hypot(tx - rx, ty - ry) <= l1 + l2 + 1e-6
+    res = {"mid": [round(mid[0], 3), round(mid[1], 3)],
+           "end": [round(end[0], 3), round(end[1], 3)],
+           "angle_deg": ik.bend_angle((rx, ry), mid, end),
+           "reached": reached,
+           "note": "end is clamped to reach when unreachable"}
+    print(json.dumps(res, ensure_ascii=False))
+    return 0
+
+
+def _cmd_diag(a) -> int:
+    """Why did detection fail — replay the estimator's gates."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = diag.diagnose(bmp, est)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("ok") else 1
+
+
+def _cmd_split(a) -> int:
+    """Split a fused silhouette into per-person skeletons."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skels = est.estimate_split(bmp, a.model or "adult",
+                               top_k=a.top_k)
+    figs = []
+    for i, sk in enumerate(skels):
+        figs.append({
+            "figure": i,
+            "joints": {n: {"x": round(j.x, 1),
+                           "y": round(j.y, 1),
+                           "confidence": j.confidence,
+                           "state": j.state}
+                       for n, j in sk.joints.items()},
+            "observed": sum(1 for j in sk.joints.values()
+                            if j.state == "observed"),
+            "frame": {"width": sk.image_width,
+                      "height": sk.image_height},
+        })
+    res = {"figures": len(figs), "results": figs,
+           "basis": "estimate_split: head-band peaks + geodesic "
+                    "watershed; touching people may stay merged"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if figs else 1
+
+
+def _cmd_contour(a) -> int:
+    """Silhouette contour trace + shape descriptors."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = contour.features(m)
+    if a.output:
+        pts = contour.trace(m)
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"contour": pts,
+                       "frame": [small.width, small.height]},
+                      f)
+        print(f"wrote {a.output} ({len(pts)} points)",
+              file=sys.stderr)
+    res["frame"] = [small.width, small.height]
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["area"] else 1
 
 
 def _cmd_distfield(a) -> int:
@@ -1325,6 +1542,81 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    mk = sub.add_parser(
+        "mask", help="export the foreground mask PNG")
+    mk.add_argument("image")
+    mk.add_argument("-o", "--output", required=True)
+    mk.add_argument("--cutout", action="store_true",
+                    help="write an alpha cutout at full res")
+    mk.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    mk.set_defaults(fn=_cmd_mask)
+
+    li = sub.add_parser(
+        "lift", help="pseudo-3D joint coordinates")
+    li.add_argument("image")
+    li.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    li.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    li.add_argument("-o", "--output",
+                    help="write the lifted joints JSON")
+    li.set_defaults(fn=_cmd_lift)
+
+    pp = sub.add_parser(
+        "people", help="rank foreground components as people")
+    pp.add_argument("image")
+    pp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    pp.add_argument("--min-frac", type=float, default=0.02,
+                    help="min component fraction (default 0.02)")
+    pp.set_defaults(fn=_cmd_people)
+
+    sa = sub.add_parser(
+        "sample", help="joint colour sampling (bare vs covered)")
+    sa.add_argument("image")
+    sa.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sa.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sa.set_defaults(fn=_cmd_sample)
+
+    iks = sub.add_parser(
+        "ik", help="2-bone IK solver (root,target,lengths)")
+    iks.add_argument("--root", required=True, metavar="X,Y")
+    iks.add_argument("--target", required=True, metavar="X,Y")
+    iks.add_argument("--lengths", required=True, metavar="L1,L2")
+    iks.add_argument("--bend", type=float, default=1.0,
+                     help="bend direction +1/-1")
+    iks.set_defaults(fn=_cmd_ik)
+
+    dg = sub.add_parser(
+        "diag", help="diagnose detection (reason codes)")
+    dg.add_argument("image")
+    dg.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    dg.set_defaults(fn=_cmd_diag)
+
+    sp = sub.add_parser(
+        "split", help="watershed-split fused silhouettes")
+    sp.add_argument("image")
+    sp.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sp.add_argument("--top-k", type=int, default=4,
+                    help="max figures")
+    sp.set_defaults(fn=_cmd_split)
+
+    ct = sub.add_parser(
+        "contour", help="silhouette contour + descriptors")
+    ct.add_argument("image")
+    ct.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ct.add_argument("-o", "--output",
+                    help="write the traced contour points JSON")
+    ct.set_defaults(fn=_cmd_contour)
 
     df = sub.add_parser(
         "distfield", help="limb thickness via distance transform")

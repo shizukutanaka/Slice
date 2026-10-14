@@ -6,6 +6,8 @@
   ように。facing語彙（front/left/right/side/three-quarter）・
   confidence範囲・BODY_MODELS登録名の外挿値を拒否。
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。

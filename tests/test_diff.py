@@ -21,6 +21,22 @@ class TestDiff(unittest.TestCase):
         self.assertEqual(d["joints"]["moved"], [])
         self.assertEqual(d["summary"], "no differences")
 
+    def test_cross_frame_diff_rescaled_and_disclosed(self):
+        a, b = _doc(), _doc()
+        fa = a["skeleton"]["frame"]
+        b["skeleton"]["frame"] = {"width": fa["width"] * 2,
+                                  "height": fa["height"] * 2}
+        for j in b["skeleton"]["joints"].values():
+            j["x"] *= 2
+            j["y"] *= 2
+        d = diff(a, b)
+        self.assertTrue(d["frame_scaled"])
+        self.assertEqual(d["frame_b"], (fa["width"] * 2,
+                                        fa["height"] * 2))
+        self.assertEqual(d["joints"]["moved"], [])   # same pose, 2x res
+        same = diff(a, copy.deepcopy(a))
+        self.assertFalse(same["frame_scaled"])
+
     def test_moved_joint_reported(self):
         a, b = _doc(), _doc()
         b["skeleton"]["joints"]["head"]["x"] += 10

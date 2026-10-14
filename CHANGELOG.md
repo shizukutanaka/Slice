@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
+- diff: 異フレームdocの関節差分をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（#314と対、解像度差を移動と誤認していた欠陥）
 - bundle: packがトラバーサルidを持つdocをskip＋manifest無しzipをValueErrorで明示拒否
 - knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。

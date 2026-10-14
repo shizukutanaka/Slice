@@ -6,6 +6,10 @@
   退化支持基底で、任意の1px pelvis偏移が`com_outside_feet`を発火し
   detailが生pxを「足幅分率」と装っていた欠陥を修正（span<=0は不発火、
   leg軸の一致ケースも明示ガード）
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `slice diag <image>` — diag層のCLI接続。推定ゲートをリプレイし no_foreground/too_small/foreground_at_edge/low_contrast/too_short の理由コードを出力。失敗時 exit 1。
+
 - `slice split <image> [--top-k N]` — split層のCLI接続。融合シルエットを頭帯ピーク検出＋測地watershedで人物別骨格に分割（estimate_split）。各figureの関節/観測数をJSON出力、basisに「接触した人物は1つに残り得る」旨を明記。
 
 - `slice contour <image> [-o contour.json]` — contour層のCLI接続。輪郭の形状記述子（area/perimeter/bbox/aspect/compactness/centroid）＋`-o` でトレース座標列を出力。前景なしは exit 1。

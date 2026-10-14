@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- predict: 推測関節をアンカーにした連鎖推測をbasisで開示。
+  `prior off X`・`interpolated A-B`・`foot below ankle` の
+  アンカー関節がpredictedのとき `(predicted anchor)` を付記。
+  推測の上に推測を積んだ位置が観測由来の補間/ドロップと
+  区別できなかった欠陥を解消（挙動は不変・開示のみ）。
+
 - multi: `people.components`に骨格化に回った成分数を開示（ゲートで落ちた成分が`count`から読めず「画像内の人数」を過小申告していた穴を解消）
 - selfcheck: `slice audit` が選択BODY_MODEL再検証層（modelchk）を統合 — 頭比率だけで選ばれたプライアを全計測比率で再監査（到達不能だった監査層を接続）
 - diff: 異フレームdocの関節差分をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（#314と対、解像度差を移動と誤認していた欠陥）

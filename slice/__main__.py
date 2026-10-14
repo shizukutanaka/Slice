@@ -70,6 +70,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, sample, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                norm, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, repro, rest, selfcheck, storechk)
@@ -691,6 +693,33 @@ def _cmd_human(a) -> int:
     if not comps:
         return 1
     return 0 if any(c["person_like"] for c in comps) else 1
+
+
+def _cmd_sample(a) -> int:
+    """Sample colour at each joint; label bare skin vs covered."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skel = est.estimate(bmp, a.model or "adult")
+    if not skel.joints:
+        print("no person detected", file=sys.stderr)
+        return 1
+    small = bmp.downscale(est.max_dim)
+    mask = est._mask(small)
+    rep = sample.joints_report(small, skel, mask)
+    res = {"joints": rep,
+           "cover": sample.body_cover_summary(rep),
+           "frame": {"width": small.width,
+                     "height": small.height},
+           "basis": "skin-like = rgb window; a colour cue, "
+                    "not segmentation"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
 
 
 def _cmd_ik(a) -> int:
@@ -1387,6 +1416,15 @@ def main(argv=None) -> int:
     hu.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     hu.set_defaults(fn=_cmd_human)
+
+    sa = sub.add_parser(
+        "sample", help="joint colour sampling (bare vs covered)")
+    sa.add_argument("image")
+    sa.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sa.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sa.set_defaults(fn=_cmd_sample)
 
     iks = sub.add_parser(
         "ik", help="2-bone IK solver (root,target,lengths)")

@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - diff: 異フレームdocの関節差分をb→a座標系に再スケール＋`frame_scaled`/`frame_b`開示（#314と対、解像度差を移動と誤認していた欠陥）
+- knowledge: save()が k_<12hex> 外のidを拒否（get()が読めない書込み専用doc化＋セパレータ経由の店舗ディレクトリ脱出を防止）
 - `slice mask <image> -o mask.png [--cutout]` — mask層のCLI接続。前景マスクをPNG出力（推定器解像度）、`--cutout` は背景α=0の元解像度カットアウト。coverage計測を同梱。
 
 - `slice lift <image> [-o out.json]` — lift層のCLI接続。向き手がかりによる擬似3D座標（側面時のみz推定、正面は正直な平坦0）＋depth_spread。BVH/glTF前段の3DブリッジをCLI化。

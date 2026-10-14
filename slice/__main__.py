@@ -62,6 +62,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, repro, rest, selfcheck, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, selfcheck, topology, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                modelchk, pipeline, ratio, render, rest, selfcheck, storechk)
@@ -711,6 +713,31 @@ def _cmd_stats(a) -> int:
     return 0
 
 
+def _cmd_repro(a) -> int:
+    """Re-estimate the source image and diff against a stored doc."""
+    try:
+        with open(a.doc, "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"cannot load doc {a.doc}: {e}", file=sys.stderr)
+        return 2
+    if not isinstance(doc, dict) or "skeleton" not in doc:
+        print("doc must be a Knowledge JSON with a skeleton block",
+              file=sys.stderr)
+        return 2
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    res = repro.verify(doc, bmp, est, tolerance=a.tolerance)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["verdict"] == "reproducible" else 1
+
+
 def _cmd_topology(a) -> int:
     """Silhouette topology: components, holes, Euler number."""
     try:
@@ -1224,6 +1251,16 @@ def main(argv=None) -> int:
     st.add_argument("--weakest", type=int, default=5,
                     help="how many weakest joints to report")
     st.set_defaults(fn=_cmd_stats)
+
+    rp = sub.add_parser(
+        "repro", help="reproducibility check doc vs image")
+    rp.add_argument("doc", help="a Knowledge JSON doc")
+    rp.add_argument("image")
+    rp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    rp.add_argument("--tolerance", type=float, default=8.0,
+                    help="position drift tolerance px")
+    rp.set_defaults(fn=_cmd_repro)
 
     tp = sub.add_parser(
         "topology", help="silhouette topology (holes, Euler)")

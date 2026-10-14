@@ -4,6 +4,10 @@
 
 - evaluate/calib: 推定関節を真値のフィクスチャ空間に再スケール（max_dim超過フィクスチャで骨格が縮小空間・真値が原寸空間のまま生px比較され、解像度差を推定誤差として報告していた欠陥。1024×2048 fixtureでmean_error ~500px→実計測値へ、calibのhit判定も無条件miss化していた。motion #314/smooth #371と同型の座標空間混入）。
 
+- `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
+  健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
+  違反を列挙。issuesがあれば exit 1。
+
 - `slice gait <dir> [-o gait.json]` — gait層のCLI接続。フレーム列ごとの stance/swing 位相キュー＋knee_angle＋step_widthを一括集計。推定不能フレームはstate付きで結果に残す。
 
 - `slice modelchk <image>` — modelchk層のCLI接続。頭身比だけで選ばれたBODY_MODELを実測比率5次元で再検証（2+次元乖離でmismatch、better_modelは助言のみ）。mismatch/unmeasurableは exit 1。

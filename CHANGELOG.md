@@ -8,6 +8,8 @@
   推測の上に推測を積んだ位置が観測由来の補間/ドロップと
   区別できなかった欠陥を解消（挙動は不変・開示のみ）。
 
+- `slice sample <image>` — sample層のCLI接続。関節窓の色統計→skin_like/covered判定＋body_cover_summary集計。色手がかりのみで分割ではない旨をbasisに明記。
+
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
 
 - `slice diag <image>` — diag層のCLI接続。推定ゲートをリプレイし no_foreground/too_small/foreground_at_edge/low_contrast/too_short の理由コードを出力。失敗時 exit 1。

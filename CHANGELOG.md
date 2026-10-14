@@ -4,6 +4,8 @@
 
 - `slice ik --root X,Y --target X,Y --lengths L1,L2 [--bend ±1]` — ik層のCLI接続。解析的2ボーンIKで中間関節（肘/膝）を解く。不可達は到達距離にclamp＋`reached:false`、reached判定とangle_deg出力。
 
+- `slice topology <image> [--min-hole N]` — topology層のCLI接続。シルエット位相（連結成分数・囲まれた穴・Euler数・fg_px）。輪郭に届く穴は外部扱い（境界到達領域を穴と誤認しない）。
+
 - `slice consistency <image>` — consistency層のCLI接続。骨格の解剖学的
   健全性（肢長±0.4–2.5×プライア・左右対称2.5×・フレーム内外）を監査し、
   違反を列挙。issuesがあれば exit 1。

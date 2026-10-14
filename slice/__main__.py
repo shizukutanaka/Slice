@@ -41,6 +41,8 @@ from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov,
                pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, compare, diff, evaluate,
                knowledge, limbcov, pipeline, render, rest, selfcheck)
+from . import (__version__, bitmap, calib, contour, evaluate, knowledge,
+               limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, distfield, evaluate, knowledge,
                limbcov, pipeline, render, rest, selfcheck)
 from . import (__version__, bitmap, calib, consistency, evaluate,
@@ -721,6 +723,65 @@ def _cmd_mask(a) -> int:
     return 0
 
 
+def _cmd_split(a) -> int:
+    """Split a fused silhouette into per-person skeletons."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    skels = est.estimate_split(bmp, a.model or "adult",
+                               top_k=a.top_k)
+    figs = []
+    for i, sk in enumerate(skels):
+        figs.append({
+            "figure": i,
+            "joints": {n: {"x": round(j.x, 1),
+                           "y": round(j.y, 1),
+                           "confidence": j.confidence,
+                           "state": j.state}
+                       for n, j in sk.joints.items()},
+            "observed": sum(1 for j in sk.joints.values()
+                            if j.state == "observed"),
+            "frame": {"width": sk.image_width,
+                      "height": sk.image_height},
+        })
+    res = {"figures": len(figs), "results": figs,
+           "basis": "estimate_split: head-band peaks + geodesic "
+                    "watershed; touching people may stay merged"}
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if figs else 1
+
+
+def _cmd_contour(a) -> int:
+    """Silhouette contour trace + shape descriptors."""
+    est = (pipeline.ROBUST_ESTIMATOR if a.robust
+           else pipeline.ESTIMATOR)
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    small = bmp.downscale(est.max_dim)
+    m = est._mask(small)
+    res = contour.features(m)
+    if a.output:
+        pts = contour.trace(m)
+        with open(a.output, "w", encoding="utf-8") as f:
+            json.dump({"contour": pts,
+                       "frame": [small.width, small.height]},
+                      f)
+        print(f"wrote {a.output} ({len(pts)} points)",
+              file=sys.stderr)
+    res["frame"] = [small.width, small.height]
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res["area"] else 1
+
+
 def _cmd_distfield(a) -> int:
     """Distance transform: local thickness at each joint."""
     est = (pipeline.ROBUST_ESTIMATOR if a.robust
@@ -1326,6 +1387,26 @@ def main(argv=None) -> int:
     mk.add_argument("--robust", action="store_true",
                     help="robust estimation profile")
     mk.set_defaults(fn=_cmd_mask)
+
+    sp = sub.add_parser(
+        "split", help="watershed-split fused silhouettes")
+    sp.add_argument("image")
+    sp.add_argument("--model", choices=sorted(BODY_MODELS),
+                    default=None)
+    sp.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    sp.add_argument("--top-k", type=int, default=4,
+                    help="max figures")
+    sp.set_defaults(fn=_cmd_split)
+
+    ct = sub.add_parser(
+        "contour", help="silhouette contour + descriptors")
+    ct.add_argument("image")
+    ct.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    ct.add_argument("-o", "--output",
+                    help="write the traced contour points JSON")
+    ct.set_defaults(fn=_cmd_contour)
 
     df = sub.add_parser(
         "distfield", help="limb thickness via distance transform")

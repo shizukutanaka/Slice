@@ -62,6 +62,8 @@ from . import (__version__, bitmap, knowledge, limbcov, mutate, pipeline,
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                mutate, pipeline, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
+               pipeline, render, rest, selfcheck, topology, storechk)
+from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                modelchk, pipeline, ratio, render, rest, selfcheck, storechk)
 from . import (__version__, bitmap, calib, evaluate, knowledge, limbcov, 
                pipeline, render, rest, selfcheck, stability, storechk)
@@ -713,6 +715,22 @@ def _cmd_retarget(a) -> int:
     return 0
 
 
+def _cmd_topology(a) -> int:
+    """Silhouette topology: components, holes, Euler number."""
+    try:
+        with open(a.image, "rb") as f:
+            bmp = bitmap.decode(f.read())
+    except (bitmap.UnsupportedFormat, OSError) as e:
+        print(f"cannot load {a.image}: {e}", file=sys.stderr)
+        return 2
+    res = topology.analyze(bmp, min_hole=a.min_hole)
+    if res is None:
+        print("no foreground detected", file=sys.stderr)
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_gait(a) -> int:
     """Gait phase cues over a frame directory."""
     files = sorted(
@@ -1211,6 +1229,13 @@ def main(argv=None) -> int:
     rt.add_argument("-o", "--output",
                     help="write the retargeted skeleton JSON")
     rt.set_defaults(fn=_cmd_retarget)
+
+    tp = sub.add_parser(
+        "topology", help="silhouette topology (holes, Euler)")
+    tp.add_argument("image")
+    tp.add_argument("--min-hole", type=int, default=12,
+                    help="min hole pixels")
+    tp.set_defaults(fn=_cmd_topology)
 
     ga = sub.add_parser(
         "gait", help="gait phase cues over a frame dir")

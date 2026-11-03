@@ -61,14 +61,18 @@ class Bitmap:
         s = max_dim / m
         w = max(1, round(self.width * s))
         h = max(1, round(self.height * s))
+        sh, d = self.height, self.data
+        sw4 = self.width * 4
+        # source indices depend only on the axis — hoist them out of
+        # the per-pixel loop (same int(v/s) values, computed once)
+        xs = [min(self.width - 1, int(x / s)) * 4 for x in range(w)]
         out = bytearray(w * h * 4)
         for y in range(h):
-            sy = min(self.height - 1, int(y / s))
-            for x in range(w):
-                sx = min(self.width - 1, int(x / s))
-                si = (sy * self.width + sx) * 4
-                di = (y * w + x) * 4
-                out[di:di + 4] = self.data[si:si + 4]
+            base = min(sh - 1, int(y / s)) * sw4
+            di = y * w * 4
+            for sx4 in xs:
+                out[di:di + 4] = d[base + sx4:base + sx4 + 4]
+                di += 4
         return Bitmap(w, h, out)
 
 

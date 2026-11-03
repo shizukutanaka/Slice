@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- bitmap: PNG/BMPデコードの全画素ピクセルループを行単位スライス代入へ置換し、PNG UpフィルタをSWAR bigint演算化。6MP画像の `slice analyze` が約8倍高速化（2.2s→0.3s）。出力は全カラタイプ・全フィルタでバイト同一（170ケース照合）。
 - pose: 腕候補走査を `_estimate_component` から `_arm_candidates` に分離（挙動不変・単体テスト追加）。
 - metering: 月境界をまたぐ請求の月を固定し、無効化・削除済みキーの利用実績も請求レポートに保持。
 

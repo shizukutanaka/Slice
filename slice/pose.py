@@ -154,6 +154,48 @@ def _classify_orientation(comp, w, rows, top, body_w, body_h, head_cx,
             "head_shift": round(head_shift, 2)}
 
 
+def _estimate_legs(comp, w, h, crotch, bottom, hip_run):
+    """Place knee/ankle/foot joints below the crotch row.
+
+    Returns (legs_split, joints): joints are raw
+    (name, x, y, confidence, basis) tuples in placement order so the
+    caller can apply its own rounding/clamping."""
+    legs_split = False
+    joints = []
+    for side, take in (("l", 0), ("r", -1)):
+        knee_y = crotch + (bottom - crotch) * 0.55
+        kr = _row_runs(comp, min(int(knee_y), h - 1), w)
+        ar = _row_runs(comp, bottom, w)
+        if len(kr) >= 2 and len(ar) >= 2:
+            legs_split = True
+            # Anchor each leg to its foot run — picking the
+            # leftmost/rightmost knee-row run grabs a dangling
+            # arm that still reaches below knee height.
+            arun = ar[take] if len(ar) > abs(take) else ar[0]
+            fcx = (arun[0] + arun[1]) / 2
+            krun = next(
+                (r for r in kr if r[0] <= fcx <= r[1]), kr[take])
+            joints.append((f"knee_{side}", (krun[0] + krun[1]) / 2,
+                           knee_y, 0.7, "leg run at knee height"))
+            joints.append((f"ankle_{side}", (arun[0] + arun[1]) / 2,
+                           bottom - 1, 0.7, "leg run at bottom"))
+            joints.append((f"foot_{side}", (arun[0] + arun[1]) / 2,
+                           bottom, 0.6, "silhouette bottom"))
+        elif len(ar) >= 1:
+            run = ar[0] if side == "l" else ar[-1]
+            # Merged legs: place both on the merged run at low conf.
+            joints.append((f"ankle_{side}", (run[0] + run[1]) / 2,
+                           bottom - 1, 0.35, "merged leg run"))
+            joints.append((f"foot_{side}", (run[0] + run[1]) / 2,
+                           bottom, 0.3, "merged leg run"))
+    if not legs_split:
+        for side in ("l", "r"):
+            joints.append((f"knee_{side}", (hip_run[0] + hip_run[1]) / 2,
+                           crotch + (bottom - crotch) * 0.55, 0.3,
+                           "legs not separable"))
+    return legs_split, joints
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -752,38 +794,10 @@ class HeuristicPoseEstimator(PoseEstimator):
             "axis midpoint")
 
         # Legs: below the crotch, split the row runs.
-        legs_split = False
-        for side, take in (("l", 0), ("r", -1)):
-            knee_y = crotch + (bottom - crotch) * 0.55
-            kr = _row_runs(comp, min(int(knee_y), h - 1), w)
-            ar = _row_runs(comp, bottom, w)
-            if len(kr) >= 2 and len(ar) >= 2:
-                legs_split = True
-                # Anchor each leg to its foot run — picking the
-                # leftmost/rightmost knee-row run grabs a dangling
-                # arm that still reaches below knee height.
-                arun = ar[take] if len(ar) > abs(take) else ar[0]
-                fcx = (arun[0] + arun[1]) / 2
-                krun = next(
-                    (r for r in kr if r[0] <= fcx <= r[1]), kr[take])
-                put(f"knee_{side}", (krun[0] + krun[1]) / 2, knee_y, 0.7,
-                    "leg run at knee height")
-                put(f"ankle_{side}", (arun[0] + arun[1]) / 2, bottom - 1,
-                    0.7, "leg run at bottom")
-                put(f"foot_{side}", (arun[0] + arun[1]) / 2, bottom,
-                    0.6, "silhouette bottom")
-            elif len(ar) >= 1:
-                run = ar[0] if side == "l" else ar[-1]
-                # Merged legs: place both on the merged run at low conf.
-                put(f"ankle_{side}", (run[0] + run[1]) / 2, bottom - 1,
-                    0.35, "merged leg run")
-                put(f"foot_{side}", (run[0] + run[1]) / 2, bottom,
-                    0.3, "merged leg run")
-        if not legs_split:
-            for side in ("l", "r"):
-                put(f"knee_{side}", (hr[0] + hr[1]) / 2,
-                    crotch + (bottom - crotch) * 0.55, 0.3,
-                    "legs not separable")
+        legs_split, leg_joints = _estimate_legs(comp, w, h, crotch,
+                                                bottom, hr)
+        for name, x, y, conf, basis in leg_joints:
+            put(name, x, y, conf, basis)
 
         # Arms: silhouette protrusions beside the torso column, tracked
         # down past the hips so dangling hands are still found.

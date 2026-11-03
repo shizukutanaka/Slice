@@ -196,6 +196,53 @@ def _estimate_legs(comp, w, h, crotch, bottom, hip_run):
     return legs_split, joints
 
 
+def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
+                       torso_run, cx_spine, shoulders, horizontal_arms,
+                       prior, body_h):
+    """Place wrist/elbow joints from arm-blob candidates beside the
+    torso column, tracked down past the hips so dangling hands are
+    still found.
+
+    `shoulders` maps "l"/"r" to the already-placed shoulder joint (or
+    None). Returns raw (name, x, y, confidence, basis) tuples in
+    placement order so the caller applies its rounding/clamping."""
+    # Feet anchor the legs: a run below the torso is leg when its
+    # x-band still reaches the bottom row — x-overlap alone wrongly
+    # claims dangling arms beside wide feet (crouch/seated) as leg.
+    joints = []
+    for side, sign in (("l", -1), ("r", 1)):
+        if side in horizontal_arms:
+            continue  # strip joints already placed
+        shoulder = shoulders.get(side)
+        tx = torso_run[0] if sign < 0 else torso_run[1]
+        cand = _arm_candidates(comp, w, sign, tx, cx_spine,
+                               int(top + head_h), crotch, bottom)
+        if cand and shoulder:
+            far = max(cand,
+                      key=lambda p: (p[0] - shoulder.x) ** 2
+                      + (p[1] - shoulder.y) ** 2)
+            # Elbow rides at the upper-arm fraction of the
+            # *measured* shoulder→wrist extent. Using the prior
+            # arm_len here placed elbows ~30px too high whenever
+            # the silhouette arm ran longer than the ratio says.
+            reach = ((far[0] - shoulder.x) ** 2
+                     + (far[1] - shoulder.y) ** 2) ** 0.5
+            frac = prior["upper_arm_ratio"] / (
+                prior["upper_arm_ratio"]
+                + prior["forearm_ratio"])
+            elbow = max(
+                cand,
+                key=lambda p: -abs(((p[0] - shoulder.x) ** 2
+                                   + (p[1] - shoulder.y) ** 2) ** 0.5
+                                 - reach * frac))
+            conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
+            joints.append((f"wrist_{side}", far[0], far[1], conf,
+                           "arm blob extremity"))
+            joints.append((f"elbow_{side}", elbow[0], elbow[1],
+                           conf - 0.05, "arm blob mid-extent"))
+    return joints
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -799,42 +846,13 @@ class HeuristicPoseEstimator(PoseEstimator):
         for name, x, y, conf, basis in leg_joints:
             put(name, x, y, conf, basis)
 
-        # Arms: silhouette protrusions beside the torso column, tracked
-        # down past the hips so dangling hands are still found.
-        crotch_y = crotch
-        # Feet anchor the legs: a run below the torso is leg when its
-        # x-band still reaches the bottom row — x-overlap alone wrongly
-        # claims dangling arms beside wide feet (crouch/seated) as leg.
-        for side, sign in (("l", -1), ("r", 1)):
-            if side in horizontal_arms:
-                continue  # strip joints already placed
-            shoulder = sk.get(f"shoulder_{side}")
-            tx = torso_run[0] if sign < 0 else torso_run[1]
-            cand = _arm_candidates(comp, w, sign, tx, cx_spine,
-                                   int(top + head_h), crotch_y, bottom)
-            if cand and shoulder:
-                far = max(cand,
-                          key=lambda p: (p[0] - shoulder.x) ** 2
-                          + (p[1] - shoulder.y) ** 2)
-                # Elbow rides at the upper-arm fraction of the
-                # *measured* shoulder→wrist extent. Using the prior
-                # arm_len here placed elbows ~30px too high whenever
-                # the silhouette arm ran longer than the ratio says.
-                reach = ((far[0] - shoulder.x) ** 2
-                         + (far[1] - shoulder.y) ** 2) ** 0.5
-                frac = prior["upper_arm_ratio"] / (
-                    prior["upper_arm_ratio"]
-                    + prior["forearm_ratio"])
-                elbow = max(
-                    cand,
-                    key=lambda p: -abs(((p[0] - shoulder.x) ** 2
-                                       + (p[1] - shoulder.y) ** 2) ** 0.5
-                                     - reach * frac))
-                conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
-                put(f"wrist_{side}", far[0], far[1], conf,
-                    "arm blob extremity")
-                put(f"elbow_{side}", elbow[0], elbow[1], conf - 0.05,
-                    "arm blob mid-extent")
+        # Arms: silhouette protrusions beside the torso column.
+        shoulders = {"l": sk.get("shoulder_l"),
+                     "r": sk.get("shoulder_r")}
+        for name, x, y, conf, basis in _estimate_arm_ends(
+                comp, w, top, head_h, crotch, bottom, torso_run,
+                cx_spine, shoulders, horizontal_arms, prior, body_h):
+            put(name, x, y, conf, basis)
 
         # Orientation + body model selection.
         # Symmetry via self._symmetry: subclasses overriding the

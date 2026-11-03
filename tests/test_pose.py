@@ -4,7 +4,8 @@ from tests import (crouch_person, raised_arms_person,
                    synthetic_person, wide_hand_person)
 
 from slice.bitmap import Bitmap
-from slice.pose import HeuristicPoseEstimator, _arm_candidates
+from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
+                        _classify_orientation)
 from slice.skeleton import OBSERVED
 
 
@@ -72,6 +73,21 @@ def profile_person(width=100, height=300, side=-1, bg=235, fg=60):
         for x in range(min(cx + 6, hcx) - 2, max(cx + 6, hcx) + 2):
             bmp.set(x, y, (fg, fg, fg, 255))
     return bmp
+
+
+class TestOrientationClassifier(unittest.TestCase):
+    def test_profile_head_shift_sets_facing(self):
+        comp = [bytearray(20) for _ in range(20)]
+        for row in comp[10:]:
+            for x in range(9, 11):
+                row[x] = 1
+        rows = [None] * 20
+        rows[0] = (2, 4, 3)
+        orientation = _classify_orientation(
+            comp, 20, rows, 0, 2, 20, 3, 4, False,
+            (9, 11), (9, 10), 10, 19, 10)
+        self.assertEqual(orientation["facing"], "left")
+        self.assertLess(orientation["head_shift"], 0)
 
 
 class TestHeuristicPose(unittest.TestCase):

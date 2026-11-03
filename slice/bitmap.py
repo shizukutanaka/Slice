@@ -148,8 +148,29 @@ def _decode_png(raw: bytes) -> Bitmap:
     data = zlib.decompress(bytes(idat))
     stride = width * channels
     out = bytearray(width * height * 4)
+    if stride:
+        # SWAR masks for the Up filter: byte-wise addition mod 256 as
+        # one bignum op — ((x & 0x7f..) + (y & 0x7f..)) ^ ((x ^ y) &
+        # 0x80..) never carries across byte lanes.
+        m7 = int("7f" * stride, 16)
+        m8 = int("80" * stride, 16)
+    else:
+        m7 = m8 = 0
     prev = bytearray(stride)
     o = di = 0
+    # Channel expansion goes through strided slice assignment (C
+    # speed) instead of a per-pixel Python loop: ct6 scanlines are
+    # already RGBA and copy verbatim; ct0/2/4 expand into a reused
+    # row buffer; only palette (ct3) keeps per-pixel lookups.
+    exp = None
+    if color_type == 2:
+        exp = bytearray(width * 4)
+        exp[3::4] = b"\xff" * width
+    elif color_type == 0:
+        exp = bytearray(width * 4)
+        exp[3::4] = b"\xff" * width
+    elif color_type == 4:
+        exp = bytearray(width * 4)
     for _y in range(height):
         filt = data[o]
         o += 1
@@ -159,8 +180,12 @@ def _decode_png(raw: bytes) -> Bitmap:
             for i in range(channels, stride):
                 row[i] = (row[i] + row[i - channels]) & 0xFF
         elif filt == 2:  # up
-            for i in range(stride):
-                row[i] = (row[i] + prev[i]) & 0xFF
+            if stride:
+                x = int.from_bytes(row, "little")
+                y = int.from_bytes(prev, "little")
+                row = bytearray(
+                    (((x & m7) + (y & m7)) ^ ((x ^ y) & m8))
+                    .to_bytes(stride, "little"))
         elif filt == 3:  # average
             for i in range(stride):
                 a = row[i - channels] if i >= channels else 0
@@ -176,25 +201,32 @@ def _decode_png(raw: bytes) -> Bitmap:
                 row[i] = (row[i] + pr) & 0xFF
         elif filt != 0:
             raise UnsupportedFormat(f"PNG filter {filt} unknown")
-        for x in range(width):
-            s = x * channels
-            if color_type == 0:
-                g = row[s]
-                px = (g, g, g, 255)
-            elif color_type == 2:
-                px = (row[s], row[s + 1], row[s + 2], 255)
-            elif color_type == 3:
-                idx = row[s]
+        if color_type == 6:
+            out[di:di + stride] = row
+            di += stride
+        elif color_type == 3:
+            for x in range(width):
+                idx = row[x]
                 pi = idx * 3
                 a = trns[idx] if idx < len(trns) else 255
-                px = (palette[pi], palette[pi + 1], palette[pi + 2], a)
-            elif color_type == 4:
-                g = row[s]
-                px = (g, g, g, row[s + 1])
-            else:  # 6
-                px = (row[s], row[s + 1], row[s + 2], row[s + 3])
-            out[di:di + 4] = bytes(px)
-            di += 4
+                out[di:di + 4] = bytes(
+                    (palette[pi], palette[pi + 1], palette[pi + 2], a))
+                di += 4
+        elif color_type == 0:
+            exp[0::4] = exp[1::4] = exp[2::4] = row
+            out[di:di + width * 4] = exp
+            di += width * 4
+        elif color_type == 2:
+            exp[0::4] = row[0::3]
+            exp[1::4] = row[1::3]
+            exp[2::4] = row[2::3]
+            out[di:di + width * 4] = exp
+            di += width * 4
+        else:  # 4: gray + alpha
+            exp[0::4] = exp[1::4] = exp[2::4] = row[0::2]
+            exp[3::4] = row[1::2]
+            out[di:di + width * 4] = exp
+            di += width * 4
         prev = row
     return Bitmap(width, height, out)
 
@@ -212,13 +244,25 @@ def _decode_bmp(raw: bytes) -> Bitmap:
     top_down = height < 0
     height = abs(height)
     stride = ((width * bpp + 31) // 32) * 4
+    px_len = width * (bpp // 8)
     out = bytearray(width * height * 4)
+    # BGR(A) -> RGBA through per-row strided slice assignment instead
+    # of a per-pixel Python loop.
+    exp = bytearray(width * 4)
+    if bpp == 24:
+        exp[3::4] = b"\xff" * width
     for y in range(height):
         sy = y if top_down else height - 1 - y
-        row = offset + sy * stride
-        for x in range(width):
-            si = row + x * (bpp // 8)
-            di = (y * width + x) * 4
-            a = raw[si + 3] if bpp == 32 else 255
-            out[di:di + 4] = bytes((raw[si + 2], raw[si + 1], raw[si], a))
+        row = raw[offset + sy * stride: offset + sy * stride + px_len]
+        if bpp == 32:
+            exp[0::4] = row[2::4]
+            exp[1::4] = row[1::4]
+            exp[2::4] = row[0::4]
+            exp[3::4] = row[3::4]
+        else:
+            exp[0::4] = row[2::3]
+            exp[1::4] = row[1::3]
+            exp[2::4] = row[0::3]
+        di = y * width * 4
+        out[di:di + width * 4] = exp
     return Bitmap(width, height, out)

@@ -340,6 +340,50 @@ def _estimate_pelvis_column(comp, w, rows, top, body_h, head_h,
     return crotch, hip_run, joints
 
 
+def _estimate_head(rows, top, bottom, head_h, left, right):
+    """Head centroid of the top head_h band.
+
+    Returns (head_cx, hn, hx1, joints) — hn/hx1 feed the body-model
+    head-ratio measurement and joints is the raw (name, x, y,
+    confidence, basis) list for the caller's put()."""
+    hx0, hx1, hn = 0, 0, 0
+    for y in range(top, min(bottom, int(top + head_h)) + 1):
+        r = rows[y]
+        if r:
+            span = (r[0] + r[1]) / 2 * r[2]
+            hx0 += span
+            hn += r[2]
+            hx1 = y
+    head_cx = hx0 / hn if hn else (left + right) / 2
+    head_cy = top + head_h / 2
+    joints = [("head", head_cx, head_cy, 0.85, "top blob centroid")]
+    return head_cx, hn, hx1, joints
+
+
+def _estimate_shoulder_line(rows, top, body_h, body_w, head_h,
+                            left, right, widest_row):
+    """Shoulder line (widest row in the upper body band) plus the
+    clavicle-midpoint neck.
+
+    `widest_row` is the estimator's measurement method, passed in
+    bound so subclass overrides keep steering the result. Returns
+    (sh_row, sr, neck_y, joints) — raw (name, x, y, confidence,
+    basis) tuples in placement order for the caller's put()."""
+    neck_band = top + head_h
+    sh_row = widest_row(rows, int(neck_band),
+                        int(top + body_h * 0.35))
+    sr = rows[sh_row] or (left, right, body_w)
+    # Neck = clavicle midpoint: just below the shoulder line, not
+    # the head-band bottom (that lands at the chin — a ~head-height
+    # systematic bias measured by the bias profile).
+    neck_y = sh_row + max(2, int(head_h * 0.15))
+    joints = [("shoulder_l", sr[0], sh_row, 0.8, "widest upper row"),
+              ("shoulder_r", sr[1], sh_row, 0.8, "widest upper row"),
+              ("neck", (sr[0] + sr[1]) / 2, neck_y, 0.7,
+               NECK_CLAVICLE_BASIS)]
+    return sh_row, sr, neck_y, joints
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -838,33 +882,18 @@ class HeuristicPoseEstimator(PoseEstimator):
                          round(min(max(conf, 0.0), 1.0), 3), OBSERVED, basis))
 
         # Head: centroid of the top head_h band.
-        hx0, hx1, hn = 0, 0, 0
-        for y in range(top, min(bottom, int(top + head_h)) + 1):
-            r = rows[y]
-            if r:
-                span = (r[0] + r[1]) / 2 * r[2]
-                hx0 += span
-                hn += r[2]
-                hx1 = y
-        head_cx = hx0 / hn if hn else (left + right) / 2
-        head_cy = top + head_h / 2
-        put("head", head_cx, head_cy, 0.85, "top blob centroid")
+        head_cx, hn, hx1, head_joints = _estimate_head(
+            rows, top, bottom, head_h, left, right)
+        for name, x, y, conf, basis in head_joints:
+            put(name, x, y, conf, basis)
 
-        neck_band = top + head_h
-
-        # Shoulders: widest row in the upper body band.
-        sh_row = self._widest_row(rows, int(neck_band),
-                                  int(top + body_h * 0.35))
-        sr = rows[sh_row] or (left, right, body_w)
-        put("shoulder_l", sr[0], sh_row, 0.8, "widest upper row")
-        put("shoulder_r", sr[1], sh_row, 0.8, "widest upper row")
-
-        # Neck = clavicle midpoint: just below the shoulder line, not
-        # the head-band bottom (that lands at the chin — a ~head-height
-        # systematic bias measured by the bias profile).
-        neck_y = sh_row + max(2, int(head_h * 0.15))
-        put("neck", (sr[0] + sr[1]) / 2, neck_y, 0.7,
-            NECK_CLAVICLE_BASIS)
+        # Shoulders: widest row in the upper body band; _widest_row
+        # goes in bound so subclass overrides keep steering the line.
+        sh_row, sr, neck_y, shoulder_joints = _estimate_shoulder_line(
+            rows, top, body_h, body_w, head_h, left, right,
+            self._widest_row)
+        for name, x, y, conf, basis in shoulder_joints:
+            put(name, x, y, conf, basis)
 
         # Torso column at chest height + T-pose (horizontal-arm)
         # strip detection; places stripped-arm joints when present.

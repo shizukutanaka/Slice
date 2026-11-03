@@ -7,9 +7,10 @@ from slice.anatomy import BODY_MODELS
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
                         _classify_orientation, _estimate_arm_ends,
-                        _estimate_legs, _estimate_pelvis_column,
+                        _estimate_head, _estimate_legs,
+                        _estimate_pelvis_column, _estimate_shoulder_line,
                         _estimate_torso_column, _symmetry)
-from slice.skeleton import Joint, OBSERVED
+from slice.skeleton import Joint, NECK_CLAVICLE_BASIS, OBSERVED
 
 
 class TestArmCandidates(unittest.TestCase):
@@ -269,6 +270,65 @@ class TestEstimatePelvisColumn(unittest.TestCase):
                    lambda comp, w, y0, y1, torso: 12,
                    lambda rows, y0, y1: seen.append((y0, y1)) or 13)
         self.assertEqual(seen, [])  # crotch split: no fallback scan
+
+
+class TestEstimateHead(unittest.TestCase):
+    def _rows(self, fill=None):
+        rows = [None] * 50
+        if fill:
+            for y in fill:
+                rows[y] = (40, 50, 11)
+        return rows
+
+    def test_band_centroid_and_ratio_stats(self):
+        cx, hn, hx1, joints = _estimate_head(
+            self._rows(range(0, 7)), 0, 49, head_h=6.0, left=30, right=70)
+        self.assertEqual(cx, 45.0)
+        self.assertEqual((hn, hx1), (77, 6))
+        self.assertEqual(joints, [("head", 45.0, 3.0, 0.85,
+                                   "top blob centroid")])
+
+    def test_empty_band_falls_back_to_bbox_centre(self):
+        cx, hn, hx1, joints = _estimate_head(
+            self._rows(), 0, 49, head_h=6.0, left=30, right=70)
+        self.assertEqual((cx, hn, hx1), (50.0, 0, 0))
+        self.assertEqual(joints[0][1:3], (50.0, 3.0))
+
+
+class TestEstimateShoulderLine(unittest.TestCase):
+    def _rows(self, row=None):
+        rows = [None] * 40
+        if row is not None:
+            rows[8] = row
+        return rows
+
+    def _call(self, row_val, recorder=None):
+        calls = recorder if recorder is not None else []
+
+        def widest_row(rows, y0, y1):
+            calls.append((y0, y1))
+            return 8
+
+        return _estimate_shoulder_line(
+            self._rows(row_val), 0, body_h=40, body_w=24, head_h=6.0,
+            left=30, right=70, widest_row=widest_row), calls
+
+    def test_widest_row_band_and_joint_order(self):
+        (sh_row, sr, neck_y, joints), calls = self._call((30, 50, 20))
+        self.assertEqual((sh_row, sr, neck_y), (8, (30, 50, 20), 10))
+        self.assertEqual(calls, [(6, 14)])  # int(head_h) .. 0.35*body_h
+        self.assertEqual([j[0] for j in joints],
+                         ["shoulder_l", "shoulder_r", "neck"])
+        self.assertEqual(joints[0], ("shoulder_l", 30, 8, 0.8,
+                                     "widest upper row"))
+        self.assertEqual(joints[1][1:3], (50, 8))
+        self.assertEqual(joints[2], ("neck", 40.0, 10, 0.7,
+                                     NECK_CLAVICLE_BASIS))
+
+    def test_missing_row_falls_back_to_bbox_span(self):
+        (_, sr, _, joints), _ = self._call(None)
+        self.assertEqual(sr, (30, 70, 24))  # (left, right, body_w)
+        self.assertEqual(joints[1][1], 70)
 
 
 class TestHeuristicPose(unittest.TestCase):
@@ -548,6 +608,19 @@ class TestHeuristicPose(unittest.TestCase):
                 return super()._crotch_row(mask, w, y0, y1, torso_runs)
 
         TrackCrotch().estimate(synthetic_person())
+        self.assertTrue(calls)
+
+    def test_widest_row_override_still_steers_line(self):
+        """_widest_row is injected bound into the shoulder-line and
+        pelvis stages, so a subclass override must keep firing."""
+        calls = []
+
+        class TrackWide(HeuristicPoseEstimator):
+            def _widest_row(self, rows, y0, y1):
+                calls.append(1)
+                return super()._widest_row(rows, y0, y1)
+
+        TrackWide().estimate(synthetic_person())
         self.assertTrue(calls)
 
     def test_blank_image(self):

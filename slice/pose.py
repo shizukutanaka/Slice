@@ -125,9 +125,11 @@ def _symmetry(mask, w, y0, y1, cx) -> float:
 
 def _classify_orientation(comp, w, rows, top, body_w, body_h, head_cx,
                           head_h, legs_split, sr, torso_run, crotch,
-                          bottom, cx_spine):
-    """Classify facing from silhouette symmetry and head displacement."""
-    sym = _symmetry(comp, w, int(crotch), bottom, int(cx_spine))
+                          bottom, cx_spine, sym):
+    """Classify facing from silhouette symmetry and head displacement.
+
+    `sym` is measured by the caller so estimator subclasses that
+    override `_symmetry` keep steering the classification."""
     aspect = body_w / body_h
     sh_span = abs(sr[1] - sr[0]) + 1
     torso_cx = (torso_run[0] + torso_run[1]) / 2
@@ -821,9 +823,13 @@ class HeuristicPoseEstimator(PoseEstimator):
                     "arm blob mid-extent")
 
         # Orientation + body model selection.
+        # Symmetry via self._symmetry: subclasses overriding the
+        # measurement must keep steering the facing verdict.
+        sym = self._symmetry(comp, w, int(crotch), bottom,
+                             int(cx_spine))
         sk.orientation = _classify_orientation(
             comp, w, rows, top, body_w, body_h, head_cx, head_h,
-            legs_split, sr, torso_run, crotch, bottom, cx_spine)
+            legs_split, sr, torso_run, crotch, bottom, cx_spine, sym)
 
         measured_head_ratio = (hx1 - top + 1) / body_h if hn else prior["head_ratio"]
         mname, mconf = select_model(measured_head_ratio)

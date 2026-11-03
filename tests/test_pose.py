@@ -5,7 +5,7 @@ from tests import (crouch_person, raised_arms_person,
 
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
-                        _classify_orientation)
+                        _classify_orientation, _symmetry)
 from slice.skeleton import OBSERVED
 
 
@@ -83,9 +83,10 @@ class TestOrientationClassifier(unittest.TestCase):
                 row[x] = 1
         rows = [None] * 20
         rows[0] = (2, 4, 3)
+        sym = _symmetry(comp, 20, 10, 19, 10)
         orientation = _classify_orientation(
             comp, 20, rows, 0, 2, 20, 3, 4, False,
-            (9, 11), (9, 10), 10, 19, 10)
+            (9, 11), (9, 10), 10, 19, 10, sym)
         self.assertEqual(orientation["facing"], "left")
         self.assertLess(orientation["head_shift"], 0)
 
@@ -343,6 +344,18 @@ class TestHeuristicPose(unittest.TestCase):
         ori = HeuristicPoseEstimator().estimate(wide).orientation
         self.assertEqual(ori["facing"], "front")
         self.assertGreater(ori["symmetry"], 0.75)
+
+    def test_symmetry_override_still_steers_facing(self):
+        """A subclass overriding _symmetry must keep steering the
+        facing verdict — the classifier no longer calls the module
+        function directly."""
+        class FlatSym(HeuristicPoseEstimator):
+            def _symmetry(self, mask, w, y0, y1, cx):
+                return 0.0
+
+        sk = FlatSym().estimate(synthetic_person())
+        self.assertEqual(sk.orientation["symmetry"], 0.0)
+        self.assertEqual(sk.orientation["facing"], "three-quarter")
 
     def test_blank_image(self):
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,

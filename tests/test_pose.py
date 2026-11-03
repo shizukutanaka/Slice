@@ -3,11 +3,12 @@ import unittest
 from tests import (crouch_person, raised_arms_person,
                    synthetic_person, wide_hand_person)
 
+from slice.anatomy import BODY_MODELS
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
-                        _classify_orientation, _estimate_legs,
-                        _symmetry)
-from slice.skeleton import OBSERVED
+                        _classify_orientation, _estimate_arm_ends,
+                        _estimate_legs, _symmetry)
+from slice.skeleton import Joint, OBSERVED
 
 
 class TestArmCandidates(unittest.TestCase):
@@ -121,6 +122,42 @@ class TestEstimateLegs(unittest.TestCase):
                                  "knee_l", "knee_r"])
         knee_l = next(j for j in joints if j[0] == "knee_l")
         self.assertEqual(knee_l[3:], (0.3, "legs not separable"))
+
+
+class TestEstimateArmEnds(unittest.TestCase):
+    def _comp(self):
+        comp = [bytearray(20) for _ in range(20)]
+        for y in range(20):  # torso column
+            for x in (9, 10, 11):
+                comp[y][x] = 1
+        for y in range(4, 9):  # left arm hanging beside torso
+            for x in range(4, 7):
+                comp[y][x] = 1
+        return comp
+
+    def _call(self, **kw):
+        args = dict(comp=self._comp(), w=20, top=0, head_h=4, crotch=10,
+                    bottom=19, torso_run=(9, 11), cx_spine=10,
+                    shoulders={"l": Joint("shoulder_l", 9, 8, 0.8,
+                                          OBSERVED, "test")},
+                    horizontal_arms=set(), prior=BODY_MODELS["adult"],
+                    body_h=20)
+        args.update(kw)
+        return _estimate_arm_ends(**args)
+
+    def test_arm_candidates_produce_wrist_and_elbow(self):
+        joints = self._call()
+        self.assertEqual([j[0] for j in joints],
+                         ["wrist_l", "elbow_l"])
+        self.assertEqual(joints[0][4], "arm blob extremity")
+        self.assertEqual(joints[1][4], "arm blob mid-extent")
+        self.assertLess(joints[1][3], joints[0][3])
+
+    def test_horizontal_arm_side_is_skipped(self):
+        self.assertEqual(self._call(horizontal_arms={"l"}), [])
+
+    def test_missing_shoulder_skips_side(self):
+        self.assertEqual(self._call(shoulders={}), [])
 
 
 class TestHeuristicPose(unittest.TestCase):

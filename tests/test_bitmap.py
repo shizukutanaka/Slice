@@ -91,6 +91,21 @@ class TestBitmap(unittest.TestCase):
         small = bmp.downscale(100)
         self.assertLessEqual(max(small.width, small.height), 100)
 
+    def test_downscale_exact_pixels(self):
+        # non-integer ratio: nearest-neighbour picks must follow the
+        # int(v/s) mapping exactly (byte-identity regression guard)
+        bmp = bitmap.Bitmap.new(5, 3, (0, 0, 0, 255))
+        for y in range(3):
+            for x in range(5):
+                bmp.set(x, y, (x * 40 + 1, y * 80 + 2, x + y, 255))
+        small = bmp.downscale(3)
+        self.assertEqual((small.width, small.height), (3, 2))
+        # s = 3/5 = 0.6 -> x picks 0,1,3 ; y picks 0,1
+        for y in range(2):
+            for x in range(3):
+                self.assertEqual(small.get(x, y),
+                                 bmp.get((0, 1, 3)[x], (0, 1)[y]))
+
     def test_get_out_of_frame_raises(self):
         # negative coords used to wrap to the image tail — silent
         # fabrication; now every out-of-frame read fails loudly

@@ -5,7 +5,8 @@ from tests import (crouch_person, raised_arms_person,
 
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
-                        _classify_orientation, _symmetry)
+                        _classify_orientation, _estimate_legs,
+                        _symmetry)
 from slice.skeleton import OBSERVED
 
 
@@ -89,6 +90,37 @@ class TestOrientationClassifier(unittest.TestCase):
             (9, 11), (9, 10), 10, 19, 10, sym)
         self.assertEqual(orientation["facing"], "left")
         self.assertLess(orientation["head_shift"], 0)
+
+
+class TestEstimateLegs(unittest.TestCase):
+    def test_split_legs_anchor_to_foot_runs(self):
+        comp = [bytearray(20) for _ in range(20)]
+        # two leg columns reaching the bottom row
+        for y in range(10, 20):
+            for x in (4, 5, 14, 15):
+                comp[y][x] = 1
+        legs_split, joints = _estimate_legs(comp, 20, 20, 10, 19,
+                                            (9, 10))
+        names = [j[0] for j in joints]
+        self.assertTrue(legs_split)
+        self.assertEqual(names, ["knee_l", "ankle_l", "foot_l",
+                                 "knee_r", "ankle_r", "foot_r"])
+        self.assertEqual(joints[0][3:], (0.7, "leg run at knee height"))
+
+    def test_merged_legs_fall_back_to_hip_run_knees(self):
+        comp = [bytearray(20) for _ in range(20)]
+        for y in range(10, 20):
+            for x in range(8, 12):
+                comp[y][x] = 1
+        legs_split, joints = _estimate_legs(comp, 20, 20, 10, 19,
+                                            (8, 11))
+        names = [j[0] for j in joints]
+        self.assertFalse(legs_split)
+        self.assertEqual(names, ["ankle_l", "foot_l",
+                                 "ankle_r", "foot_r",
+                                 "knee_l", "knee_r"])
+        knee_l = next(j for j in joints if j[0] == "knee_l")
+        self.assertEqual(knee_l[3:], (0.3, "legs not separable"))
 
 
 class TestHeuristicPose(unittest.TestCase):

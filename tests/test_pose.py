@@ -4,7 +4,8 @@ from tests import (crouch_person, raised_arms_person,
                    synthetic_person, wide_hand_person)
 
 from slice.bitmap import Bitmap
-from slice.pose import HeuristicPoseEstimator, _arm_candidates
+from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
+                        _classify_orientation, _symmetry)
 from slice.skeleton import OBSERVED
 
 
@@ -72,6 +73,22 @@ def profile_person(width=100, height=300, side=-1, bg=235, fg=60):
         for x in range(min(cx + 6, hcx) - 2, max(cx + 6, hcx) + 2):
             bmp.set(x, y, (fg, fg, fg, 255))
     return bmp
+
+
+class TestOrientationClassifier(unittest.TestCase):
+    def test_profile_head_shift_sets_facing(self):
+        comp = [bytearray(20) for _ in range(20)]
+        for row in comp[10:]:
+            for x in range(9, 11):
+                row[x] = 1
+        rows = [None] * 20
+        rows[0] = (2, 4, 3)
+        sym = _symmetry(comp, 20, 10, 19, 10)
+        orientation = _classify_orientation(
+            comp, 20, rows, 0, 2, 20, 3, 4, False,
+            (9, 11), (9, 10), 10, 19, 10, sym)
+        self.assertEqual(orientation["facing"], "left")
+        self.assertLess(orientation["head_shift"], 0)
 
 
 class TestHeuristicPose(unittest.TestCase):
@@ -327,6 +344,18 @@ class TestHeuristicPose(unittest.TestCase):
         ori = HeuristicPoseEstimator().estimate(wide).orientation
         self.assertEqual(ori["facing"], "front")
         self.assertGreater(ori["symmetry"], 0.75)
+
+    def test_symmetry_override_still_steers_facing(self):
+        """A subclass overriding _symmetry must keep steering the
+        facing verdict — the classifier no longer calls the module
+        function directly."""
+        class FlatSym(HeuristicPoseEstimator):
+            def _symmetry(self, mask, w, y0, y1, cx):
+                return 0.0
+
+        sk = FlatSym().estimate(synthetic_person())
+        self.assertEqual(sk.orientation["symmetry"], 0.0)
+        self.assertEqual(sk.orientation["facing"], "three-quarter")
 
     def test_blank_image(self):
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,

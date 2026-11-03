@@ -7,8 +7,8 @@ from slice.anatomy import BODY_MODELS
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
                         _classify_orientation, _estimate_arm_ends,
-                        _estimate_legs, _estimate_torso_column,
-                        _symmetry)
+                        _estimate_legs, _estimate_pelvis_column,
+                        _estimate_torso_column, _symmetry)
 from slice.skeleton import Joint, OBSERVED
 
 
@@ -196,6 +196,79 @@ class TestEstimateTorsoColumn(unittest.TestCase):
         self.assertEqual(torso_run, (8, 11))
         self.assertEqual(cx, 9.5)
         self.assertEqual(joints, [])
+
+
+class TestEstimatePelvisColumn(unittest.TestCase):
+    def _comp(self, rowmap):
+        comp = [bytearray(20) for _ in range(20)]
+        for y, spans in rowmap.items():
+            for a, b in spans:
+                for x in range(a, b + 1):
+                    comp[y][x] = 1
+        return comp
+
+    def _rows(self):
+        rows = [None] * 20
+        for y in range(5, 16):
+            rows[y] = (9, 11, 3)
+        return rows
+
+    def _call(self, rowmap, crotch_row, widest_row):
+        return _estimate_pelvis_column(
+            self._comp(rowmap), 20, self._rows(), top=0, body_h=20,
+            head_h=4, sh_row=5, neck_y=7, torso_run=(9, 11),
+            cx_spine=10, crotch_row=crotch_row, widest_row=widest_row)
+
+    def test_crotch_split_branch(self):
+        crotch, hr, joints = self._call(
+            {11: [(9, 11)], 9: [(9, 11)]},
+            lambda comp, w, y0, y1, torso: 12,
+            lambda rows, y0, y1: 13)
+        self.assertEqual(crotch, 12)
+        self.assertEqual(hr, (9, 11))
+        self.assertEqual([j[0] for j in joints],
+                         ["pelvis", "hip_l", "hip_r", "chest", "spine"])
+        self.assertEqual(joints[0], ("pelvis", 10.0, 11, 0.75,
+                                     "crotch split row"))
+        self.assertEqual(joints[1][3:], (0.75, "crotch split row"))
+        self.assertEqual(joints[2][1:3], (11, 11))
+        self.assertEqual(joints[3], ("chest", 10.0, 8.0, 0.65,
+                                     "midpoint shoulders-pelvis"))
+        self.assertEqual(joints[4], ("spine", 10.0, 9.0, 0.6,
+                                     "axis midpoint"))
+
+    def test_crotch_none_falls_back_to_widest_row(self):
+        crotch, hr, joints = self._call(
+            {13: [(8, 12)], 10: [(9, 11)]},
+            lambda *a: None,
+            lambda rows, y0, y1: 13)
+        self.assertEqual(crotch, 15)  # 13 + max(2, int(4*0.4))
+        self.assertEqual(hr, (8, 12))
+        self.assertEqual(joints[0], ("pelvis", 10.0, 13, 0.55,
+                                     "widest hip-band row"))
+        self.assertEqual(joints[3][2], 9.0)   # chest_y
+        self.assertEqual(joints[4][2], 10.0)  # spine_y
+
+    def test_measurement_bands_match_caller_math(self):
+        seen = []
+
+        def crotch_row(comp, w, y0, y1, torso):
+            seen.append(("crotch", y0, y1, torso))
+            return 12
+
+        def widest_row(rows, y0, y1):
+            seen.append(("widest", y0, y1))
+            return 13
+
+        self._call({11: [(9, 11)]}, crotch_row, widest_row)
+        self.assertEqual(seen, [("crotch", 9, 14, (9, 11))])
+
+    def test_widest_row_called_only_on_fallback(self):
+        seen = []
+        self._call({11: [(9, 11)], 9: [(9, 11)]},
+                   lambda comp, w, y0, y1, torso: 12,
+                   lambda rows, y0, y1: seen.append((y0, y1)) or 13)
+        self.assertEqual(seen, [])  # crotch split: no fallback scan
 
 
 class TestHeuristicPose(unittest.TestCase):
@@ -463,6 +536,19 @@ class TestHeuristicPose(unittest.TestCase):
         sk = FlatSym().estimate(synthetic_person())
         self.assertEqual(sk.orientation["symmetry"], 0.0)
         self.assertEqual(sk.orientation["facing"], "three-quarter")
+
+    def test_crotch_row_override_still_steers_column(self):
+        """The pelvis stage receives _crotch_row bound, so a subclass
+        override must still be invoked after the extraction."""
+        calls = []
+
+        class TrackCrotch(HeuristicPoseEstimator):
+            def _crotch_row(self, mask, w, y0, y1, torso_runs):
+                calls.append(1)
+                return super()._crotch_row(mask, w, y0, y1, torso_runs)
+
+        TrackCrotch().estimate(synthetic_person())
+        self.assertTrue(calls)
 
     def test_blank_image(self):
         sk = HeuristicPoseEstimator().estimate(Bitmap.new(80, 80,

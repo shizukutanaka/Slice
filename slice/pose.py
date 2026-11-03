@@ -281,6 +281,65 @@ def _estimate_torso_column(comp, w, top, body_h, sh_row, sr):
     return torso_run, cx_spine, horizontal_arms, joints
 
 
+def _estimate_pelvis_column(comp, w, rows, top, body_h, head_h,
+                            sh_row, neck_y, torso_run, cx_spine,
+                            crotch_row, widest_row):
+    """Place pelvis/hip/chest/spine joints and return the crotch row
+    and hip-row run for the leg and orientation stages.
+
+    `crotch_row` and `widest_row` are the estimator's measurement
+    methods, passed in bound so subclass overrides keep steering
+    the result. Returns (crotch, hip_run, joints) — joints are raw
+    (name, x, y, confidence, basis) tuples in placement order so the
+    caller applies its rounding/clamping."""
+    # Pelvis / hips: crotch split, else widest row in the hip band.
+    joints = []
+    crotch = crotch_row(comp, w, int(top + body_h * 0.45),
+                        int(top + body_h * 0.72), torso_run)
+    if crotch is None:
+        hip_row = widest_row(rows, int(top + body_h * 0.45),
+                             int(top + body_h * 0.65))
+        crotch = hip_row + max(2, int(head_h * 0.4))
+        hip_conf = 0.55
+        hip_basis = "widest hip-band row"
+    else:
+        hip_row = crotch - 1
+        hip_conf = 0.75
+        hip_basis = "crotch split row"
+    # Hip width = the torso-column run at the hip row, not the
+    # row's outermost pixels — arms dangling beside the torso
+    # would inflate "hip" to arm-to-arm span.
+    hip_run = next(
+        (r for r in _row_runs(comp, hip_row, w)
+         if r[0] <= cx_spine <= r[1]),
+        rows[hip_row] or torso_run)
+    joints.append(("pelvis", (hip_run[0] + hip_run[1]) / 2, hip_row,
+                   hip_conf, hip_basis))
+    joints.append(("hip_l", hip_run[0], hip_row, hip_conf, hip_basis))
+    joints.append(("hip_r", hip_run[1], hip_row, hip_conf, hip_basis))
+
+    chest_y = (sh_row + hip_row) / 2
+    cr = rows[int(chest_y)] or torso_run
+    joints.append(("chest", (cr[0] + cr[1]) / 2, chest_y, 0.65,
+                   "midpoint shoulders-pelvis"))
+    # The spine joint is the mirroring axis for predictions and
+    # the curvature reference for spine.curve — it must sit on
+    # the torso axis, not the head centroid: in profile the head
+    # leans toward the faced side (head_shift), which would pull
+    # the axis off the body exactly when mirrored prediction is
+    # needed most. Measure the torso column at spine height —
+    # the axis itself tilts with the torso, so a chest-height
+    # run alone still misses it.
+    spine_y = (neck_y + hip_row) / 2
+    spine_run = next(
+        (r for r in _row_runs(comp, int(spine_y), w)
+         if r[0] <= cx_spine <= r[1]),
+        torso_run)
+    joints.append(("spine", (spine_run[0] + spine_run[1]) / 2, spine_y,
+                   0.6, "axis midpoint"))
+    return crotch, hip_run, joints
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -815,49 +874,13 @@ class HeuristicPoseEstimator(PoseEstimator):
             put(name, x, y, conf, basis)
 
         # Pelvis / hips: crotch split, else widest row in the hip band.
-        crotch = self._crotch_row(comp, w, int(top + body_h * 0.45),
-                                  int(top + body_h * 0.72), torso_run)
-        if crotch is None:
-            hip_row = self._widest_row(rows, int(top + body_h * 0.45),
-                                       int(top + body_h * 0.65))
-            crotch = hip_row + max(2, int(head_h * 0.4))
-            hip_conf = 0.55
-            hip_basis = "widest hip-band row"
-        else:
-            hip_row = crotch - 1
-            hip_conf = 0.75
-            hip_basis = "crotch split row"
-        # Hip width = the torso-column run at the hip row, not the
-        # row's outermost pixels — arms dangling beside the torso
-        # would inflate "hip" to arm-to-arm span.
-        hip_run = next(
-            (r for r in _row_runs(comp, hip_row, w)
-             if r[0] <= cx_spine <= r[1]),
-            rows[hip_row] or torso_run)
-        hr = hip_run
-        put("pelvis", (hr[0] + hr[1]) / 2, hip_row, hip_conf, hip_basis)
-        put("hip_l", hr[0], hip_row, hip_conf, hip_basis)
-        put("hip_r", hr[1], hip_row, hip_conf, hip_basis)
-
-        chest_y = (sh_row + hip_row) / 2
-        cr = rows[int(chest_y)] or torso_run
-        put("chest", (cr[0] + cr[1]) / 2, chest_y, 0.65,
-            "midpoint shoulders-pelvis")
-        # The spine joint is the mirroring axis for predictions and
-        # the curvature reference for spine.curve — it must sit on
-        # the torso axis, not the head centroid: in profile the head
-        # leans toward the faced side (head_shift), which would pull
-        # the axis off the body exactly when mirrored prediction is
-        # needed most. Measure the torso column at spine height —
-        # the axis itself tilts with the torso, so a chest-height
-        # run alone still misses it.
-        spine_y = (neck_y + hip_row) / 2
-        spine_run = next(
-            (r for r in _row_runs(comp, int(spine_y), w)
-             if r[0] <= cx_spine <= r[1]),
-            torso_run)
-        put("spine", (spine_run[0] + spine_run[1]) / 2, spine_y, 0.6,
-            "axis midpoint")
+        # _crotch_row/_widest_row go in bound so subclass overrides
+        # keep steering the column placement.
+        crotch, hr, column_joints = _estimate_pelvis_column(
+            comp, w, rows, top, body_h, head_h, sh_row, neck_y,
+            torso_run, cx_spine, self._crotch_row, self._widest_row)
+        for name, x, y, conf, basis in column_joints:
+            put(name, x, y, conf, basis)
 
         # Legs: below the crotch, split the row runs.
         legs_split, leg_joints = _estimate_legs(comp, w, h, crotch,

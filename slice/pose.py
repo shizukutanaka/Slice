@@ -243,6 +243,44 @@ def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
     return joints
 
 
+def _estimate_torso_column(comp, w, top, body_h, sh_row, sr):
+    """Measure the torso-column run at chest height and detect
+    T-pose (horizontal-arm) strips on the widest row.
+
+    Torso column = the mask run under the spine at chest height;
+    arm protrusions are the runs lying outside it. Horizontal arms
+    (T-pose, raised arms): when the widest row spans far beyond the
+    torso column it is an arm strip, not shoulders. Shoulders sit
+    at the torso edge, wrist at the strip tip, elbow at their
+    midpoint.
+
+    Returns (torso_run, cx_spine, horizontal_arms, joints) — joints
+    are raw (name, x, y, confidence, basis) tuples in placement
+    order so the caller applies its rounding/clamping."""
+    chest_y = (sh_row + int(top + body_h * 0.55)) / 2
+    cx_spine = (sr[0] + sr[1]) / 2
+    torso_run = next(
+        (r for r in _row_runs(comp, int(chest_y), w)
+         if r[0] <= cx_spine <= r[1]),
+        (min(sr[0], sr[1]), max(sr[0], sr[1])))
+    torso_w = torso_run[1] - torso_run[0]
+    horizontal_arms = set()
+    joints = []
+    if torso_w > 0 and sr[1] - sr[0] > torso_w * 1.6 + 4:
+        for side, sign in (("l", -1), ("r", 1)):
+            edge = torso_run[0] if sign < 0 else torso_run[1]
+            tip = sr[0] if sign < 0 else sr[1]
+            if abs(tip - edge) > torso_w * 0.5:
+                joints.append((f"shoulder_{side}", edge, sh_row, 0.7,
+                               "torso edge at arm strip"))
+                joints.append((f"elbow_{side}", (edge + tip) / 2, sh_row,
+                               0.6, "arm strip midpoint"))
+                joints.append((f"wrist_{side}", tip, sh_row, 0.65,
+                               "arm strip tip"))
+                horizontal_arms.add(side)
+    return torso_run, cx_spine, horizontal_arms, joints
+
+
 def _oriented_masks(mask: List[bytearray], w: int, h: int):
     """Yield (deg, rotated mask, rw, rh) for 90°/-90°/180°.
 
@@ -769,33 +807,14 @@ class HeuristicPoseEstimator(PoseEstimator):
         put("neck", (sr[0] + sr[1]) / 2, neck_y, 0.7,
             NECK_CLAVICLE_BASIS)
 
+        # Torso column at chest height + T-pose (horizontal-arm)
+        # strip detection; places stripped-arm joints when present.
+        torso_run, cx_spine, horizontal_arms, torso_joints = \
+            _estimate_torso_column(comp, w, top, body_h, sh_row, sr)
+        for name, x, y, conf, basis in torso_joints:
+            put(name, x, y, conf, basis)
+
         # Pelvis / hips: crotch split, else widest row in the hip band.
-        # Torso column = the mask run under the spine at chest height;
-        # arm protrusions are the runs lying outside it.
-        chest_y = (sh_row + int(top + body_h * 0.55)) / 2
-        cx_spine = (sr[0] + sr[1]) / 2
-        torso_run = next(
-            (r for r in _row_runs(comp, int(chest_y), w)
-             if r[0] <= cx_spine <= r[1]),
-            (min(sr[0], sr[1]), max(sr[0], sr[1])))
-        # Horizontal arms (T-pose, raised arms): when the widest row
-        # spans far beyond the torso column it is an arm strip, not
-        # shoulders. Shoulders sit at the torso edge, wrist at the
-        # strip tip, elbow at their midpoint.
-        torso_w = torso_run[1] - torso_run[0]
-        horizontal_arms = set()
-        if torso_w > 0 and sr[1] - sr[0] > torso_w * 1.6 + 4:
-            for side, sign in (("l", -1), ("r", 1)):
-                edge = torso_run[0] if sign < 0 else torso_run[1]
-                tip = sr[0] if sign < 0 else sr[1]
-                if abs(tip - edge) > torso_w * 0.5:
-                    put(f"shoulder_{side}", edge, sh_row, 0.7,
-                        "torso edge at arm strip")
-                    put(f"elbow_{side}", (edge + tip) / 2, sh_row, 0.6,
-                        "arm strip midpoint")
-                    put(f"wrist_{side}", tip, sh_row, 0.65,
-                        "arm strip tip")
-                    horizontal_arms.add(side)
         crotch = self._crotch_row(comp, w, int(top + body_h * 0.45),
                                   int(top + body_h * 0.72), torso_run)
         if crotch is None:

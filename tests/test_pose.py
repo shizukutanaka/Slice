@@ -7,7 +7,8 @@ from slice.anatomy import BODY_MODELS
 from slice.bitmap import Bitmap
 from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
                         _classify_orientation, _estimate_arm_ends,
-                        _estimate_legs, _symmetry)
+                        _estimate_legs, _estimate_torso_column,
+                        _symmetry)
 from slice.skeleton import Joint, OBSERVED
 
 
@@ -158,6 +159,43 @@ class TestEstimateArmEnds(unittest.TestCase):
 
     def test_missing_shoulder_skips_side(self):
         self.assertEqual(self._call(shoulders={}), [])
+
+
+class TestEstimateTorsoColumn(unittest.TestCase):
+    def _comp_row(self, row=8, spans=((9, 11),)):
+        comp = [bytearray(20) for _ in range(20)]
+        for a, b in spans:
+            for x in range(a, b + 1):
+                comp[row][x] = 1
+        return comp
+
+    def test_wide_shoulder_row_splits_into_tpose_strips(self):
+        torso_run, cx, arms, joints = _estimate_torso_column(
+            self._comp_row(), 20, top=0, body_h=20, sh_row=5,
+            sr=(2, 17, 15))
+        self.assertEqual((torso_run, cx), ((9, 11), 9.5))
+        self.assertEqual(arms, {"l", "r"})
+        self.assertEqual([j[0] for j in joints],
+                         ["shoulder_l", "elbow_l", "wrist_l",
+                          "shoulder_r", "elbow_r", "wrist_r"])
+        self.assertEqual(joints[2][1:3], (2, 5))  # wrist at strip tip
+        self.assertEqual(joints[1][1:3], (5.5, 5))  # elbow midpoint
+
+    def test_narrow_shoulder_row_is_not_tpose(self):
+        torso_run, cx, arms, joints = _estimate_torso_column(
+            self._comp_row(), 20, top=0, body_h=20, sh_row=5,
+            sr=(8, 11, 4))
+        self.assertEqual((torso_run, cx), ((9, 11), 9.5))
+        self.assertEqual(arms, set())
+        self.assertEqual(joints, [])
+
+    def test_torso_run_falls_back_to_shoulder_span(self):
+        comp = self._comp_row(spans=((2, 4), (14, 17)))  # no spine run
+        torso_run, cx, arms, joints = _estimate_torso_column(
+            comp, 20, top=0, body_h=20, sh_row=5, sr=(8, 11, 4))
+        self.assertEqual(torso_run, (8, 11))
+        self.assertEqual(cx, 9.5)
+        self.assertEqual(joints, [])
 
 
 class TestHeuristicPose(unittest.TestCase):

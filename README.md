@@ -1,5 +1,56 @@
 # Slice
 
+## English
+
+Slice is a human-understanding engine. It reads a person image or
+illustration as a stick figure, estimates the full body from a statistical
+anatomy model, and stores the result as reusable 2D/3D knowledge.
+
+It is not an AI that "looks at images" — it is an AI that understands the
+human body. The image can be discarded; **only the Knowledge JSON remains.**
+
+> Results are *inferences* from an anatomical model, not identifications of
+> the subject. Every joint is separated into `observed` and `predicted`,
+> each with a confidence score from 0 to 1.
+
+### Install
+
+No dependencies. Slice runs on the Python 3.9+ standard library only.
+
+```bash
+git clone https://github.com/shizukutanaka/Slice.git
+cd Slice
+pip install .
+```
+
+JPEG / WebP input requires Pillow; PNG / BMP work with the standard
+library alone.
+
+### Basic usage
+
+```bash
+# Analyze an image and print Knowledge JSON
+python3 -m slice analyze person.png -o knowledge.json
+# (after `pip install .`, the `slice` command does the same:)
+slice analyze person.png -o knowledge.json
+
+# Also draw a skeleton overlay (blue = observed / orange = predicted)
+python3 -m slice analyze person.png --overlay overlay.png
+
+# Choose a body model (adult / child / deformed)
+python3 -m slice analyze person.png --model deformed
+
+# Local web viewer (drag & drop to analyze)
+python3 -m slice serve --port 8000
+# -> http://127.0.0.1:8000
+```
+
+Pipeline: Import → Pose (silhouette estimation) → Skeleton →
+Prediction (missing joints completed from symmetry and priors) →
+Ratio / pose classification → Knowledge (`slice.knowledge/v1` JSON) → Export.
+
+---
+
 人物画像・イラストを棒人間として捉え、統計的人体モデルに基づき全身を推定し、
 2D/3Dの**知識**として保存する人体理解エンジン。
 

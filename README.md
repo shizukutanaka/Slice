@@ -110,34 +110,13 @@ python3 -m slice serve --port 8000
 | GET | `/usage` | APIキーの当月利用量（キー認証時） |
 | POST | `/audit` | 画像bytes → 品質監査JSON |
 
-### 収益化: API従量課金（プラン×月間クォータ）
+### 利用について
 
-支払いは運営者が別途受け付け、入金後にAPIキーを発行します。既定プランは
-`free`（月100回）、`pro`（月10,000回）、`enterprise`（無制限）です。
-キー設定JSONの`plans`でプランを追加・上書きできます。
+Slice は無料で提供しています。API の従量課金プランはありません。
+寄付の受付は GitHub 経由のみです（その他の寄付・課金導線はありません）。
 
-```bash
-# 支払い確認後、顧客ごとにキーを発行（キーは stdout に一度だけ表示）
-python3 -m slice keys issue --keys keys.json --plan pro --owner acme
-
-# APIキー認証と月間クォータを有効にして起動
-python3 -m slice serve --keys keys.json
-
-# 月次請求用の利用実績（省略時は現在のUTC月）
-python3 -m slice keys usage --keys keys.json --month 2025-01
-# 出力: [{owner, plan, month, used, quota, status}, ...]
-```
-
-`/analyze`（multiを含む）と`/audit`は成功したリクエストのみ1回として記録し、
-クォータ超過は`429`（`quota exceeded`）を返します。並行処理中のリクエストは
-個別に事前判定されるため、超過は最大で同時実行数分になる場合があります。
-キーを停止する際は削除せず、`keys.json`の`plan`を`"revoked"`など
-未定義の名前に変更してください。リクエストは`401`となり、利用実績には
-所有者を`status: "inactive"`として残せます。キーを完全に削除した場合も
-記録済み利用は`owner: null`で表示され、請求記録から失われません。
-キー設定ファイルと既定の`<keys>.usage.json`台帳は機密情報・請求記録として
-アクセス制限し、安全なバックアップを保管してください。これらをGitへ
-コミットしないでください。
+なお、API キー認証（`--keys`）を使う場合、キー設定ファイルは機密情報として
+アクセス制限し、Git へコミットしないでください。
 
 ## パイプライン
 

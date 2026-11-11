@@ -6,7 +6,7 @@ Slice is a human-understanding engine. It reads a person image or
 illustration as a stick figure, estimates the full body from a statistical
 anatomy model, and stores the result as reusable 2D/3D knowledge.
 
-All projects at a glance: [Project Portal](https://muse.ai/s/xuan-guan-potaru-ja6aqxqxlpxbxnxl/DpY3e_2xwrRyU5918RAV9v0G3UfbMvPX0HeuI-0ab-s)
+All projects at a glance: [Project Portal](https://muse.ai/s/project-portal-bf6avrxu7xyfxl/6PgvpkK4Nn1DPotxc3edgYXaYZgDC5_LeWpXkf1wsrg)
 
 It is not an AI that "looks at images" — it is an AI that understands the
 human body. The image can be discarded; **only the Knowledge JSON remains.**

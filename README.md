@@ -15,7 +15,7 @@ human body. The image can be discarded; **only the Knowledge JSON remains.**
 
 ### Install
 
-No dependencies. Slice runs on the Python 3.9+ standard library only.
+No dependencies. Slice runs on the Python 3.11+ standard library only.
 
 ```bash
 git clone https://github.com/shizukutanaka/Slice.git
@@ -64,7 +64,7 @@ Ratio / pose classification → Knowledge (`slice.knowledge/v1` JSON) → Export
 
 ## セットアップ
 
-依存なし。Python 3.9+ の標準ライブラリのみで動く。
+依存なし。Python 3.11+ の標準ライブラリのみで動く。
 
 ```bash
 git clone https://github.com/shizukutanaka/Slice.git

@@ -1769,7 +1769,15 @@ def main(argv=None) -> int:
     l.set_defaults(fn=_cmd_list)
 
     args = p.parse_args(argv)
-    return args.fn(args)
+    try:
+        return args.fn(args)
+    except OSError as e:
+        # Input/output path mistakes (missing file, unreadable image,
+        # unwritable output) are user errors, not crashes: report them
+        # in the same one-line style as "unsupported image" instead of
+        # dumping a traceback on the most common first-run failure.
+        print(f"error: {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -30,12 +30,17 @@ def _tip(j) -> str:
 
 
 def render(skel: Skeleton, *, background: str = "none",
-           scale: float = 1.0) -> str:
+           scale: float = 1.0, credit: bool = True) -> str:
     """SVG document string for the skeleton at native frame size.
 
     `scale` multiplies all coordinates (useful when the skeleton
     describes a larger source image). `background` accepts any SVG
     paint value; "none" keeps the overlay transparent.
+
+    `credit` (default on) embeds one `<desc>` line naming Slice and its
+    repository — the SVG-native place for document provenance, invisible
+    in the rendered image. Delete the element from the file, or pass
+    credit=False, to leave it out.
     """
     sx = sy = scale
     w = round(skel.image_width * scale, 3)
@@ -45,8 +50,12 @@ def render(skel: Skeleton, *, background: str = "none",
     out = [
         '<svg xmlns="http://www.w3.org/2000/svg" '
         'viewBox="0 0 %s %s" width="%s" height="%s">' % (w, h, w, h),
-        '<rect width="%s" height="%s" fill="%s"/>' % (w, h, background),
     ]
+    if credit:
+        out.append("<desc>Generated with Slice — "
+                   "https://github.com/shizukutanaka/Slice</desc>")
+    out.append(
+        '<rect width="%s" height="%s" fill="%s"/>' % (w, h, background))
     for a, b in BONES:
         ja, jb = skel.get(a), skel.get(b)
         if not ja or not jb:

@@ -619,7 +619,7 @@ def _cmd_export(a) -> int:
     elif a.format == "coco":
         text = json.dumps(coco.to_coco(skel), ensure_ascii=False)
     elif a.format == "svg":
-        text = svg.render(skel)
+        text = svg.render(skel, credit=not a.no_credit)
     elif a.format == "ascii":
         text = ascii.render(skel)
     elif a.format == "paf":
@@ -1508,6 +1508,8 @@ def main(argv=None) -> int:
     e.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
     e.add_argument("--robust", action="store_true",
                    help="robust estimation profile")
+    e.add_argument("--no-credit", action="store_true",
+                   help="omit the generator <desc> line from SVG output")
     e.add_argument("-o", "--output",
                    help="output file (default: stdout)")
     e.set_defaults(fn=_cmd_export)

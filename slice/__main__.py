@@ -1351,6 +1351,40 @@ def _cmd_list(a) -> int:
     return 0
 
 
+def _cmd_validate(a) -> int:
+    """Validate Knowledge JSON files against the fixed spec
+    (docs/KNOWLEDGE_JSON.md). The adopter-side gate: a document that
+    arrives from anywhere can be checked with the same `validate`
+    the store and bundler use — no second implementation."""
+    worst = 0
+    for path in a.files:
+        try:
+            with open(path, encoding="utf-8") as f:
+                doc = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"{path}: cannot load: {e}", file=sys.stderr)
+            worst = 2
+            continue
+        if not isinstance(doc, dict):
+            print(f"{path}: invalid: not a JSON object")
+            worst = max(worst, 1)
+            continue
+        try:
+            errors = knowledge.validate(doc)
+        except Exception as e:
+            # validate assumes dict-shaped internals; a malformed
+            # document must still fail with a reason, not a traceback
+            errors = [f"unprocessable document ({e})"]
+        if errors:
+            print(f"{path}: invalid ({len(errors)} problem(s))")
+            for e in errors:
+                print(f"  - {e}")
+            worst = max(worst, 1)
+        else:
+            print(f"{path}: valid ({doc.get('schema')})")
+    return worst
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="slice", description=__doc__)
     p.add_argument("--version", action="version", version=__version__)
@@ -1769,6 +1803,13 @@ def main(argv=None) -> int:
     l = sub.add_parser("list", help="list stored knowledge")
     l.add_argument("--store", default="knowledge")
     l.set_defaults(fn=_cmd_list)
+
+    v = sub.add_parser(
+        "validate",
+        help="validate Knowledge JSON files against the spec")
+    v.add_argument("files", nargs="+",
+                   help="Knowledge JSON file(s) to check")
+    v.set_defaults(fn=_cmd_validate)
 
     args = p.parse_args(argv)
     try:

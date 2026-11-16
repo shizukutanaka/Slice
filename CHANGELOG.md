@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- knowledge: 知識形式の仕様を `docs/KNOWLEDGE_JSON.md` に固定。v1/v1.1 の版体系・文書の出所ごとの必須性・互換性の約束（読み手の義務と書き手の保証）・`validate()` の検査範囲と非範囲を、実装の実物に即して全面改稿（旧版の誤記: 元画像の保存可否、warnings のコード欠落、export の `keypoints_state` 欠落、orientation の facing 値などを是正）。採用側の検証ゲートとして `slice validate <file.json>...` を追加（`knowledge.validate` を再利用、終了コード 0/1/2、理由つきで落ちる）。仕様と実装の一致は `tests/test_knowledge_spec.py` が固定。
 - benchmark: 採用判断用ベンチマーク一式を追加（`benchmarks/run_benchmark.py`、結果は `docs/BENCHMARK.md`）。入力種別（クリーン／写真風合成／部分欠損／モデル違い／人物なし／大判）ごとに、成功率・精度（検出率・平均誤差・OKS）・処理時間を決定的な合成フィクスチャで測定。人物なし画像で矩形を人物と誤る失敗もそのまま記録する。
 - bitmap: `downscale` の軸インデックスをピクセルループ外へホイスト（出力バイト同一）。6MP画像の `slice analyze` が約1.25倍高速化（約260ms→約210ms）。estimate/estimate_multi/estimate_split/style/topology/imgqual/diag/CLI の全ダウンスケール経路に効く。
 - bitmap: PNG/BMPデコードの全画素ピクセルループを行単位スライス代入へ置換し、PNG UpフィルタをSWAR bigint演算化。6MP画像の `slice analyze` が約8倍高速化（2.2s→0.3s）。出力は全カラタイプ・全フィルタでバイト同一（170ケース照合）。

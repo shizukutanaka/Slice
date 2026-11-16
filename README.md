@@ -51,6 +51,10 @@ Pipeline: Import → Pose (silhouette estimation) → Skeleton →
 Prediction (missing joints completed from symmetry and priors) →
 Ratio / pose classification → Knowledge (`slice.knowledge/v1` JSON) → Export.
 
+The Knowledge JSON format is a fixed spec — fields, compatibility
+promise and validation rules: `docs/KNOWLEDGE_JSON.md`.
+Check any document with `python3 -m slice validate <file.json>`.
+
 ---
 
 人物画像・イラストを棒人間として捉え、統計的人体モデルに基づき全身を推定し、

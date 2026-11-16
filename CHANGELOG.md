@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- benchmark: 採用判断用ベンチマーク一式を追加（`benchmarks/run_benchmark.py`、結果は `docs/BENCHMARK.md`）。入力種別（クリーン／写真風合成／部分欠損／モデル違い／人物なし／大判）ごとに、成功率・精度（検出率・平均誤差・OKS）・処理時間を決定的な合成フィクスチャで測定。人物なし画像で矩形を人物と誤る失敗もそのまま記録する。
 - bitmap: `downscale` の軸インデックスをピクセルループ外へホイスト（出力バイト同一）。6MP画像の `slice analyze` が約1.25倍高速化（約260ms→約210ms）。estimate/estimate_multi/estimate_split/style/topology/imgqual/diag/CLI の全ダウンスケール経路に効く。
 - bitmap: PNG/BMPデコードの全画素ピクセルループを行単位スライス代入へ置換し、PNG UpフィルタをSWAR bigint演算化。6MP画像の `slice analyze` が約8倍高速化（2.2s→0.3s）。出力は全カラタイプ・全フィルタでバイト同一（170ケース照合）。
 - pose: 腕候補走査を `_estimate_component` から `_arm_candidates` に分離（挙動不変・単体テスト追加）。

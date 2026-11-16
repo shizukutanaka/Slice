@@ -194,6 +194,9 @@ Import → Pose(シルエット推定) → Skeleton
 python3 -m unittest discover -s tests
 ```
 
+採用判断用ベンチマーク（入力種別ごとの成功率・精度・処理時間）は
+`docs/BENCHMARK.md`。再現は `python3 benchmarks/run_benchmark.py`。
+
 ## 設計原則
 
 - **Observed / Predicted の完全分離** — 推定は推定と名付ける

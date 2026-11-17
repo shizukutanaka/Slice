@@ -42,5 +42,37 @@ class BenchmarkSuiteTest(unittest.TestCase):
         self.assertIn("Not measured", md)
 
 
+class LargeCaseArmRegressionTest(unittest.TestCase):
+    """Regression: large figures used to lose both elbows and both
+    wrists (detection 0.7778, `no_observed_wrists`) because the
+    512 px downscale compresses the arm/torso gap to one column,
+    inside the arm scan's old two-column separation margin."""
+
+    def test_large_cases_keep_their_arms(self):
+        rb = _load()
+        large = [c for c in rb.build_cases()
+                 if c["category"] == "large"]
+        self.assertEqual(len(large), 2)
+        rb.build_cases = lambda: large
+        report = rb.run(repeats=1)
+        summary = report["summary"]["large"]
+        self.assertEqual(summary["success_rate"], 1.0)
+        self.assertGreaterEqual(summary["detection_rate"], 0.9)
+        by_name = {c["name"]: c for c in report["cases"]}
+        case = by_name["stand-flat-640x960"]
+        self.assertEqual(case["accuracy"]["detection_rate"], 1.0)
+        self.assertEqual(case["observed_joints"], 19)
+        self.assertNotIn("no_observed_wrists", case["warnings"])
+        # 1200x1800: the right arm (a distinct run one column clear
+        # of the torso) is recovered; the left arm is rasterized
+        # into the torso run itself at this scale, so full recovery
+        # is not pinned — only that detection stays well above the
+        # old 0.7778 plateau.
+        case = by_name["stand-flat-1200x1800"]
+        self.assertGreaterEqual(case["accuracy"]["detection_rate"],
+                                0.85)
+        self.assertNotIn("no_observed_wrists", case["warnings"])
+
+
 if __name__ == "__main__":
     unittest.main()

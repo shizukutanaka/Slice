@@ -44,18 +44,23 @@ def _row_runs(mask: List[bytearray], y: int, w: int) -> List[Tuple[int, int]]:
     return runs
 
 
-def _reaches_bottom(mask: List[bytearray], y: int,
-                    run: Tuple[int, int], bottom: int, w: int) -> bool:
+def _reaches_bottom(runs_at, y: int,
+                    run: Tuple[int, int], bottom: int) -> bool:
     """True when the run's x-band stays connected down to the bottom row.
 
     Legs reach the floor line; a dangling arm run ends mid-frame even
     when it x-overlaps a foot below it (wide feet, crouch/seated poses).
     Overlapping runs merge on the way down — an arm resting on a leg
     honestly counts as grounded.
+
+    `runs_at` maps row -> that row's runs, precomputed by the caller:
+    the walk re-reads the same rows for every candidate run, and at
+    the 512px working scale recomputing them per call dominated the
+    arm scan's cost.
     """
     x0, x1 = run
     for yy in range(y + 1, bottom + 1):
-        nxt = [r for r in _row_runs(mask, yy, w)
+        nxt = [r for r in runs_at[yy]
                if r[1] >= x0 and r[0] <= x1]
         if not nxt:
             return False
@@ -71,16 +76,30 @@ def _arm_candidates(comp, w, sign, tx, cx_spine, scan_top, crotch_y,
     bottom row."""
     cand = []
     band = None  # x-range of the arm beside the torso
+    # Each row's runs are read many times over (the scan itself plus
+    # the leg-reachability walk for every below-crotch run), so
+    # compute them once for the scanned band.
+    runs_at = {y: _row_runs(comp, y, w)
+               for y in range(scan_top, bottom + 1)}
     # Start below the head band, not at the shoulder row —
     # arms raised above shoulder line (V-pose) live in the
     # rows between neck and shoulders that a shoulder-anchored
     # scan never reaches.
     for y in range(scan_top, bottom + 1):
-        runs = _row_runs(comp, y, w)
+        runs = runs_at[y]
         if y <= crotch_y:
+            # A run clear of the torso edge by even one background
+            # column is a distinct protrusion: distinct runs are
+            # separated by >=1 empty column by construction, and the
+            # estimator's 512px downscale compresses the wider
+            # source gap of a large figure to exactly one column
+            # (measured on the large fixtures), so requiring two
+            # columns silently drops real arms at that scale. A run
+            # flush against the edge (0 columns) stays excluded —
+            # that is torso/shoulder mass, not a protrusion.
             for run in runs:
-                if (sign < 0 and run[1] < tx - 2) \
-                        or (sign > 0 and run[0] > tx + 2):
+                if (sign < 0 and run[1] < tx - 1) \
+                        or (sign > 0 and run[0] > tx + 1):
                     cand += [(x, y) for x in range(run[0], run[1] + 1)]
         else:
             # Below the torso, legs are the runs whose band still
@@ -94,7 +113,7 @@ def _arm_candidates(comp, w, sign, tx, cx_spine, scan_top, crotch_y,
                 mid = (run[0] + run[1]) / 2
                 if (sign < 0) != (mid < cx_spine):
                     continue
-                if _reaches_bottom(comp, y, run, bottom, w):
+                if _reaches_bottom(runs_at, y, run, bottom):
                     continue  # leg — connected to the floor line
                 if run[1] < band[0] - 4 or run[0] > band[1] + 4:
                     continue

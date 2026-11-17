@@ -48,6 +48,21 @@ class TestArmCandidates(unittest.TestCase):
         self.assertNotIn((6, 5), cand)
         self.assertNotIn((12, 5), cand)
 
+    def test_one_column_gap_still_counts_as_protrusion(self):
+        # After the estimator's 512px downscale, a large figure's
+        # arm run sits exactly one background column from the torso
+        # edge; that single column is all the separation a distinct
+        # run can have at that scale, so it must still be accepted.
+        comp = [bytearray(12) for _ in range(8)]
+        for y in range(8):
+            for x in range(7, 10):
+                comp[y][x] = 1
+        for x in range(4, 6):  # run (4, 5); column 6 stays empty
+            comp[2][x] = 1
+
+        left = _arm_candidates(comp, 12, -1, 7, 8, 1, 4, 7)
+        self.assertEqual(left, [(4, 2), (5, 2)])
+
     def test_no_protrusion_returns_empty(self):
         comp = [bytearray(12) for _ in range(8)]
         for row in comp:

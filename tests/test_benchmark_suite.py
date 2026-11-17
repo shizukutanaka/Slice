@@ -46,7 +46,10 @@ class LargeCaseArmRegressionTest(unittest.TestCase):
     """Regression: large figures used to lose both elbows and both
     wrists (detection 0.7778, `no_observed_wrists`) because the
     512 px downscale compresses the arm/torso gap to one column,
-    inside the arm scan's old two-column separation margin."""
+    inside the arm scan's old two-column separation margin. The
+    1200x1800 left arm has no distinct run at all — it is fused
+    into the torso run — and is recovered by the excess-width
+    inference in `slice.pose._fused_arm_joints`."""
 
     def test_large_cases_keep_their_arms(self):
         rb = _load()
@@ -57,21 +60,13 @@ class LargeCaseArmRegressionTest(unittest.TestCase):
         report = rb.run(repeats=1)
         summary = report["summary"]["large"]
         self.assertEqual(summary["success_rate"], 1.0)
-        self.assertGreaterEqual(summary["detection_rate"], 0.9)
+        self.assertEqual(summary["detection_rate"], 1.0)
         by_name = {c["name"]: c for c in report["cases"]}
-        case = by_name["stand-flat-640x960"]
-        self.assertEqual(case["accuracy"]["detection_rate"], 1.0)
-        self.assertEqual(case["observed_joints"], 19)
-        self.assertNotIn("no_observed_wrists", case["warnings"])
-        # 1200x1800: the right arm (a distinct run one column clear
-        # of the torso) is recovered; the left arm is rasterized
-        # into the torso run itself at this scale, so full recovery
-        # is not pinned — only that detection stays well above the
-        # old 0.7778 plateau.
-        case = by_name["stand-flat-1200x1800"]
-        self.assertGreaterEqual(case["accuracy"]["detection_rate"],
-                                0.85)
-        self.assertNotIn("no_observed_wrists", case["warnings"])
+        for name in ("stand-flat-640x960", "stand-flat-1200x1800"):
+            case = by_name[name]
+            self.assertEqual(case["accuracy"]["detection_rate"], 1.0)
+            self.assertEqual(case["observed_joints"], 19)
+            self.assertNotIn("no_observed_wrists", case["warnings"])
 
 
 if __name__ == "__main__":

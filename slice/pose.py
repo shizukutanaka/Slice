@@ -704,7 +704,13 @@ class HeuristicPoseEstimator(PoseEstimator):
         the most consistent skeleton with the strongest head-band
         evidence; joints map back to image space and record the
         rotation in their basis."""
-        sk = self._estimate_component(small, comp, size, w, h, model)
+        # The primary upright scan is structure-gated (a solid block
+        # is not a person). Rotated candidates inherit the gate only
+        # when the upright scan was structure-rejected; a starved
+        # upright scan (too small / too flat) leaves the retry to
+        # its own strict adoption rule below.
+        sk = self._estimate_component(small, comp, size, w, h, model,
+                                      gate_structure=True)
         # No early exit when the upright scan starves: a lying figure
         # can fail every upright gate (body_h < 24px) yet skeletonize
         # cleanly once rotated — the retry exists for exactly that
@@ -716,9 +722,11 @@ class HeuristicPoseEstimator(PoseEstimator):
         base_headw = _head_band_width(comp, w, h)
         best, best_deg = sk, 0
         best_key = None
+        gate_rot = bool(getattr(sk, "structure_rejected", False))
         for deg, comp_r, rw, rh in _oriented_masks(comp, w, h):
             cand = self._estimate_component(small, comp_r, size,
-                                            rw, rh, model)
+                                            rw, rh, model,
+                                            gate_structure=gate_rot)
             if not cand.joints:
                 continue
             issues = len(consistency.audit(cand, model))
@@ -858,7 +866,8 @@ class HeuristicPoseEstimator(PoseEstimator):
         return out
 
     def _estimate_component(self, small, comp, size, w, h,
-                            model: str) -> Skeleton:
+                            model: str, gate_structure: bool = False
+                            ) -> Skeleton:
         sk = Skeleton(image_width=w, image_height=h)
         if size < w * h * 0.005:
             return sk  # no person-sized foreground
@@ -871,6 +880,29 @@ class HeuristicPoseEstimator(PoseEstimator):
         body_w = right - left + 1
         if body_h < 24:
             return sk
+
+        # A person silhouette narrows somewhere — the neck, the
+        # waist, the gap between the legs — so some row is always
+        # well emptier than the widest row. A discrete blob that
+        # fills nearly every row to its widest count (a plain
+        # rectangle fills them all exactly) carries no anatomical
+        # evidence; placing joints on it fabricates a person out of
+        # a block, so the gated scan reports no detection instead,
+        # like the empty-background case. Only the primary upright
+        # scan is gated (see _estimate_oriented): the rotated retry
+        # and the split path keep their own adoption rules, and a
+        # mask that floods essentially the whole frame is a mask
+        # failure, not a discrete object to judge.
+        if gate_structure:
+            counts = [r[2] for r in rows[top:bottom + 1] if r]
+            if counts and min(counts) > max(counts) * 0.9 \
+                    and body_w * body_h < w * h * 0.95:
+                # carried on the skeleton (like mask_threshold) so
+                # _estimate_oriented can gate its rotated candidates
+                # too: rotating a judged-structureless blob adds no
+                # anatomical evidence.
+                sk.structure_rejected = True
+                return sk
 
         applied_model = model if model in BODY_MODELS else DEFAULT_MODEL
         prior = BODY_MODELS[applied_model]

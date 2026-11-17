@@ -367,12 +367,20 @@ def to_markdown(report, generated):
         "- Positional error is in the estimator's working frame; "
         "inputs taller than 512 px are downscaled first, so the "
         "`large` category's pixel errors are working-frame pixels.",
-        "- A plain rectangle is reported as a failure in `negative`: "
-        "the silhouette heuristic treats a person-sized blob as a "
-        "person and marks joints `observed`. The blank background "
-        "behaves honestly (0 observed joints, full warnings). "
-        "Adopters must not treat `observed` as proof that a person "
-        "was present.",
+        "- A plain rectangle is no longer reported as a person: the "
+        "primary upright scan is structure-gated — a discrete blob "
+        "whose silhouette narrows nowhere (no neck, waist or leg "
+        "gap) yields no detection, like the blank background "
+        "(0 observed joints, full warnings). The gate is a "
+        "heuristic, not a proof: adopters must still not treat "
+        "`observed` as proof that a person was present.",
+        "- The `large` cases lose the elbows and wrists for a "
+        "different, investigated reason: after the 512 px "
+        "downscale the arm runs sit one column from the torso edge, "
+        "inside the arm scan's two-column separation margin, so no "
+        "arm candidates form. A resolution limit of the arm scan, "
+        "unrelated to the rectangle gate; recorded here and left "
+        "for a separate change.",
         "- Ground truth for `models` (child / deformed) is not "
         "scored: the fixture is drawn with adult proportions, so "
         "positional accuracy against it would not measure those "

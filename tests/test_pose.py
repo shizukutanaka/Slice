@@ -628,6 +628,18 @@ class TestHeuristicPose(unittest.TestCase):
                                                           (255, 255, 255, 255)))
         self.assertFalse(sk.joints)
 
+    def test_solid_rectangle_is_not_a_person(self):
+        """A person-sized solid block must not gain a skeleton: its
+        silhouette narrows nowhere (no neck, waist or leg gap), so
+        there is no anatomical evidence to place joints on. The
+        honest outcome is the blank image's — no joints at all."""
+        bmp = Bitmap.new(160, 300, (235, 235, 235, 255))
+        for y in range(60, 240):
+            for x in range(50, 110):
+                bmp.set(x, y, (60, 60, 60, 255))
+        sk = HeuristicPoseEstimator().estimate(bmp)
+        self.assertFalse(sk.joints)
+
 
 if __name__ == "__main__":
     unittest.main()

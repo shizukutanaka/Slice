@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- pose: 直立した主スキャンに構造ゲートを追加。シルエットのどの行も最広行より1割も細くならない離散した塊（単なる矩形など）は、首・腰・脚の隙間といった解剖学的な証拠が無いため未検出とする（従来は人物サイズの矩形に関節15個を捏造していた。ベンチマークの negative 成功率は 0.50→1.00、`docs/BENCHMARK.md` を再実測）。回転リトライは直立スキャンが構造で拒否された場合に限りゲートを引き継ぎ、フレーム全面に氾濫したマスクは対象外。
 - knowledge: 知識形式の仕様を `docs/KNOWLEDGE_JSON.md` に固定。v1/v1.1 の版体系・文書の出所ごとの必須性・互換性の約束（読み手の義務と書き手の保証）・`validate()` の検査範囲と非範囲を、実装の実物に即して全面改稿（旧版の誤記: 元画像の保存可否、warnings のコード欠落、export の `keypoints_state` 欠落、orientation の facing 値などを是正）。採用側の検証ゲートとして `slice validate <file.json>...` を追加（`knowledge.validate` を再利用、終了コード 0/1/2、理由つきで落ちる）。仕様と実装の一致は `tests/test_knowledge_spec.py` が固定。
 - benchmark: 採用判断用ベンチマーク一式を追加（`benchmarks/run_benchmark.py`、結果は `docs/BENCHMARK.md`）。入力種別（クリーン／写真風合成／部分欠損／モデル違い／人物なし／大判）ごとに、成功率・精度（検出率・平均誤差・OKS）・処理時間を決定的な合成フィクスチャで測定。人物なし画像で矩形を人物と誤る失敗もそのまま記録する。
 - bitmap: `downscale` の軸インデックスをピクセルループ外へホイスト（出力バイト同一）。6MP画像の `slice analyze` が約1.25倍高速化（約260ms→約210ms）。estimate/estimate_multi/estimate_split/style/topology/imgqual/diag/CLI の全ダウンスケール経路に効く。

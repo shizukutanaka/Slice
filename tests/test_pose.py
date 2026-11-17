@@ -9,7 +9,8 @@ from slice.pose import (HeuristicPoseEstimator, _arm_candidates,
                         _classify_orientation, _estimate_arm_ends,
                         _estimate_head, _estimate_legs,
                         _estimate_pelvis_column, _estimate_shoulder_line,
-                        _estimate_torso_column, _symmetry)
+                        _estimate_torso_column, _fused_arm_joints,
+                        _symmetry)
 from slice.skeleton import Joint, NECK_CLAVICLE_BASIS, OBSERVED
 
 
@@ -71,6 +72,61 @@ class TestArmCandidates(unittest.TestCase):
 
         self.assertEqual(_arm_candidates(comp, 12, -1, 5, 6, 1, 4, 7),
                          [])
+
+
+def _ledge_comp(ledge_rows, ledge=(13, 27), body=(16, 27), w=40,
+                h=60):
+    """Component whose left edge sits at `ledge` x-range over
+    `ledge_rows` and at the narrower `body` range elsewhere — the
+    silhouette a torso-fused dangling arm leaves."""
+    comp = [bytearray(w) for _ in range(h)]
+    for y in range(h):
+        x0, x1 = ledge if y in ledge_rows else body
+        for x in range(x0, x1 + 1):
+            comp[y][x] = 1
+    return comp
+
+
+class TestFusedArmJoints(unittest.TestCase):
+    """The fused-arm inference: an arm merged into the torso run
+    leaves a few columns of excess width on its side, from the
+    shoulder down past the crotch to the wrist."""
+
+    def _call(self, comp, torso_run=(13, 27), cx=21.5):
+        shoulder = Joint("shoulder_l", 13, 12, 0.8, OBSERVED, "test")
+        return _fused_arm_joints(comp, 40, -1, cx, 8, 38, 59,
+                                 torso_run, shoulder,
+                                 BODY_MODELS["adult"], 55)
+
+    def test_ledge_yields_inferred_wrist_and_elbow(self):
+        comp = _ledge_comp(range(10, 45))
+        joints = {j[0]: j for j in self._call(comp)}
+        self.assertEqual(set(joints), {"wrist_l", "elbow_l"})
+        # wrist at the ledge strip's centre, at the row the ledge
+        # ends (the wrist line); low confidence, basis disclosed
+        self.assertEqual(joints["wrist_l"][1:3], (14.5, 44.0))
+        self.assertEqual(joints["wrist_l"][3], 0.35)
+        self.assertIn("inferred", joints["wrist_l"][4])
+        self.assertEqual(joints["elbow_l"][3], 0.3)
+        self.assertIn("inferred", joints["elbow_l"][4])
+        self.assertTrue(12 < joints["elbow_l"][2] < 44)
+
+    def test_symmetric_ledge_is_just_a_wide_torso(self):
+        # both sides equally proud of the leg edge: no asymmetry,
+        # no arm — the figure is simply wide.
+        comp = _ledge_comp(range(10, 45), ledge=(13, 30),
+                           body=(16, 27))
+        self.assertEqual(self._call(comp, torso_run=(13, 30)), [])
+
+    def test_short_ledge_does_not_reach_the_crotch(self):
+        # a ledge that steps back in above the crotch is shoulder
+        # mass, not a dangling arm.
+        comp = _ledge_comp(range(10, 26))
+        self.assertEqual(self._call(comp), [])
+
+    def test_no_ledge_no_joints(self):
+        comp = _ledge_comp(range(0))
+        self.assertEqual(self._call(comp, torso_run=(16, 27)), [])
 
 
 def profile_person(width=100, height=300, side=-1, bg=235, fg=60):

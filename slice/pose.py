@@ -215,6 +215,101 @@ def _estimate_legs(comp, w, h, crotch, bottom, hip_run):
     return legs_split, joints
 
 
+def _fused_arm_joints(comp, w, sign, cx_spine, scan_top, crotch,
+                      bottom, torso_run, shoulder, prior, body_h):
+    """Infer one arm fused into the torso run from the run's excess
+    width on this side, or return [] when the silhouette shows no
+    such ledge.
+
+    A dangling arm merged flush against the torso (an overlap in the
+    source, or a gap the downscale closed) leaves no distinct run at
+    any row, so the arm scan finds nothing — yet the fusion is not
+    invisible: the silhouette's outer edge on that side sits a few
+    columns proud of the body's own edge from the shoulder down to
+    the wrist, where it steps back in. The body's own edge is read
+    off the leg rows near the bottom (below any dangling wrist), and
+    the ledge must be asymmetric — the opposite side's chest
+    half-width must not carry the same excess, or the figure is
+    simply wide. This is inference, not observation: the joints land
+    at low confidence with the basis saying so."""
+    def outer_edge(y):
+        runs = _row_runs(comp, y, w)
+        if sign < 0:
+            cand = [r[0] for r in runs if r[0] <= cx_spine]
+            return min(cand) if cand else None
+        cand = [r[1] for r in runs if r[1] >= cx_spine]
+        return max(cand) if cand else None
+
+    def median(vals):
+        vals = sorted(vals)
+        n = len(vals)
+        return vals[n // 2] if n % 2 else (vals[n // 2 - 1]
+                                           + vals[n // 2]) / 2
+
+    # Reference edge: the leg rows near the bottom, below where a
+    # dangling wrist can reach.
+    ref_rows = [outer_edge(y) for y in
+                range(max(scan_top, bottom - max(4, int(body_h * 0.06))),
+                      bottom + 1)]
+    ref_rows = [e for e in ref_rows if e is not None]
+    if len(ref_rows) < 3:
+        return []
+    ref = median(ref_rows)
+
+    def excess(y):
+        e = outer_edge(y)
+        if e is None:
+            return 0
+        return (ref - e) if sign < 0 else (e - ref)
+
+    # The ledge: a contiguous band of >=2 columns excess starting
+    # near the shoulder and running at least to the crotch — a
+    # dangling arm reaches the hip, a shoulder pad does not.
+    band_top = None
+    band_bottom = None
+    for y in range(scan_top, bottom + 1):
+        if excess(y) >= 2:
+            if band_top is None:
+                band_top = y
+            band_bottom = y
+        elif band_top is not None:
+            break
+    if band_top is None or band_bottom < crotch \
+            or band_top > scan_top + body_h * 0.25 \
+            or band_bottom - band_top < body_h * 0.3:
+        return []
+    ledge = median([excess(y) for y in range(band_top, band_bottom + 1)])
+    torso_w = torso_run[1] - torso_run[0] + 1
+    if ledge < 2 or ledge > torso_w * 0.35:
+        return []
+    # Asymmetry cross-check at chest height: the fused side's
+    # half-width (ledge included, it is part of the torso run there)
+    # must exceed the opposite side's by the ledge's own scale.
+    if sign < 0:
+        half_this = cx_spine - torso_run[0]
+        half_opp = torso_run[1] - cx_spine
+    else:
+        half_this = torso_run[1] - cx_spine
+        half_opp = cx_spine - torso_run[0]
+    if half_this - half_opp < 2:
+        return []
+    edge_med = median([outer_edge(y)
+                       for y in range(band_top, band_bottom + 1)])
+    wrist_x = edge_med - sign * ledge / 2
+    wrist = (wrist_x, float(band_bottom))
+    reach = ((wrist[0] - shoulder.x) ** 2
+             + (wrist[1] - shoulder.y) ** 2) ** 0.5
+    frac = prior["upper_arm_ratio"] / (
+        prior["upper_arm_ratio"] + prior["forearm_ratio"])
+    side = "l" if sign < 0 else "r"
+    elbow = (shoulder.x + (wrist[0] - shoulder.x) * frac,
+             shoulder.y + (wrist[1] - shoulder.y) * frac)
+    return [(f"wrist_{side}", wrist[0], wrist[1], 0.35,
+             "torso excess width (fused arm inferred)"),
+            (f"elbow_{side}", elbow[0], elbow[1], 0.3,
+             "fused arm mid-extent (inferred)")]
+
+
 def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
                        torso_run, cx_spine, shoulders, horizontal_arms,
                        prior, body_h):
@@ -236,6 +331,14 @@ def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
         tx = torso_run[0] if sign < 0 else torso_run[1]
         cand = _arm_candidates(comp, w, sign, tx, cx_spine,
                                int(top + head_h), crotch, bottom)
+        if not cand and shoulder:
+            # No distinct run on this side: the arm may be fused
+            # into the torso run itself, where only the run's
+            # excess width betrays it.
+            joints += _fused_arm_joints(
+                comp, w, sign, cx_spine, int(top + head_h), crotch,
+                bottom, torso_run, shoulder, prior, body_h)
+            continue
         if cand and shoulder:
             far = max(cand,
                       key=lambda p: (p[0] - shoulder.x) ** 2

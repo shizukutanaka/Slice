@@ -6,9 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and attach assets to (e.g. v0.1.0)"
-        required: true
+        description: "Existing tag to build and attach assets to (e.g. v0.1.0). Leave empty to only upload the build as an Actions artifact."
+        required: false
         type: string
+        default: ""
 
 permissions:
   contents: write
@@ -17,7 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+      # Empty on workflow_dispatch without a tag: artifact-only mode.
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,7 +31,14 @@ jobs:
         run: |
           python -m pip install build
           python -m build
+      - name: Upload build artifact (no Release)
+        if: ${{ env.TAG == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/*
       - name: Attach assets to the GitHub Release
+        if: ${{ env.TAG != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

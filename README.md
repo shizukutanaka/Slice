@@ -19,6 +19,21 @@ human body. The image can be discarded; **only the Knowledge JSON remains.**
 
 No dependencies. Slice runs on the Python 3.11+ standard library only.
 
+From a GitHub Release (no clone needed) — download the wheel from the
+[Releases page](https://github.com/shizukutanaka/Slice/releases) and install
+the file:
+
+```bash
+pip install slice-0.1.0-py3-none-any.whl
+# or directly:
+pip install https://github.com/shizukutanaka/Slice/releases/download/v0.1.0/slice-0.1.0-py3-none-any.whl
+```
+
+Note: the name `slice` on PyPI belongs to a different project, so this
+software is distributed as a wheel attached to GitHub Releases, not via PyPI.
+
+Or from source:
+
 ```bash
 git clone https://github.com/shizukutanaka/Slice.git
 cd Slice
@@ -71,6 +86,21 @@ Check any document with `python3 -m slice validate <file.json>`.
 ## セットアップ
 
 依存なし。Python 3.11+ の標準ライブラリのみで動く。
+
+GitHub Release から入手する場合（clone 不要）:
+[Releases ページ](https://github.com/shizukutanaka/Slice/releases)から
+wheel をダウンロードしてインストールする。
+
+```bash
+pip install slice-0.1.0-py3-none-any.whl
+# または直接:
+pip install https://github.com/shizukutanaka/Slice/releases/download/v0.1.0/slice-0.1.0-py3-none-any.whl
+```
+
+※ PyPI の `slice` は別プロジェクトの名前のため、本ソフトは PyPI ではなく
+GitHub Release の wheel で配布している。
+
+ソースから使う場合:
 
 ```bash
 git clone https://github.com/shizukutanaka/Slice.git

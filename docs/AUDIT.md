@@ -162,7 +162,8 @@
 
 ### P1 — 知識の統合と信頼性
 6. **CI導入**: GitHub Actionsで `unittest discover` をPRごとに実行
-7. **スキーマ v1.1**: `state` enum に estimated/implied/out_of_frame/unknown を正式登録
+7. **スキーマ v1.1**: 新規解析文書に版を刻印し、v1 も引き続き受理する。
+   関節の `state` は observed / predicted を維持し、拡張語彙は解析レイヤに置く
 8. **拡張スロット**: `analysis:` フィールドで新モジュール出力を文書に格納する標準場所
 9. **pipeline統合**: analyze 出力に coverage+audit+warnings を標準添付
 10. **store索引**: `list()` を manifest キャッシュ化（O(1) read）

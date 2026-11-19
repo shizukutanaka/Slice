@@ -107,9 +107,7 @@ class TestSpecConformance(unittest.TestCase):
         self.assertIn("warnings", doc)
         self.assertIn("filled", doc["prediction"])
         self.assertIn("analysis", doc)
-        # the spec's stated reality: the pipeline stamps v1 even
-        # though the document carries the v1.1 analysis slot
-        self.assertEqual(doc["schema"], knowledge.SCHEMA)
+        self.assertEqual(doc["schema"], knowledge.SCHEMA_V11)
 
     def test_unknown_keys_tolerated(self):
         # the compatibility promise: field addition must not break

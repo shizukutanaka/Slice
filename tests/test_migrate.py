@@ -7,11 +7,12 @@ from slice.landmarks import JOINTS
 from slice.pose import HeuristicPoseEstimator
 
 
-def _doc():
+def _doc(*, analysis=None):
     bmp, _ = evaluate.draw_case(160, 300)
     sk = HeuristicPoseEstimator().estimate(bmp)
     return knowledge.build(sk, {}, source_name="t",
-                           engine={"name": "t", "version": "0"})
+                           engine={"name": "t", "version": "0"},
+                           analysis=analysis)
 
 
 class TestMigrate(unittest.TestCase):
@@ -19,6 +20,14 @@ class TestMigrate(unittest.TestCase):
         r = migrate.upgrade(_doc())
         self.assertEqual(r["valid_after"], [])
         self.assertEqual(r["valid_before"], [])
+
+    def test_v11_doc_unchanged(self):
+        doc = _doc(analysis={"angles": {"elbow_l_flex": 120}})
+        r = migrate.upgrade(doc)
+        self.assertEqual(r["document"], doc)
+        self.assertEqual(r["changes"], [])
+        self.assertEqual(r["valid_before"], [])
+        self.assertEqual(r["valid_after"], [])
 
     def test_missing_blocks_rebuilt(self):
         doc = _doc()

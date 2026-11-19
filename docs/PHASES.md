@@ -38,7 +38,7 @@
 | 10 | CI | GitHub Actions | **PR中** |
 | 11 | 複数人検出 | `analyze_multi`、`analyze --split-touching` | 一部（接触分離は推定） |
 | 12 | 部分人体診断 | Knowledge JSON の `analysis.framefit` / `analysis.occlusion` | 済（切り取り判定は推定） |
-| 13 | スキーマv1.1（analysis拡張・state拡張） | `knowledge.py` SCHEMAS | **PR中** |
+| 13 | スキーマv1.1（analysis拡張） | `pipeline.analyze`、`knowledge.SCHEMAS` | 済（関節 state は observed / predicted のみ） |
 | 14 | REST認証 | `serve(token=)` | **PR中** |
 
 ## Phase 3 — 3D人体（5/10 = 50%）

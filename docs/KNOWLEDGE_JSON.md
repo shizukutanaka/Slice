@@ -17,12 +17,11 @@ Slice の成果物の形式仕様。画像そのものではなく、画像か�
 | `slice.knowledge/v1.1` | v1 に `analysis` 拡張スロットを持つ文書として `build(analysis=...)` が刻印する版 |
 
 - `validate()` は両版を受理する（受理集合は `knowledge.SCHEMAS`）。
-- **現行パイプライン（`pipeline.analyze` 等）が出す文書は
-  `slice.knowledge/v1` のまま `analysis` を持つ。** パイプラインは
-  `build()` の後に `analysis` を差すため v1.1 には昇格しない。
-  つまり `analysis` の有無は `schema` 値では判断できない。
-  読み手はキーの有無で判断すること（互換性の約束も参照）。
-- v1 文書上の `analysis` も受理される（形状検査のみ）。
+- パイプライン（`pipeline.analyze` / `pipeline.analyze_multi`）の新規文書は
+  `analysis` を含むため `slice.knowledge/v1.1` を使う。
+- 旧パイプラインが生成した v1 文書上の `analysis` も受理される。
+  読み手は `schema` 値ではなくキーの有無で判断すること
+  （互換性の約束も参照）。
 
 ## 文書の出所と必須性
 
@@ -282,7 +281,7 @@ knee_l, knee_r, ankle_l, ankle_r, foot_l, foot_r, spine
 
 ```console
 $ python3 -m slice validate knowledge.json [other.json ...]
-knowledge.json: valid (slice.knowledge/v1)
+knowledge.json: valid (slice.knowledge/v1.1)
 ```
 
 - 終了コード: 全て valid なら 0、invalid な文書があれば 1、

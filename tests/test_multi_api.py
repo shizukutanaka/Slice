@@ -66,6 +66,7 @@ class TestMultiApi(unittest.TestCase):
         self.assertEqual(res["count"], 2)
         for p in res["people"]:
             self.assertIn("overlay_url", p)
+            self.assertEqual(p["schema"], knowledge.SCHEMA_V11)
 
     def test_rest_single_untouched(self):
         res = _post(self.port, "/analyze", _two_people_png())

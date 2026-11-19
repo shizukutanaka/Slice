@@ -7,20 +7,24 @@
 `python3 -m slice.bench`（精度・速度の回帰ゲート）が基本ゲート。
 個別条件は右欄の確認法で点検する。
 
+各表の「済」だけを達成条件として数える。「一部」と「未」は分母にだけ
+含める。各 Phase と全体の割合は整数に丸め、表との整合性は
+`python3 -m unittest tests.test_phases` で確認できる。
+
 ## Phase 1 — 基礎エンジン（10/10 = 100%）
 
-| # | 条件 | 確認 |
-|---|---|---|
-| 1 | PNG/BMPを標準ライブラリでデコード | `bitmap.py`, tests/test_bitmap |
-| 2 | 人物シルエット→関節推定 | `pose.py` HeuristicPoseEstimator |
-| 3 | Jointに observed/predicted + confidence + basis | `skeleton.py` |
-| 4 | 欠損を対称+プライアで補完 | `predict.py` |
-| 5 | 比率解析（頭身/四肢/重心/対称） | `ratio.py` |
-| 6 | Knowledge JSON 構築・検証・ストア | `knowledge.py` |
-| 7 | 骨格オーバーレイ描画 | `render.py` |
-| 8 | CLI（analyze/serve/list） | `python3 -m slice --help` |
-| 9 | REST + ビューア | `rest.py`, `viewer.html` |
-| 10 | 自動テストと回帰ゲート | `python3 -m slice.bench` |
+| # | 条件 | 確認 | 状態 |
+|---|---|---|---|
+| 1 | PNG/BMPを標準ライブラリでデコード | `bitmap.py`, tests/test_bitmap | 済 |
+| 2 | 人物シルエット→関節推定 | `pose.py` HeuristicPoseEstimator | 済 |
+| 3 | Jointに observed/predicted + confidence + basis | `skeleton.py` | 済 |
+| 4 | 欠損を対称+プライアで補完 | `predict.py` | 済 |
+| 5 | 比率解析（頭身/四肢/重心/対称） | `ratio.py` | 済 |
+| 6 | Knowledge JSON 構築・検証・ストア | `knowledge.py` | 済 |
+| 7 | 骨格オーバーレイ描画 | `render.py` | 済 |
+| 8 | CLI（analyze/serve/list） | `python3 -m slice --help` | 済 |
+| 9 | REST + ビューア | `rest.py`, `viewer.html` | 済 |
+| 10 | 自動テストと回帰ゲート | `python3 -m slice.bench` | 済 |
 
 ## Phase 2 — 解析の深化（12/14 = 86%）
 
@@ -35,13 +39,13 @@
 | 7 | 意味レイヤの拡充（角度/バランス/歩行/ジェスチャ等） | `angles.py`他~20層 | 済 |
 | 8 | データセット管理（export/bundle/dedup/diff/stats） | 該当モジュール | 済 |
 | 9 | 実画像フィクスチャ | [同梱の実写正解データで評価](BENCHMARK.md#benchmark-the-bundled-annotated-photographs) | 一部（宇宙服の実写 2 枚を同梱） |
-| 10 | CI | GitHub Actions | **PR中** |
+| 10 | CI | [GitHub Actions](../.github/workflows/test.yml)（Python 3.11・3.12） | 済 |
 | 11 | 複数人検出 | `analyze_multi`、`analyze --split-touching` | 一部（接触分離は推定） |
 | 12 | 部分人体診断 | Knowledge JSON の `analysis.framefit` / `analysis.occlusion` | 済（切り取り判定は推定） |
 | 13 | スキーマv1.1（analysis拡張） | `pipeline.analyze`、`knowledge.SCHEMAS` | 済（関節 state は observed / predicted のみ） |
-| 14 | REST認証 | `serve(token=)` | **PR中** |
+| 14 | REST認証 | `serve(token=)`、[`tests.test_restauth`](../tests/test_restauth.py) | 済 |
 
-## Phase 3 — 3D人体（5/10 = 50%）
+## Phase 3 — 3D人体（6/10 = 60%）
 
 | # | 条件 | 確認 | 状態 |
 |---|---|---|---|
@@ -49,18 +53,18 @@
 | 2 | 骨ツリー/リグ定義 | `rig.py` | 済 |
 | 3 | 体格間リターゲット | `retarget.py` | 済 |
 | 4 | 標準形式エクスポート | `bvh.py`, `gltf.py`, `coco.py` | 済 |
-| 5 | SMPL対応表 | `docs/SMPL.md` | **PR中** |
+| 5 | SMPL対応表 | [関節マッピングと未対応関節](SMPL.md#関節マッピング) | 済（対応表のみ。実モデル接続は未検証） |
 | 6 | IK solver | `ik.py` | 済 |
-| 7 | 真の深度推定（単眼3D） | 学習系 or 幾何推定 | **未** |
-| 8 | SMPL θ/β フィッティング | 形状+ポーズパラメータ | **未** |
-| 9 | メッシュ/スキニング出力 | 頂点重み付きメッシュ | **未** |
+| 7 | 真の深度推定（単眼3D） | 学習系 or 幾何推定 | 未 |
+| 8 | SMPL θ/β フィッティング | 形状+ポーズパラメータ | 未 |
+| 9 | メッシュ/スキニング出力 | 頂点重み付きメッシュ | 未 |
 | 10 | Blender/Unity実連携 | [実ツールでの glTF・BVH 読み込み検証](SMPL.md#blender-での読み込み検証) | 一部（Blender 検証済み、Unity 未検証） |
 
 ## 総合スコアの計算
 
 ```
 完成度 = (達成条件数 / 全条件数) × 100
-       = (10 + 12 + 5) / (10 + 14 + 10) = 27/34 ≈ 79%
+       = 28/34 ≈ 82%
 ```
 
 Phase 3 が最重量級（真の3D化）であり、単純平均では

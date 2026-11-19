@@ -36,7 +36,7 @@
 | 8 | データセット管理（export/bundle/dedup/diff/stats） | 該当モジュール | 済 |
 | 9 | 実画像フィクスチャ | [ローカルの実写正解データで評価](BENCHMARK.md#benchmark-your-own-annotated-photographs) | 一部（データは未同梱） |
 | 10 | CI | GitHub Actions | **PR中** |
-| 11 | 複数人検出 | `estimate_multi`経路 | 一部（peopleはPR中） |
+| 11 | 複数人検出 | `analyze_multi`、`analyze --split-touching` | 一部（接触分離は推定） |
 | 12 | 部分人体診断 | `framefit`相当 | **PR中** |
 | 13 | スキーマv1.1（analysis拡張・state拡張） | `knowledge.py` SCHEMAS | **PR中** |
 | 14 | REST認証 | `serve(token=)` | **PR中** |
@@ -71,6 +71,7 @@ Phase 3 が最重量級（真の3D化）であり、単純平均では
 
 1. **実写対応** — 全検証が合成シルエット。実写真の
    背景・服装・髪・顔は未カバー（AUDIT P0-4/P1-12）
-2. **複数人** — 単一成分前提。top-K成分の複数Skeleton化
+2. **複数人** — top-K前景成分を複数Skeleton化。接触分離は
+   オプションの推定で、重なりのある人物の検出は保証しない
 3. **真の深度** — liftは擬似z。単眼深度推定器ポートが要
 4. **SMPLフィット** — 対応表はあるが最適化層が無い

@@ -54,7 +54,7 @@ Slice の成果物の形式仕様。画像そのものではなく、画像か�
 | `style` | object | 追加 | スタイル推定 `{style, label, confidence, signals}`。`style` は `real` / `anime` / `illustration` / `unknown` |
 | `warnings` | string[] | 追加 | 証拠の薄さの警告コード。下記の全コード表 |
 | `analysis` | object | 追加 | 名前付き解析レイヤの辞書（v1.1 スロット）。下記 |
-| `people` | object | 追加 | 複数人解析（`analyze_multi`）の文書のみ。`{index, count, components, state, basis}` — 同一画像から生まれた兄弟文書のうち何番目か。`components` は骨格化に回った前景成分数で `count` より大きいことがある |
+| `people` | object | 追加 | 複数人解析（`analyze_multi`）の文書のみ。`{index, count, components, state, basis}` — 同一画像から生まれた兄弟文書のうち何番目か。`components` は骨格化の候補となった前景領域数で `count` より大きいことがある。独立した前景成分は `state: "observed"`、`split_touching=True` で分割した領域は `state: "estimated"` |
 
 `engine`: 構築者が渡す辞書で、形式としては中身を固定しない。
 現行パイプラインは `{name, version, slice}` に加えて

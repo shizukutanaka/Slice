@@ -933,17 +933,19 @@ class HeuristicPoseEstimator(PoseEstimator):
         offered to `slice.split`'s distance-field watershed — a
         claimed split for silhouettes that touch. Sub-regions get the
         same component gates and an independent skeleton; the split
-        hypothesis is still recorded on every joint's basis
-        ("split region"). Fewer cores than seeds, or one whole
-        component, both pass through unchanged — the pixels decide.
+        hypothesis is recorded in its skeleton and joint bases
+        ("split region"). Unsplit components use the standard scan.
+        Return at most `top_k` skeletons.
         """
         from . import split as _split
+        if top_k <= 0:
+            return []
         small = bmp.downscale(self.max_dim)
         w, h = small.width, small.height
         mask = self._mask(small)
         thr = self.last_threshold  # captured once — one mask per call
         labels, sizes = self._label_components(mask, w, h)
-        subs_all: List[list] = []
+        regions = []
         for lab in sorted(sizes, key=sizes.get, reverse=True)[:top_k]:
             if sizes[lab] < w * h * 0.005:
                 break
@@ -963,26 +965,32 @@ class HeuristicPoseEstimator(PoseEstimator):
             heads = [hpt for i, hpt in enumerate(heads)
                      if all(abs(hpt[0] - o[0]) > spread
                             for o in heads[:i])]
-            if len(heads) < 2:
-                subs_all.append(comp)
-            else:
+            subs = [comp]
+            if len(heads) >= 2:
                 subs, _ = _split.split(comp, seeds=heads)
-                subs_all.extend(subs)
+            regions.extend((sub, len(subs) > 1) for sub in subs)
         out: List[Skeleton] = []
-        for sub in subs_all:
+        for sub, was_split in regions:
             size = sum(sum(r) for r in sub)
-            sk = self._estimate_component(small, sub, size,
-                                          w, h, model)
+            if was_split:
+                sk = self._estimate_component(small, sub, size, w, h, model,
+                                              gate_structure=True)
+            else:
+                sk = self._estimate_oriented(small, sub, size, w, h, model)
             sk.mask_threshold = thr
             if not sk.joints:
                 continue
-            for j in sk.joints.values():
-                j.basis = (j.basis + "; split region"
-                           if j.basis else "split region")
+            sk.split_region = was_split
+            if was_split:
+                for j in sk.joints.values():
+                    j.basis = (j.basis + "; split region"
+                               if j.basis else "split region")
             # subregions offered across the whole frame — how many
             # person hypotheses shared it, not how many survived
-            sk.component_count = len(subs_all)
+            sk.component_count = len(regions)
             out.append(sk)
+            if len(out) == top_k:
+                break
         return out
 
     def _estimate_component(self, small, comp, size, w, h,
@@ -1008,10 +1016,9 @@ class HeuristicPoseEstimator(PoseEstimator):
         # rectangle fills them all exactly) carries no anatomical
         # evidence; placing joints on it fabricates a person out of
         # a block, so the gated scan reports no detection instead,
-        # like the empty-background case. Only the primary upright
-        # scan is gated (see _estimate_oriented): the rotated retry
-        # and the split path keep their own adoption rules, and a
-        # mask that floods essentially the whole frame is a mask
+        # like the empty-background case. The rotated retry keeps its
+        # own adoption rules (see _estimate_oriented), and a mask that
+        # floods essentially the whole frame is a mask
         # failure, not a discrete object to judge.
         if gate_structure:
             counts = [r[2] for r in rows[top:bottom + 1] if r]

@@ -89,6 +89,22 @@ class TestSplit(unittest.TestCase):
         est = pose.HeuristicPoseEstimator()
         self.assertEqual(len(est.estimate_split(bmp)), 1)
 
+    def test_estimate_split_rejects_nonhuman_rectangle(self):
+        bmp = Bitmap.new(200, 280, BG)
+        for y in range(40, 230):
+            for x in range(65, 135):
+                bmp.set(x, y, (60, 60, 60, 255))
+        self.assertEqual(pose.HeuristicPoseEstimator().estimate_split(bmp), [])
+
+    def test_estimate_split_top_k_caps_results_across_components(self):
+        person, _ = evaluate.draw_case(100, 240)
+        bmp = Bitmap.new(350, 280, BG)
+        for x in (10, 50, 220):
+            _stamp(bmp, person, x, 20)
+        est = pose.HeuristicPoseEstimator()
+        self.assertEqual(len(est.estimate_split(bmp)), 3)
+        self.assertEqual(len(est.estimate_split(bmp, top_k=2)), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

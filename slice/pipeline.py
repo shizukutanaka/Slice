@@ -88,30 +88,34 @@ def analyze(raw: bytes, *, model: Optional[str] = None,
 
 def analyze_multi(raw: bytes, *, model: Optional[str] = None,
                   source_name: str = "", top_k: int = 4,
-                  robust: bool = False) -> List[dict]:
+                  robust: bool = False,
+                  split_touching: bool = False) -> List[dict]:
     """One Knowledge document per detected person.
 
     Each document is a complete v1 analysis of its own skeleton and
     carries a `people` block recording which foreground component it
-    came from — same-image siblings, not a merged figure. The list
-    may be shorter than the visible crowd (touching silhouettes are
-    one component) or empty (nothing detected): the pixels decide.
+    came from — same-image siblings, not a merged figure. Opt in to
+    `split_touching` to try separating touching silhouettes; any
+    resulting partition is marked as an estimate in the `people`
+    block. Neither mode guarantees a detection for every person.
     """
     bmp = bitmap.decode(raw)
     estimator = ROBUST_ESTIMATOR if robust else ESTIMATOR
-    skels = estimator.estimate_multi(bmp, model or "adult",
-                                     top_k=top_k)
+    estimate = (estimator.estimate_split if split_touching
+                else estimator.estimate_multi)
+    skels = estimate(bmp, model or "adult", top_k=top_k)
     sha = knowledge.sha256(raw)
     docs = [_build_doc(s, bmp, sha, source_name, model,
                        estimator=estimator, robust=robust)
             for s in skels]
     for i, (s, d) in enumerate(zip(skels, docs)):
         d["people"] = {"index": i, "count": len(docs),
-                       # components offered for skeletonization — may
+                       # regions offered for skeletonization — may
                        # exceed `count` when some yield no skeleton
                        "components": s.component_count or len(docs),
-                       "state": "observed",
-                       "basis": "foreground component"}
+                       "state": "estimated" if s.split_region else OBSERVED,
+                       "basis": ("watershed split region" if s.split_region
+                                 else "foreground component")}
     return docs
 
 

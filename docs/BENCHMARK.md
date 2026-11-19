@@ -39,14 +39,28 @@ Absolute times are this machine's; ratios and rates are the portable signal. See
 
 ## Not measured
 
-- Real photographs: no redistributable photo corpus is bundled with this repository, so no number here describes performance on real photos. `photo_like` is a synthetic stand-in (same flat figure, hostile backgrounds).
+- The tables above are synthetic only. `photo_like` is a synthetic stand-in (same flat figure, hostile backgrounds).
 - JPEG / WebP input (requires Pillow), the REST server (`slice serve`) latency, multi-person images, and video.
 - Any form of identity: Slice reports anatomical inference, never who a person is, and this suite measures nothing identity-related by design.
 
+## Benchmark the bundled annotated photographs
+
+Two [hand-annotated NASA photographs](../benchmarks/photos/README.md)
+exercise the real-image benchmark without Pillow or network access:
+
+```sh
+python3 benchmarks/run_benchmark.py --photo-manifest benchmarks/photos/manifest.json
+```
+
+They are reported in the separate `photo` category. Success means the
+pipeline returned a valid document, not that it detected the person; check
+detection, error and OKS separately. These two spacesuit photographs test
+specific scenes, not general accuracy on real photographs. The default
+benchmark remains synthetic.
+
 ## Benchmark your own annotated photographs
 
-The published numbers above use only the built-in fixtures. To append a
-separate `photo` category to your local report, supply a manifest of images
+To score a different set in the `photo` category, supply a manifest of images
 you have permission to use:
 
 ```sh

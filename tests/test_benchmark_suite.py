@@ -100,6 +100,21 @@ class BenchmarkSuiteTest(unittest.TestCase):
         self.assertIn("figure.png: head must be an in-frame [x, y] pair",
                       err.getvalue())
 
+    def test_bundled_photographs_are_scored_separately(self):
+        rb = _load()
+        rb.build_cases = lambda: []
+        report = rb.run(repeats=1, photo_manifest=(
+            ROOT / "benchmarks" / "photos" / "manifest.json"))
+
+        self.assertEqual(set(report["summary"]), {"photo"})
+        self.assertEqual(report["summary"]["photo"]["cases"], 2)
+        self.assertEqual({case["name"] for case in report["cases"]},
+                         {"nasa-s63-01755.png", "nasa-as15-88-11866.png"})
+        for case in report["cases"]:
+            with self.subTest(case=case["name"]):
+                self.assertTrue(case["success"], case["error"])
+                self.assertIsNotNone(case["accuracy"]["detection_rate"])
+
 
 class LargeCaseArmRegressionTest(unittest.TestCase):
     """Regression: large figures used to lose both elbows and both

@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL, select_model
 from .bitmap import Bitmap
-from .skeleton import (OBSERVED, Joint, Skeleton,
+from .skeleton import (OBSERVED, PREDICTED, Joint, Skeleton,
                        NECK_CLAVICLE_BASIS)
 
 
@@ -297,17 +297,15 @@ def _fused_arm_joints(comp, w, sign, cx_spine, scan_top, crotch,
                        for y in range(band_top, band_bottom + 1)])
     wrist_x = edge_med - sign * ledge / 2
     wrist = (wrist_x, float(band_bottom))
-    reach = ((wrist[0] - shoulder.x) ** 2
-             + (wrist[1] - shoulder.y) ** 2) ** 0.5
     frac = prior["upper_arm_ratio"] / (
         prior["upper_arm_ratio"] + prior["forearm_ratio"])
     side = "l" if sign < 0 else "r"
     elbow = (shoulder.x + (wrist[0] - shoulder.x) * frac,
              shoulder.y + (wrist[1] - shoulder.y) * frac)
     return [(f"wrist_{side}", wrist[0], wrist[1], 0.35,
-             "torso excess width (fused arm inferred)"),
+             "torso excess width (fused arm inferred)", PREDICTED),
             (f"elbow_{side}", elbow[0], elbow[1], 0.3,
-             "fused arm mid-extent (inferred)")]
+             "fused arm mid-extent (inferred)", PREDICTED)]
 
 
 def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
@@ -318,8 +316,8 @@ def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
     still found.
 
     `shoulders` maps "l"/"r" to the already-placed shoulder joint (or
-    None). Returns raw (name, x, y, confidence, basis) tuples in
-    placement order so the caller applies its rounding/clamping."""
+    None). Returns raw (name, x, y, confidence, basis, state)
+    tuples in placement order for the caller to round and clamp."""
     # Feet anchor the legs: a run below the torso is leg when its
     # x-band still reaches the bottom row — x-overlap alone wrongly
     # claims dangling arms beside wide feet (crouch/seated) as leg.
@@ -359,9 +357,9 @@ def _estimate_arm_ends(comp, w, top, head_h, crotch, bottom,
                                  - reach * frac))
             conf = min(0.85, 0.4 + len(cand) / (body_h * 8))
             joints.append((f"wrist_{side}", far[0], far[1], conf,
-                           "arm blob extremity"))
+                           "arm blob extremity", OBSERVED))
             joints.append((f"elbow_{side}", elbow[0], elbow[1],
-                           conf - 0.05, "arm blob mid-extent"))
+                           conf - 0.05, "arm blob mid-extent", OBSERVED))
     return joints
 
 
@@ -1031,9 +1029,9 @@ class HeuristicPoseEstimator(PoseEstimator):
         head_h = max(4.0, body_h * prior["head_ratio"])
         sk.centroid = self._centroid(comp, w, h)
 
-        def put(name, x, y, conf, basis):
+        def put(name, x, y, conf, basis, state=OBSERVED):
             sk.set(Joint(name, round(x, 2), round(y, 2),
-                         round(min(max(conf, 0.0), 1.0), 3), OBSERVED, basis))
+                         round(min(max(conf, 0.0), 1.0), 3), state, basis))
 
         # Head: centroid of the top head_h band.
         head_cx, hn, hx1, head_joints = _estimate_head(
@@ -1074,10 +1072,10 @@ class HeuristicPoseEstimator(PoseEstimator):
         # Arms: silhouette protrusions beside the torso column.
         shoulders = {"l": sk.get("shoulder_l"),
                      "r": sk.get("shoulder_r")}
-        for name, x, y, conf, basis in _estimate_arm_ends(
+        for name, x, y, conf, basis, state in _estimate_arm_ends(
                 comp, w, top, head_h, crotch, bottom, torso_run,
                 cx_spine, shoulders, horizontal_arms, prior, body_h):
-            put(name, x, y, conf, basis)
+            put(name, x, y, conf, basis, state)
 
         # Orientation + body model selection.
         # Symmetry via self._symmetry: subclasses overriding the

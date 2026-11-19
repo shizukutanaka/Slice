@@ -9,6 +9,9 @@ import importlib.util
 import unittest
 from pathlib import Path
 
+from slice import bitmap, evaluate, knowledge, pipeline
+from slice.skeleton import OBSERVED, PREDICTED
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -61,12 +64,30 @@ class LargeCaseArmRegressionTest(unittest.TestCase):
         summary = report["summary"]["large"]
         self.assertEqual(summary["success_rate"], 1.0)
         self.assertEqual(summary["detection_rate"], 1.0)
+        self.assertEqual(summary["observed_rate"], 0.9445)
         by_name = {c["name"]: c for c in report["cases"]}
-        for name in ("stand-flat-640x960", "stand-flat-1200x1800"):
+        for name, observed in (("stand-flat-640x960", 19),
+                               ("stand-flat-1200x1800", 17)):
             case = by_name[name]
             self.assertEqual(case["accuracy"]["detection_rate"], 1.0)
-            self.assertEqual(case["observed_joints"], 19)
+            self.assertEqual(case["observed_joints"], observed)
             self.assertNotIn("no_observed_wrists", case["warnings"])
+
+    def test_fused_arm_is_preserved_as_prediction_in_knowledge(self):
+        bmp, _ = evaluate.draw_case(1200, 1800)
+        doc = pipeline.strip_runtime(pipeline.analyze(bitmap.encode_png(bmp)))
+        joints = doc["skeleton"]["joints"]
+        prediction = doc["prediction"]
+        for part in ("elbow", "wrist"):
+            left, right = f"{part}_l", f"{part}_r"
+            self.assertEqual(joints[left]["state"], PREDICTED)
+            self.assertIn("inferred", joints[left]["basis"])
+            self.assertIn(left, prediction["predicted"])
+            self.assertNotIn(left, prediction["observed"])
+            self.assertNotIn(left, prediction["filled"])
+            self.assertEqual(joints[right]["state"], OBSERVED)
+            self.assertIn(right, prediction["observed"])
+        self.assertEqual(knowledge.validate(doc), [])
 
 
 if __name__ == "__main__":

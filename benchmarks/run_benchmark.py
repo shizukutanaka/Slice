@@ -388,8 +388,9 @@ def to_markdown(report, generated):
         "leaves a ledge of a few columns on that side from the "
         "shoulder down to the wrist, asymmetric against the "
         "opposite side's chest half-width. Those two joints are "
-        "reported at low confidence with an \"inferred\" basis — "
-        "an inference from silhouette width, not an observation; "
+        "reported as `predicted` at low confidence with an "
+        "\"inferred\" basis. They count toward detection and positional "
+        "accuracy, but not toward the observed rate; "
         "a figure whose arms fuse symmetrically on both sides "
         "shows no such asymmetry and still yields nothing.",
         "- Ground truth for `models` (child / deformed) is not "

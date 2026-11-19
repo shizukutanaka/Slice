@@ -70,17 +70,26 @@ Properties に `state`、`confidence`、`basis` が残る。
 Blender は glTF の Y-up を Z-up に変換するため、平面は Blender では
 XZ 平面になる。メッシュ、Armature、アニメーションは含まない。
 
+デモの `figure.bvh` は **File → Import → Motion Capture (.bvh)** から、
+**Target: Armature / Forward: Z Forward / Up: -Y Up** で読み込める。
+画像の Y-down 座標が Z-up に変換され、XZ 平面上の Armature と
+1 フレームのアクションになる。既定の Y Up では上下が逆になる。
+終端のオフセットは長さ 0 のため Blender は警告するが、終端の関節位置は
+保持される。BVH には推定の由来を格納できないため、別ファイルの
+`figure.bvh.json` を参照する。
+
 Blender 4.5.4 LTS で動作確認済み。インポートを再検証するには、
 Blender 実行ファイルを `PATH` に置くか `BLENDER_BIN` で指定し、
 リポジトリのルートで次を実行する。
 
 ```bash
-python3 -m unittest tests.test_demo3d.TestDemo3d.test_blender_import -v
+python3 -m unittest tests.test_demo3d -v
 ```
 
-実際の glTF インポーターをヘッドレスで起動し、全関節の階層・変換後の
-座標・推定の由来を照合する。Blender が見つからない場合はこのテストだけ
-スキップされる。Unity と Blender の BVH インポートは未検証。
+実際の glTF / BVH インポーターをヘッドレスで起動し、全関節の階層と
+変換後の座標に加え、glTF の推定の由来と BVH のフレーム範囲を照合する。
+Blender が見つからない場合はインポートテスト 2 件をスキップする。
+Unity での読み込みは未検証。
 
 ## SMPL化に必要な残作業
 

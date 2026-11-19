@@ -104,6 +104,68 @@ Path({str(report)!r}).write_text(json.dumps(objects), encoding="utf-8")
                                                  (x, -z, y)):
                     self.assertAlmostEqual(actual, offset + delta, places=4)
 
+    @unittest.skipUnless(_BLENDER, "Blender not found; set BLENDER_BIN")
+    def test_blender_bvh_import(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = demo.run(directory)
+            report = Path(directory) / "blender-bvh-report.json"
+            code = f"""\
+import bpy
+import json
+from pathlib import Path
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+result = bpy.ops.import_anim.bvh(filepath={out["bvh"]!r},
+                                target="ARMATURE", frame_start=1,
+                                axis_forward="Z", axis_up="-Y")
+if result != {{"FINISHED"}}:
+    raise RuntimeError(f"BVH import returned {{result}}")
+bpy.context.scene.frame_set(1)
+obj = bpy.context.object
+data = {{
+    "type": obj.type,
+    "frame_range": list(obj.animation_data.action.frame_range),
+    "joints": {{bone.name: {{
+        "parent": bone.parent.name if bone.parent else None,
+        "location": list(obj.matrix_world @ bone.head),
+    }} for bone in obj.pose.bones}},
+}}
+Path({str(report)!r}).write_text(json.dumps(data), encoding="utf-8")
+"""
+            result = subprocess.run(
+                [_BLENDER, "--background", "--factory-startup",
+                 "--python-exit-code", "1", "--python-expr", code],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertTrue(report.is_file(), result.stdout)
+            imported = json.loads(report.read_text(encoding="utf-8"))
+            nodes = json.loads(Path(out["gltf"]).read_text(
+                encoding="utf-8"))["nodes"]
+
+        self.assertEqual(imported["type"], "ARMATURE")
+        self.assertEqual(imported["frame_range"], [1, 1])
+        joints = imported["joints"]
+        names = {"pelvis": "SliceFigure"}
+        self.assertEqual(set(joints), {names.get(n["name"], n["name"])
+                                      for n in nodes})
+        parents = {i: p for p, n in enumerate(nodes)
+                   for i in n.get("children", [])}
+        expected = {}
+        for i, node in enumerate(nodes):
+            name = names.get(node["name"], node["name"])
+            parent = parents.get(i)
+            origin = expected[parent] if parent is not None else (0, 0, 0)
+            x, y, z = node["translation"]
+            expected[i] = tuple(a + b for a, b in zip(origin, (x, -z, y)))
+            with self.subTest(joint=name):
+                parent_name = nodes[parent]["name"] if parent is not None else None
+                self.assertEqual(joints[name]["parent"],
+                                 names.get(parent_name, parent_name))
+                for actual, target in zip(joints[name]["location"], expected[i]):
+                    # BVH rounds each offset to two decimals, before accumulation.
+                    self.assertAlmostEqual(actual, target, delta=0.04)
+
 
 if __name__ == "__main__":
     unittest.main()

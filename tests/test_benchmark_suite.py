@@ -9,7 +9,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -114,6 +114,35 @@ class BenchmarkSuiteTest(unittest.TestCase):
             with self.subTest(case=case["name"]):
                 self.assertTrue(case["success"], case["error"])
                 self.assertIsNotNone(case["accuracy"]["detection_rate"])
+
+    def test_robust_profile_drives_accuracy_and_pipeline_reports(self):
+        rb = _load()
+        bmp, truth = evaluate.draw_case(skin=(175, 238, 232, 255),
+                                        bg=(220, 220, 220, 255))
+        rb.build_cases = lambda: [
+            {"category": "photo_like", "name": "low-contrast", "bitmap": bmp,
+             "truth": truth, "kind": "accuracy", "model": "adult"}
+        ]
+        default = rb.run(repeats=1)
+        self.assertEqual(default["profile"], "default")
+        self.assertEqual(default["cases"][0]["observed_joints"], 0)
+        self.assertEqual(default["cases"][0]["accuracy"]["detection_rate"], 0)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            json_path, md_path = root / "out.json", root / "out.md"
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                rc = rb.main(["--robust", "--repeats", "1",
+                              "--json", str(json_path), "--md", str(md_path)])
+            report = json.loads(json_path.read_text(encoding="utf-8"))
+            self.assertIn("profile=robust", md_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(rc, 0)
+        self.assertIn("profile=robust", stdout.getvalue())
+        self.assertEqual(report["profile"], "robust")
+        self.assertGreater(report["cases"][0]["observed_joints"], 0)
+        self.assertGreater(report["cases"][0]["accuracy"]["detection_rate"], 0)
 
 
 class LargeCaseArmRegressionTest(unittest.TestCase):

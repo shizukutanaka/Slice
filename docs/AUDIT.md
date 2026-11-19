@@ -156,7 +156,9 @@
    範囲外関節を out_of_frame として報告（occlusionモジュールを統合）
 3. **複雑背景の耐性**: 背景推定を端点サンプリング→複数点投票+透過画素除外に
 4. **暗色cutout修正**: `mask.cutout` が元RGBを保持するよう修正（本PRで実施）
-5. **失敗診断**: 空Skeleton時に理由コード（no_foreground/too_small/low_contrast）を返す
+5. **失敗診断**: 空Skeleton時に Knowledge JSON の
+   [`analysis.detection_failure`](KNOWLEDGE_JSON.md#v11-analysis-拡張スロット)
+   で推定時の拒否理由を返す（色差不足と空画像は区別しない）
 
 ### P1 — 知識の統合と信頼性
 6. **CI導入**: GitHub Actionsで `unittest discover` をPRごとに実行

@@ -60,6 +60,11 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
                                   skel.image_height),
         "consistency": {"issues": consistency.audit(skel, model)},
     }
+    if skel.detection_failure is not None:
+        analysis["detection_failure"] = {
+            "reason": skel.detection_failure,
+            "basis": "upright silhouette gate; no orientation retry accepted",
+        }
     # every layer must be a dict (knowledge.validate); omit empty ones
     doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}
     if (bmp.width, bmp.height) != (skel.image_width, skel.image_height):

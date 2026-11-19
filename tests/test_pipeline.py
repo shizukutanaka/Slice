@@ -28,6 +28,7 @@ class TestPipeline(unittest.TestCase):
         self.assertIn("elbow_l_flex", a["angles"])
         self.assertIsInstance(a["consistency"]["issues"], list)
         self.assertEqual(a["framefit"]["possibly_truncated"], [])
+        self.assertNotIn("detection_failure", a)
 
     def test_analysis_degrades_on_empty_image(self):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
@@ -37,8 +38,27 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(doc["analysis"]["framefit"]["n_edges_checked"], 0)
         self.assertEqual(doc["analysis"]["consistency"]["issues"],
                          ["no_body_extent"])
+        self.assertEqual(doc["analysis"]["detection_failure"]["reason"],
+                         "no_foreground")
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
+
+    def test_analysis_distinguishes_rejected_foreground(self):
+        for size, reason in (((3, 3), "too_small"),
+                             ((20, 20), "too_short"),
+                             ((60, 180), "insufficient_structure")):
+            with self.subTest(reason=reason):
+                bmp = bitmap.Bitmap.new(160, 300, (235, 235, 235, 255))
+                w, h = size
+                for y in range(60, 60 + h):
+                    for x in range(50, 50 + w):
+                        bmp.set(x, y, (60, 60, 60, 255))
+                out = pipeline.strip_runtime(
+                    pipeline.analyze(bitmap.encode_png(bmp)))
+                self.assertEqual(out["skeleton"]["joints"], {})
+                self.assertEqual(
+                    out["analysis"]["detection_failure"]["reason"], reason)
+                self.assertEqual(knowledge.validate(out), [])
 
     def test_analysis_reports_possible_bottom_crop(self):
         bmp = crop.crop(synthetic_person(), (0, 0, 160, 235))

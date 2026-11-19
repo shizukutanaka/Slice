@@ -61,6 +61,7 @@ class Skeleton:
     # estimator so the doc can disclose it per call, thread-safely
     mask_threshold: Optional[tuple] = None
     split_region: bool = False  # runtime only: watershed partition
+    detection_failure: Optional[str] = None  # runtime only: rejected silhouette
 
     def set(self, joint: Joint) -> None:
         self.joints[joint.name] = joint

@@ -842,7 +842,7 @@ class HeuristicPoseEstimator(PoseEstimator):
         base_headw = _head_band_width(comp, w, h)
         best, best_deg = sk, 0
         best_key = None
-        gate_rot = bool(getattr(sk, "structure_rejected", False))
+        gate_rot = sk.detection_failure == "insufficient_structure"
         for deg, comp_r, rw, rh in _oriented_masks(comp, w, h):
             cand = self._estimate_component(small, comp_r, size,
                                             rw, rh, model,
@@ -998,15 +998,18 @@ class HeuristicPoseEstimator(PoseEstimator):
                             ) -> Skeleton:
         sk = Skeleton(image_width=w, image_height=h)
         if size < w * h * 0.005:
-            return sk  # no person-sized foreground
+            sk.detection_failure = "too_small" if size else "no_foreground"
+            return sk
         rows = self._profile(comp, w, h)
         bbox = self._bbox(rows, w, h)
         if not bbox:
+            sk.detection_failure = "no_foreground"
             return sk
         left, top, right, bottom = bbox
         body_h = bottom - top + 1
         body_w = right - left + 1
         if body_h < 24:
+            sk.detection_failure = "too_short"
             return sk
 
         # A person silhouette narrows somewhere — the neck, the
@@ -1028,7 +1031,7 @@ class HeuristicPoseEstimator(PoseEstimator):
                 # _estimate_oriented can gate its rotated candidates
                 # too: rotating a judged-structureless blob adds no
                 # anatomical evidence.
-                sk.structure_rejected = True
+                sk.detection_failure = "insufficient_structure"
                 return sk
 
         applied_model = model if model in BODY_MODELS else DEFAULT_MODEL

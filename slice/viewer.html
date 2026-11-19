@@ -24,8 +24,15 @@
     color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-size: 13px; }
   button:disabled { background: #333; }
   .leg { margin-top: 10px; font-size: 12px; color: #999; }
-  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  .sw { display: inline-block; position: relative; width: 24px; height: 10px;
     margin-right: 6px; vertical-align: -1px; }
+  .sw::before { content: ''; position: absolute; inset: 4px 6px auto 0;
+    border-top: 2px solid currentColor; }
+  .sw::after { content: ''; position: absolute; top: 1px; right: 0;
+    width: 8px; height: 8px; box-sizing: border-box; border-radius: 50%;
+    background: currentColor; }
+  .sw.predicted::before { border-top-style: dashed; }
+  .sw.predicted::after { background: transparent; border: 2px solid currentColor; }
   #info { font-size: 12px; color: #aaa; margin-top: 4px; min-height: 3.4em; }
   #warnings .warn { font-size: 12px; color: #ffb84d; }
   label { display: block; margin-top: 10px; font-size: 12px; color: #aaa; }
@@ -48,8 +55,8 @@
   <label><input type="checkbox" id="showPred" checked> 推定関節を表示</label>
   <button id="save" disabled>Knowledgeとして保存</button>
   <div class="leg">
-    <span class="sw" style="background:#1e78ff"></span>Observed（観測）<br>
-    <span class="sw" style="background:#ff9600"></span>Predicted（推定）
+    <span class="sw" style="color:#1e78ff" aria-hidden="true"></span>Observed（観測）<br>
+    <span class="sw predicted" style="color:#ff9600" aria-hidden="true"></span>Predicted（推定）
   </div>
 </div>
 <input id="file" type="file" accept="image/*" hidden>
@@ -96,17 +103,26 @@ function draw() {
   ctx.lineWidth = Math.max(2, img.width / 250);
   for (const [a, b] of doc.skeleton.bones) {
     const ja = J[a], jb = J[b]; if (!ja || !jb) continue;
-    if (!pred && (ja.state !== 'observed' || jb.state !== 'observed')) continue;
-    ctx.strokeStyle = (ja.state === 'observed' && jb.state === 'observed')
-      ? '#1e78ff' : '#ff9600';
+    const observed = ja.state === 'observed' && jb.state === 'observed';
+    if (!pred && !observed) continue;
+    ctx.strokeStyle = observed ? '#1e78ff' : '#ff9600';
+    ctx.setLineDash(observed ? [] : [3 * ctx.lineWidth, 2 * ctx.lineWidth]);
     ctx.beginPath(); ctx.moveTo(ja.x*kx, ja.y*ky); ctx.lineTo(jb.x*kx, jb.y*ky);
     ctx.stroke();
   }
-  for (const [n, j] of Object.entries(J)) {
-    if (!pred && j.state !== 'observed') continue;
-    ctx.fillStyle = j.state === 'observed' ? '#1e78ff' : '#ff9600';
-    ctx.beginPath(); ctx.arc(j.x*kx, j.y*ky, Math.max(3, img.width/180),
-      0, 7); ctx.fill();
+  ctx.setLineDash([]);
+  const radius = Math.max(3, img.width/180);
+  for (const j of Object.values(J)) {
+    const observed = j.state === 'observed';
+    if (!pred && !observed) continue;
+    ctx.beginPath(); ctx.arc(j.x*kx, j.y*ky, radius, 0, 2*Math.PI);
+    if (observed) {
+      ctx.fillStyle = '#1e78ff';
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = '#ff9600';
+      ctx.stroke();
+    }
   }
 }
 

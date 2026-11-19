@@ -76,6 +76,10 @@ The Knowledge JSON format is a fixed spec — fields, compatibility
 promise and validation rules: `docs/KNOWLEDGE_JSON.md`.
 Check any document with `python3 -m slice validate <file.json>`.
 
+In the web viewer, observed bones and joints use solid lines and filled
+markers; estimated ones use dashed lines and hollow markers. A bone is
+observed only when both endpoints are observed.
+
 `slice track` expects same-size frames from a fixed camera and emits JSON
 with one assignment per input (including empty frames) and a summary.
 `--max-jump-torso` controls how far an anchor can move between assignments,

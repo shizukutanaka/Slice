@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from . import (__version__, angles, balance, bitmap, classify,
-               consistency, dynamics, framepos, gesture, knowledge,
+               consistency, dynamics, framefit, framepos, gesture, knowledge,
                occlusion, pose, predict, ratio, spine, style, symmetry)
 from .anatomy import BODY_MODELS
 from .skeleton import OBSERVED
@@ -55,6 +55,7 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         "gesture": gesture.summarize(skel),
         "dynamics": dynamics.score(skel),
         "occlusion": occlusion.audit(skel),
+        "framefit": framefit.assess(skel),
         "frame": framepos.analyze(skel, skel.image_width,
                                   skel.image_height),
         "consistency": {"issues": consistency.audit(skel, model)},

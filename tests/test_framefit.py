@@ -2,7 +2,7 @@
 import unittest
 
 from slice import framefit
-from slice.skeleton import Joint, OBSERVED, Skeleton
+from slice.skeleton import Joint, OBSERVED, PREDICTED, Skeleton
 
 
 def _skel(joints, w=64, h=96):
@@ -44,6 +44,14 @@ class TestAssess(unittest.TestCase):
         r = framefit.assess(Skeleton(64, 96, {}))
         self.assertFalse(r["partial"])
         self.assertEqual(r["n_edges_checked"], 0)
+
+    def test_predictions_do_not_supply_or_hide_edge_evidence(self):
+        skel = _skel({"head": (32, 10), "foot_l": (30, 94)})
+        skel.set(Joint("wrist_r", 63, 50, 0.2, PREDICTED))
+        skel.set(Joint("knee_r", 34, 95, 0.2, PREDICTED))
+        result = framefit.assess(skel)
+        self.assertEqual(result["possibly_truncated"], ["bottom"])
+        self.assertEqual(result["edges"]["bottom"]["joint"], "foot_l")
 
 
 if __name__ == "__main__":

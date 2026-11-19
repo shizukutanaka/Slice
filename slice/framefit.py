@@ -11,9 +11,12 @@ exactly on the bottom edge can be a perfectly framed full-body shot.
 Each edge gets a separate check so callers can see which direction
 looks truncated.
 
-The frame here is the *skeleton* frame (downscaled coordinates), not
-the raw image. All assessments are labeled ``"estimated"``.
+Only observed joints provide edge evidence. The frame here is the
+*skeleton* frame (downscaled coordinates), not the raw image. All
+assessments are labeled ``"estimated"``.
 """
+
+from .skeleton import OBSERVED
 
 _JOINTS_AT = {
     "top": ("head", "neck"),
@@ -25,10 +28,12 @@ _MARGINS = {"top": 4, "bottom": 4, "left": 4, "right": 4}
 
 
 def _extremes(skel):
-    """Outermost placed joint per side."""
+    """Outermost observed joint per side."""
     w, h = skel.image_width, skel.image_height
     best = {"top": None, "bottom": None, "left": None, "right": None}
     for name, j in skel.joints.items():
+        if j.state != OBSERVED:
+            continue
         x, y = j.x, j.y
         if best["top"] is None or y < best["top"][1]:
             best["top"] = (name, y)
@@ -82,5 +87,5 @@ def assess(skel):
         "assumption": "body extremities extend past the outermost joint",
         "state": "estimated",
         "note": "edge-flush joints are hints, not proof of truncation",
-        "basis": "outermost joint distance to each frame edge",
+        "basis": "outermost observed joint distance to each frame edge",
     }

@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import bitmap, knowledge, pipeline
+from slice import bitmap, crop, knowledge, pipeline
 
 
 class TestPipeline(unittest.TestCase):
@@ -27,16 +27,36 @@ class TestPipeline(unittest.TestCase):
         self.assertIsNotNone(a["frame"])
         self.assertIn("elbow_l_flex", a["angles"])
         self.assertIsInstance(a["consistency"]["issues"], list)
+        self.assertEqual(a["framefit"]["possibly_truncated"], [])
 
     def test_analysis_degrades_on_empty_image(self):
         bmp = bitmap.Bitmap.new(60, 60, (255, 255, 255, 255))
         doc = pipeline.analyze(bitmap.encode_png(bmp))
         self.assertEqual(doc["analysis"]["gesture"]["count"], 0)
         self.assertNotIn("frame", doc["analysis"])
+        self.assertEqual(doc["analysis"]["framefit"]["n_edges_checked"], 0)
         self.assertEqual(doc["analysis"]["consistency"]["issues"],
                          ["no_body_extent"])
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
+
+    def test_analysis_reports_possible_bottom_crop(self):
+        bmp = crop.crop(synthetic_person(), (0, 0, 160, 235))
+        out = pipeline.strip_runtime(pipeline.analyze(bitmap.encode_png(bmp)))
+        fit = out["analysis"]["framefit"]
+        self.assertEqual(fit["possibly_truncated"], ["bottom"])
+        self.assertTrue(fit["partial"])
+        self.assertEqual(fit["state"], "estimated")
+        self.assertEqual(knowledge.validate(out), [])
+
+    def test_analysis_flags_out_of_frame_prediction(self):
+        bmp = crop.crop(synthetic_person(), (35, 0, 65, 300))
+        doc = pipeline.analyze(bitmap.encode_png(bmp))
+        joint = doc["skeleton"]["joints"]["wrist_r"]
+        self.assertGreaterEqual(joint["x"], doc["skeleton"]["frame"]["width"])
+        self.assertEqual(joint["state"], "predicted")
+        self.assertEqual(doc["analysis"]["occlusion"]["reasons"]["wrist_r"],
+                         "truncated")
 
     def test_warnings_for_sparse_evidence(self):
         # an image with almost no figure should warn

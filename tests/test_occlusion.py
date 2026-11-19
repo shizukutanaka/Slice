@@ -41,6 +41,19 @@ class TestOcclusion(unittest.TestCase):
         self.assertEqual(sum(r["counts"].values()), len(self.skel.joints))
         self.assertIn("observed", r["counts"])
 
+    def test_predicted_joint_uses_skeleton_frame_by_default(self):
+        j = self.skel.joints["wrist_r"]
+        j.state = "predicted"
+        w, h = self.skel.image_width, self.skel.image_height
+        for (x, y), reason in (((w - 1, h - 1), "unobserved"),
+                               ((w, h - 1), "truncated"),
+                               ((w - 1, h), "truncated")):
+            with self.subTest(x=x, y=y):
+                j.x, j.y = x, y
+                r = occlusion.reason(self.skel, j.name)
+                self.assertEqual(r["reason"], reason)
+                self.assertEqual(r["in_frame"], reason == "unobserved")
+
 
 if __name__ == "__main__":
     unittest.main()

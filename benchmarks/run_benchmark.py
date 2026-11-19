@@ -8,12 +8,14 @@ often does the full pipeline (PNG bytes -> Knowledge JSON) succeed,
 how accurate is the skeleton against known ground truth, and how
 long does one image take?
 
-Every fixture is generated procedurally in this file (seeded, no
-downloads, no external images), so anyone can reproduce the numbers:
+The default fixtures are generated procedurally (seeded, no downloads),
+so anyone can reproduce the numbers. To score annotated photographs
+separately, supply a local JSON manifest (see docs/BENCHMARK.md):
 
     python3 benchmarks/run_benchmark.py                 # summary
     python3 benchmarks/run_benchmark.py --md out.md     # full report
     python3 benchmarks/run_benchmark.py --json out.json # raw results
+    python3 benchmarks/run_benchmark.py --photo-manifest photos.json
 
 Definitions
 -----------
@@ -23,23 +25,22 @@ Definitions
 * accuracy (categories with ground truth): detection / observed
   rates and mean positional error from `slice.evaluate.evaluate`,
   plus mean OKS from `slice.oks` — the same metrics the regression
-  gate uses. Ground truth comes from `slice.evaluate.draw_case`,
-  which records the exact joint coordinates it draws.
+  gate uses. Synthetic truth comes from `slice.evaluate.draw_case`,
+  which records the exact joint coordinates it draws; photo truth
+  comes from the manifest.
 * negative success: for images with no person, success means the
   pipeline does NOT fabricate an observed skeleton
   (`pipeline.observed_count == 0`). Producing a document full of
   warnings is the honest outcome; inventing joints is failure.
-* latency: wall time of one `pipeline.analyze` call on PNG bytes
+* latency: wall time of one `pipeline.analyze` call on image bytes
   (decode included), median of `repeats` runs after one warm-up.
   Fixture generation and PNG encoding are not timed.
 * positional error is measured in the estimator's working frame.
   For inputs taller than 512 px the estimator downscales, so
   large-category errors are working-frame pixels, not source pixels.
 
-Categories marked "not measured" in the report are stated as such;
-nothing is extrapolated to real photographs — the photo-like
-category is synthetic (flat figure repainted with gradient / noise /
-shadow backgrounds), a stand-in, not a photo corpus.
+The photo-like category remains synthetic (flat figure repainted with
+gradient / noise / shadow backgrounds), separate from any photographs.
 """
 
 from __future__ import annotations
@@ -53,11 +54,13 @@ import random
 import statistics
 import sys
 import time
+from itertools import chain
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from slice import __version__, bitmap, evaluate, knowledge, oks, pipeline
+from slice.landmarks import JOINTS
 from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Joint, OBSERVED, Skeleton
 
@@ -185,6 +188,33 @@ def build_cases():
     return cases
 
 
+def _photo_cases(manifest):
+    manifest = Path(manifest)
+    entries = json.loads(manifest.read_text(encoding="utf-8"))
+    if not isinstance(entries, dict) or not entries:
+        raise ValueError("photo manifest must map image paths to joint annotations")
+
+    for image, truth in entries.items():
+        if not image or not isinstance(truth, dict) or not truth:
+            raise ValueError(f"{image!r}: expected an image path and non-empty joints")
+        path = manifest.parent / image
+        try:
+            raw = path.read_bytes()
+            bmp = bitmap.decode(raw)
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"{image}: {exc}") from exc
+        for joint, point in truth.items():
+            if joint not in JOINTS:
+                raise ValueError(f"{image}: unknown joint {joint!r}")
+            if (not isinstance(point, list) or len(point) != 2
+                    or any(type(v) not in (int, float) for v in point)
+                    or not (0 <= point[0] < bmp.width
+                            and 0 <= point[1] < bmp.height)):
+                raise ValueError(f"{image}: {joint} must be an in-frame [x, y] pair")
+        yield {"category": "photo", "name": path.name, "bitmap": bmp,
+               "raw": raw, "truth": truth, "model": "adult", "kind": "accuracy"}
+
+
 # ------------------------------------------------------------------
 # measurement
 # ------------------------------------------------------------------
@@ -197,7 +227,7 @@ def _truth_skeleton(truth, w, h):
 
 def measure_case(case, repeats):
     bmp = case["bitmap"]
-    raw = bitmap.encode_png(bmp)
+    raw = case["raw"] if "raw" in case else bitmap.encode_png(bmp)
     model = case["model"]
 
     # accuracy at estimator level (same metrics as the gate).
@@ -219,7 +249,7 @@ def measure_case(case, repeats):
         accuracy = {
             "detection_rate": m["detection_rate"],
             "observed_rate": m["observed_rate"],
-            "mean_error_px": m["mean_error_px"],
+            "mean_error_px": m["mean_error_px"] if m["joints_found"] else None,
             "mean_oks": round(v, 4) if v is not None else None,
         }
 
@@ -269,8 +299,10 @@ def measure_case(case, repeats):
     }
 
 
-def run(repeats=DEFAULT_REPEATS):
+def run(repeats=DEFAULT_REPEATS, *, photo_manifest=None):
     cases = build_cases()
+    if photo_manifest is not None:
+        cases = chain(cases, _photo_cases(photo_manifest))
     results = [measure_case(c, repeats) for c in cases]
     categories = {}
     for r in results:
@@ -278,6 +310,7 @@ def run(repeats=DEFAULT_REPEATS):
     summary = {}
     for cat, rs in categories.items():
         acc = [r["accuracy"] for r in rs if r["accuracy"]]
+        errors = [a["mean_error_px"] for a in acc if a["mean_error_px"] is not None]
         summary[cat] = {
             "cases": len(rs),
             "success_rate": round(
@@ -290,8 +323,7 @@ def run(repeats=DEFAULT_REPEATS):
                 a["detection_rate"] for a in acc), 4) if acc else None,
             "observed_rate": round(statistics.mean(
                 a["observed_rate"] for a in acc), 4) if acc else None,
-            "mean_error_px": round(statistics.mean(
-                a["mean_error_px"] for a in acc), 2) if acc else None,
+            "mean_error_px": round(statistics.mean(errors), 2) if errors else None,
             "mean_oks": round(statistics.mean(
                 a["mean_oks"] for a in acc if a["mean_oks"] is not None
             ), 4) if any(a["mean_oks"] is not None for a in acc) else None,
@@ -314,6 +346,7 @@ def run(repeats=DEFAULT_REPEATS):
 CATEGORY_LABELS = {
     "clean": "Clean flat-background figures (illustration-like)",
     "photo_like": "Photo-like stand-ins (synthetic: gradient / noise / shadow backgrounds)",
+    "photo": "Real photographs (local annotations)",
     "occluded": "Partial body (lower-right quadrant erased)",
     "models": "Body-model variants (child / deformed) on the clean figure",
     "negative": "No person in the image",
@@ -397,15 +430,23 @@ def to_markdown(report, generated):
         "scored: the fixture is drawn with adult proportions, so "
         "positional accuracy against it would not measure those "
         "models. Success, latency and observed-joint counts only.",
+    ]
+    if "photo" in report["summary"]:
+        lines.append(
+            "- Photo accuracy covers only annotated joints in the supplied "
+            "images; positional error excludes undetected joints and is "
+            "unreported when there are no matches.")
+    lines += [
         "",
         "## Not measured",
         "",
-        "- Real photographs: no redistributable photo corpus is "
-        "bundled with this repository, so no number here describes "
-        "performance on real photos. `photo_like` is a synthetic "
-        "stand-in (same flat figure, hostile backgrounds).",
-        "- JPEG / WebP input (requires Pillow), the REST server "
-        "(`slice serve`) latency, multi-person images, and video.",
+    ]
+    if "photo" not in report["summary"]:
+        lines.append(
+            "- Real photographs: no photo manifest was supplied. "
+            "`photo_like` is a synthetic stand-in.")
+    lines += [
+        "- REST server (`slice serve`) latency, multi-person images, and video.",
         "- Any form of identity: Slice reports anatomical "
         "inference, never who a person is, and this suite measures "
         "nothing identity-related by design.",
@@ -418,9 +459,14 @@ def main(argv=None):
     ap.add_argument("--repeats", type=int, default=DEFAULT_REPEATS)
     ap.add_argument("--md", help="write the full markdown report here")
     ap.add_argument("--json", help="write raw results JSON here")
+    ap.add_argument("--photo-manifest", type=Path,
+                    help="include local photographs with joint annotations")
     args = ap.parse_args(argv)
 
-    report = run(repeats=args.repeats)
+    try:
+        report = run(repeats=args.repeats, photo_manifest=args.photo_manifest)
+    except (OSError, ValueError) as exc:
+        ap.error(str(exc))
     for cat, s in report["summary"].items():
         print(f"{cat}: success={s['success_rate']:.2f} "
               f"median_ms={s['ms_median_of_medians']} "

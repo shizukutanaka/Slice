@@ -180,7 +180,8 @@
 ### P3 — Phase 3 布石
 18. **真の3D**: liftの先、SMPLパラメータ近似の研究対応表（RESEARCH.mdに追加）
 19. **temporal ID**: smooth/motion の先に「同一人物の連続」reid統合
-20. **rig→retarget→bvh の動作検証デモ**
+20. **rig→retarget→bvh の動作検証デモ**: [`examples/demo_3d.py`](../examples/demo_3d.py)
+    でリターゲット後の骨格を BVH / glTF に出力し、推定の由来も記録する
 
 ### P4 — 仕上げ
 21. **READMEのモジュール一覧**と日本語ガイド

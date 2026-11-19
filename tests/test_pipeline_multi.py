@@ -1,7 +1,7 @@
 """Tests for pipeline.analyze_multi — multi-person Knowledge docs."""
 import unittest
 
-from slice import bitmap, evaluate, knowledge, pipeline
+from slice import audit, bitmap, evaluate, knowledge, pipeline
 from slice.bitmap import Bitmap
 
 BG = (235, 235, 235, 255)
@@ -33,6 +33,7 @@ class TestAnalyzeMulti(unittest.TestCase):
             self.assertEqual(knowledge.validate(
                 pipeline.strip_runtime(d)), [])
             self.assertGreater(pipeline.observed_count(d), 10)
+            self.assertEqual(d["analysis"]["audit"], audit.audit(d))
 
     def test_single_person(self):
         bmp, _ = evaluate.draw_case()

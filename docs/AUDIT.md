@@ -165,7 +165,8 @@
 7. **スキーマ v1.1**: 新規解析文書に版を刻印し、v1 も引き続き受理する。
    関節の `state` は observed / predicted を維持し、拡張語彙は解析レイヤに置く
 8. **拡張スロット**: `analysis:` フィールドで新モジュール出力を文書に格納する標準場所
-9. **pipeline統合**: analyze 出力に coverage+audit+warnings を標準添付
+9. **pipeline統合**: 単一・複数人物の analyze 出力に `coverage`、
+   [`analysis.audit`](KNOWLEDGE_JSON.md#誠実性の監査)、`warnings` を標準添付
 10. **store索引**: `list()` を manifest キャッシュ化（O(1) read）
 11. **原子的書き込み**: `save()` を tmp+os.replace に
 12. **実画像フィクスチャ**: 実写/イラスト数枚+手動正解関節の回帰テスト

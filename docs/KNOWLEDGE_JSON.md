@@ -220,7 +220,7 @@ knee_l, knee_r, ankle_l, ankle_r, foot_l, foot_r, spine
   `assumption` 語彙（estimated / implied 等）を持ってよい。
   現行パイプラインのレイヤは `angles`, `symmetry`, `balance`,
   `spine`, `gesture`, `dynamics`, `occlusion`, `framefit`,
-  `frame`, `consistency`, `joint_basis`。一部は算出できないときに省略される。
+  `frame`, `consistency`, `joint_basis`, `audit`。一部は算出できないときに省略される。
 - `framefit` は作業座標系で観測関節と画像端の距離を調べ、
   切り取りの可能性がある辺を `possibly_truncated` に列挙する。
   `partial` は推定の手がかりであり、切り取りの確定ではない。
@@ -262,6 +262,16 @@ knee_l, knee_r, ankle_l, ankle_r, foot_l, foot_r, spine
 分類は生成時の `basis` 文字列から導出し、関節の `basis` や
 `state` は変更しない。分類は配置方法を示すもので、観測の確かさや
 推定の信頼度を表すものではない。
+
+### 誠実性の監査
+
+新規の単一・複数人物解析では、文書ごとの `analysis.audit` に
+`slice.audit.audit()` の結果を記録する。スキーマ上のエラーは
+`errors`、観測不足や根拠欠落などの指摘は `warnings` に入り、
+`verdict` は `clean`、`flagged`、`invalid` のいずれかになる。
+トップレベルの `warnings`（解析時の警告コードの配列）は変更しない。
+監査結果は生成時点の記録であり、文書を編集した後は再監査が必要。
+`clean` でも姿勢推定の正しさを保証しない。旧文書はこのレイヤなしで読める。
 
 ## 互換性の約束
 

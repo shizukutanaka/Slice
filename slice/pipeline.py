@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import (__version__, angles, balance, basis, bitmap, classify,
+from . import (__version__, angles, audit, balance, basis, bitmap, classify,
                consistency, dynamics, framefit, framepos, gesture, knowledge,
                occlusion, pose, predict, ratio, spine, style, symmetry)
 from .anatomy import BODY_MODELS
@@ -80,6 +80,7 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         # an unrecognized model name silently used the default prior in
         # both pose priors and predict.complete — the doc must say so
         doc["warnings"].append("unknown_body_model")
+    doc["analysis"]["audit"] = audit.audit(doc)
     doc["_bitmap"] = bmp      # runtime only: overlay rendering
     doc["_skeleton"] = skel   # runtime only
     return doc

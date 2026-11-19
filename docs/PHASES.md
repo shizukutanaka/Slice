@@ -34,7 +34,7 @@
 | 6 | 評価ハーネス + OKS | `evaluate.py`, `oks.py` | 済 |
 | 7 | 意味レイヤの拡充（角度/バランス/歩行/ジェスチャ等） | `angles.py`他~20層 | 済 |
 | 8 | データセット管理（export/bundle/dedup/diff/stats） | 該当モジュール | 済 |
-| 9 | 実画像フィクスチャ | [ローカルの実写正解データで評価](BENCHMARK.md#benchmark-your-own-annotated-photographs) | 一部（データは未同梱） |
+| 9 | 実画像フィクスチャ | [同梱の実写正解データで評価](BENCHMARK.md#benchmark-the-bundled-annotated-photographs) | 一部（宇宙服の実写 2 枚を同梱） |
 | 10 | CI | GitHub Actions | **PR中** |
 | 11 | 複数人検出 | `analyze_multi`、`analyze --split-touching` | 一部（接触分離は推定） |
 | 12 | 部分人体診断 | Knowledge JSON の `analysis.framefit` / `analysis.occlusion` | 済（切り取り判定は推定） |
@@ -69,8 +69,8 @@ Phase 3 が最重量級（真の3D化）であり、単純平均では
 
 ## 残りの主要ギャップ（第一原理順）
 
-1. **実写対応** — 全検証が合成シルエット。実写真の
-   背景・服装・髪・顔は未カバー（AUDIT P0-4/P1-12）
+1. **実写対応** — 同梱の実写フィクスチャは宇宙服の写真 2 枚のみ。
+   多様な背景・服装・姿勢の精度は未検証（AUDIT P0-4/P1-12）
 2. **複数人** — top-K前景成分を複数Skeleton化。接触分離は
    オプションの推定で、重なりのある人物の検出は保証しない
 3. **真の深度** — liftは擬似z。単眼深度推定器ポートが要

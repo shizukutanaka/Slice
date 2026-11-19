@@ -169,7 +169,8 @@
    [`analysis.audit`](KNOWLEDGE_JSON.md#誠実性の監査)、`warnings` を標準添付
 10. **store索引**: `list()` を manifest キャッシュ化（O(1) read）
 11. **原子的書き込み**: `save()` を tmp+os.replace に
-12. **実画像フィクスチャ**: 実写/イラスト数枚+手動正解関節の回帰テスト
+12. **実画像フィクスチャ**: [手動で関節を付与した NASA の実写 2 枚](BENCHMARK.md#benchmark-the-bundled-annotated-photographs)
+    を合成画像と分けて評価する
 
 ### P2 — 精度の底上げ
 13. **ベンチマーク**: 推定時間とOKSを計測する gate スクリプト

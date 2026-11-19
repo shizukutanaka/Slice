@@ -30,7 +30,7 @@
 | 2 | 姿勢分類 | `classify.py` | 済 |
 | 3 | OpenPose式場（heatmap/paf） | `heatmap.py`, `paf.py` | 済 |
 | 4 | スタイル推定 | `style.py` | 済 |
-| 5 | 時系列（motion/smooth/track） | `motion.py`, `smooth.py` | 一部（trackはPR中） |
+| 5 | 時系列（motion/smooth/track） | `motion.py`、`smooth.py`、`slice track` | 済（単一人物の位置による追跡） |
 | 6 | 評価ハーネス + OKS | `evaluate.py`, `oks.py` | 済 |
 | 7 | 意味レイヤの拡充（角度/バランス/歩行/ジェスチャ等） | `angles.py`他~20層 | 済 |
 | 8 | データセット管理（export/bundle/dedup/diff/stats） | 該当モジュール | 済 |

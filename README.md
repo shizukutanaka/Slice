@@ -60,6 +60,9 @@ python3 -m slice analyze person.png --model deformed
 # Try to separate touching silhouettes; output a Knowledge JSON array
 python3 -m slice analyze group.png --split-touching
 
+# Link one silhouette across frames in the order given
+python3 -m slice track frame001.png frame002.png frame003.png
+
 # Local web viewer (drag & drop to analyze)
 python3 -m slice serve --port 8000
 # -> http://127.0.0.1:8000
@@ -72,6 +75,12 @@ Ratio / pose classification → Knowledge (`slice.knowledge/v1.1` JSON) → Expo
 The Knowledge JSON format is a fixed spec — fields, compatibility
 promise and validation rules: `docs/KNOWLEDGE_JSON.md`.
 Check any document with `python3 -m slice validate <file.json>`.
+
+`slice track` expects same-size frames from a fixed camera and emits JSON
+with one assignment per input (including empty frames) and a summary.
+`--max-jump-torso` controls how far an anchor can move between assignments,
+in torso lengths (default: 0.8). Track IDs are based on spatial continuity,
+not identity verification; the command cannot distinguish simultaneous people.
 
 ---
 
@@ -211,7 +220,8 @@ Import → Pose(シルエット推定) → Skeleton
 
 **時系列・同一人物・照合**
 
-`motion`（フレーム間移動） `smooth`（軌跡平滑） `reid`（人物再同定）
+`motion`（フレーム間移動） `smooth`（軌跡平滑） `track`（単一人物のフレーム間追跡）
+`reid`（人物再同定）
 `compare`（ポーズ距離） `signature`（ポーズ指紋）
 
 **評価・QA・データセット**

@@ -23,6 +23,8 @@ from typing import List, Optional, Sequence
 
 from .skeleton import Skeleton
 
+DEFAULT_MAX_JUMP_TORSO = 0.8
+
 
 def _anchor(skel: Skeleton) -> Optional[tuple]:
     """Tracking anchor: an OBSERVED pelvis if present, else the
@@ -50,7 +52,7 @@ def _torso(skel: Skeleton) -> float:
 
 
 def track(frames: Sequence[Skeleton],
-          max_jump_torso: float = 0.8) -> List[dict]:
+          max_jump_torso: float = DEFAULT_MAX_JUMP_TORSO) -> List[dict]:
     """Assign each frame to a track.
 
     Returns a list parallel to `frames`:

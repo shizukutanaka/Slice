@@ -4,6 +4,7 @@
         [--model adult|child|deformed] [--robust] [--overlay out.png]
         [--store DIR]
     python -m slice batch <dir> --store DIR [--model M] [--robust] [-r]
+    python -m slice track <frame> [<frame> ...] [--max-jump-torso N]
     python -m slice audit <image> [--model M] [--robust] [-o audit.json]
         — run every quality layer over one image and print a verdict
     python -m slice audit --store DIR  — audit the stored documents
@@ -98,6 +99,7 @@ from .anatomy import BODY_MODELS
 from . import (oks)
 from . import (balance, classify, contrad)
 from . import (reid)
+from . import (track)
 from . import (describe)
 from . import (autocrop, crop)
 from . import (ascii, bvh, coco, gltf, heatmap, paf, svg)
@@ -510,6 +512,35 @@ def _cmd_reid(a) -> int:
     res["features_b"] = feats[1]["vector"]
     print(json.dumps(res, ensure_ascii=False, indent=2))
     return 0 if res.get("same_person") else 1
+
+
+def _cmd_track(a) -> int:
+    if not math.isfinite(a.max_jump_torso) or a.max_jump_torso < 0:
+        print("--max-jump-torso must be finite and non-negative",
+              file=sys.stderr)
+        return 2
+    est = pipeline.ROBUST_ESTIMATOR if a.robust else pipeline.ESTIMATOR
+    frames = []
+    frame_size = None
+    for path in a.frames:
+        try:
+            with open(path, "rb") as f:
+                bmp = bitmap.decode(f.read())
+        except (bitmap.UnsupportedFormat, OSError) as e:
+            print(f"cannot load {path}: {e}", file=sys.stderr)
+            return 2
+        size = (bmp.width, bmp.height)
+        if frame_size is not None and size != frame_size:
+            print(f"frame dimensions differ: {path}", file=sys.stderr)
+            return 2
+        frame_size = size
+        frames.append(est.estimate(bmp, a.model or "adult"))
+    assignments = track.track(frames, max_jump_torso=a.max_jump_torso)
+    print(json.dumps({"assignments": assignments,
+                      "summary": track.summarize(assignments),
+                      "max_jump_torso": a.max_jump_torso},
+                     ensure_ascii=False, indent=2))
+    return 0
 
 
 def _cmd_describe(a) -> int:
@@ -1504,6 +1535,17 @@ def main(argv=None) -> int:
                     default=reid.DEFAULT_THRESHOLD,
                     help="mean |feature diff| below this = same person")
     ri.set_defaults(fn=_cmd_reid)
+
+    tr = sub.add_parser("track",
+                        help="track one silhouette across ordered images")
+    tr.add_argument("frames", nargs="+", help="same-size frames in time order")
+    tr.add_argument("--model", choices=sorted(BODY_MODELS), default=None)
+    tr.add_argument("--robust", action="store_true",
+                    help="robust estimation profile")
+    tr.add_argument("--max-jump-torso", type=float,
+                    default=track.DEFAULT_MAX_JUMP_TORSO,
+                    help="maximum link distance in torso lengths")
+    tr.set_defaults(fn=_cmd_track)
 
     d = sub.add_parser("describe",
                        help="describe one image's figure in a sentence")

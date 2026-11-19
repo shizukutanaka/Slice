@@ -158,6 +158,36 @@ python3 -m slice analyze group.png --split-touching
 を使う。分割はヒューリスティックで、分離できない場合もある。
 分割された領域は `people.state: "estimated"` で区別できる。
 
+#### 解析結果を確認する
+
+```bash
+python3 -m slice analyze person.png -o knowledge.json --overlay overlay.png
+python3 -m slice validate knowledge.json
+```
+
+1. `overlay.png` で骨格と画像の位置関係を確認する。
+2. `knowledge.json` の `coverage` とトップレベルの `warnings` を確認する。
+   個々の関節は `skeleton.joints` の `state`（観測か推定か）と
+   `basis`（配置の根拠）を確認する。
+3. 骨格が出なければ `analysis.detection_failure.reason` を参照する。
+   例えば `no_foreground` は前景を抽出できなかったという意味で、
+   人物がいないとは断定できない。画像端で切れている可能性は
+   `analysis.framefit.possibly_truncated` が示す。
+
+`validate` は文書形式の検査であり、関節位置の正しさは検査しない。
+`analysis.audit.verdict` が `clean` でも、画像と骨格の照合は必要。
+各フィールドの意味は [Knowledge JSON 仕様](docs/KNOWLEDGE_JSON.md) を参照。
+
+複数の画像をまとめて保存するには、入力画像のあるディレクトリを指定する。
+
+```bash
+python3 -m slice batch images/ --store knowledge/
+python3 -m slice list --store knowledge/
+```
+
+サブディレクトリも対象にするには `batch` に `--recursive` を付ける。
+保存件数は解析結果の文書数であり、人物の検出成功数ではない。
+
 ### REST + ビューア
 
 ```bash
@@ -195,7 +225,7 @@ Import → Pose(シルエット推定) → Skeleton
 
 ## モジュール
 
-70+モジュールが関心事で層分けされている。どれも stdlib のみ。
+目的別に主要なモジュールを掲載する。すべてのファイルは [slice/](slice/) を参照。
 
 **コア（画像→骨格→知識）**
 
@@ -209,6 +239,7 @@ Import → Pose(シルエット推定) → Skeleton
 | `slice/predict.py` | 欠損推定（対称ミラー → プライア配置） |
 | `slice/knowledge.py` | Knowledge JSON 構築・検証・ファイルストア |
 | `slice/pipeline.py` | CLI/REST共通の解析パイプライン |
+| `slice/basis.py` | 関節の配置根拠を分類し、`analysis.joint_basis` に使う |
 | `slice/rest.py` / `slice/viewer.html` / `slice/__main__.py` | REST API・ビューア・CLI |
 
 **姿勢・形態の意味レイヤ（骨格ベース）**
@@ -227,11 +258,13 @@ Import → Pose(シルエット推定) → Skeleton
 `contour`（輪郭） `distfield`（肢体太さ） `mask`（前景マスク）
 `topology`（穴/位相） `autocrop`（クロップ提案） `crop` / `pad`
 （画像変換） `mirror` / `mutate` / `norm`（座標・反転・変換）
+`adapt` / `shadow` / `morph`（堅牢プロファイルの閾値選択・影除去・マスク補正）
+`split`（接触した前景成分の分割）
 
-**時系列・同一人物・照合**
+**時系列・照合**
 
 `motion`（フレーム間移動） `smooth`（軌跡平滑） `track`（単一人物のフレーム間追跡）
-`reid`（人物再同定）
+`reid`（観測した骨格比率の比較。本人確認ではない）
 `compare`（ポーズ距離） `signature`（ポーズ指紋）
 
 **評価・QA・データセット**
@@ -240,6 +273,7 @@ Import → Pose(シルエット推定) → Skeleton
 `audit`（誠実性リント） `consistency`（骨格健全性） `stats`（死角集計）
 `diff`（ドキュメント差分） `dedup`（近重複） `dataset` / `bundle`
 （エクスポート/配布） `diag`（失敗診断）
+`framefit`（画像端での切り取りの可能性）
 
 **描画・出力**
 

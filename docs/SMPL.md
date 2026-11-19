@@ -62,6 +62,26 @@ Skeleton --(lift: 擬似z推定)--> 深度の診断
 推定関節は `figure.bvh.json` と glTF のノード `extras` で確認できる。
 両形式の出力は平面（Z=0）で、デモ中の `lift` は診断のみ。
 
+### Blender での読み込み検証
+
+デモで生成した `figure.gltf` は Blender の **File → Import → glTF 2.0**
+で開ける。関節は親子関係を持つ Empty として読み込まれ、Custom
+Properties に `state`、`confidence`、`basis` が残る。
+Blender は glTF の Y-up を Z-up に変換するため、平面は Blender では
+XZ 平面になる。メッシュ、Armature、アニメーションは含まない。
+
+Blender 4.5.4 LTS で動作確認済み。インポートを再検証するには、
+Blender 実行ファイルを `PATH` に置くか `BLENDER_BIN` で指定し、
+リポジトリのルートで次を実行する。
+
+```bash
+python3 -m unittest tests.test_demo3d.TestDemo3d.test_blender_import -v
+```
+
+実際の glTF インポーターをヘッドレスで起動し、全関節の階層・変換後の
+座標・推定の由来を照合する。Blender が見つからない場合はこのテストだけ
+スキップされる。Unity と Blender の BVH インポートは未検証。
+
 ## SMPL化に必要な残作業
 
 1. **β（形状）推定** — 現在の`body_model`(adult/child)は粗い

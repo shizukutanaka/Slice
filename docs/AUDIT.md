@@ -173,7 +173,8 @@
     を合成画像と分けて評価する
 
 ### P2 — 精度の底上げ
-13. **ベンチマーク**: 推定時間とOKSを計測する gate スクリプト
+13. **ベンチマーク**: 推定時間と OKS の回帰ゲートに加え、
+    [同じ画像で通常・堅牢プロファイルを評価](BENCHMARK.md#benchmark-the-bundled-annotated-photographs)できる
 14. **背景推定の堅牢化**: 透過画素除外+複数候補投票（#9の根因）
 15. **指先・顔向きの拡張 landmark**（v2関節セット検討）
 16. **バッチCLI**: `slice analyze dir/` で store 一括投入

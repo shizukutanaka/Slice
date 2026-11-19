@@ -16,6 +16,7 @@ separately, supply a local JSON manifest (see docs/BENCHMARK.md):
     python3 benchmarks/run_benchmark.py --md out.md     # full report
     python3 benchmarks/run_benchmark.py --json out.json # raw results
     python3 benchmarks/run_benchmark.py --photo-manifest photos.json
+    python3 benchmarks/run_benchmark.py --robust --photo-manifest photos.json
 
 Definitions
 -----------
@@ -61,7 +62,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from slice import __version__, bitmap, evaluate, knowledge, oks, pipeline
 from slice.landmarks import JOINTS
-from slice.pose import HeuristicPoseEstimator
 from slice.skeleton import Joint, OBSERVED, Skeleton
 
 BG = (235, 235, 235, 255)
@@ -225,7 +225,7 @@ def _truth_skeleton(truth, w, h):
                            for n, (x, y) in truth.items()})
 
 
-def measure_case(case, repeats):
+def measure_case(case, repeats, *, robust=False):
     bmp = case["bitmap"]
     raw = case["raw"] if "raw" in case else bitmap.encode_png(bmp)
     model = case["model"]
@@ -236,7 +236,7 @@ def measure_case(case, repeats):
     # frame before scoring — errors are working-frame pixels.
     accuracy = None
     if case["kind"] == "accuracy":
-        est = HeuristicPoseEstimator()
+        est = pipeline.ROBUST_ESTIMATOR if robust else pipeline.ESTIMATOR
         skel = est.estimate(bmp)
         sx = skel.image_width / bmp.width
         sy = skel.image_height / bmp.height
@@ -257,7 +257,8 @@ def measure_case(case, repeats):
     error = None
     doc = None
     try:
-        pipeline.analyze(raw, model=model, source_name=case["name"])
+        pipeline.analyze(raw, model=model, source_name=case["name"],
+                         robust=robust)
     except Exception as exc:  # warm-up doubles as the success probe
         error = f"{type(exc).__name__}: {exc}"
     times = []
@@ -265,7 +266,7 @@ def measure_case(case, repeats):
         for _ in range(max(1, repeats)):
             t0 = time.perf_counter()
             doc = pipeline.analyze(raw, model=model,
-                                    source_name=case["name"])
+                                   source_name=case["name"], robust=robust)
             times.append((time.perf_counter() - t0) * 1000)
 
     observed = None
@@ -299,11 +300,11 @@ def measure_case(case, repeats):
     }
 
 
-def run(repeats=DEFAULT_REPEATS, *, photo_manifest=None):
+def run(repeats=DEFAULT_REPEATS, *, photo_manifest=None, robust=False):
     cases = build_cases()
     if photo_manifest is not None:
         cases = chain(cases, _photo_cases(photo_manifest))
-    results = [measure_case(c, repeats) for c in cases]
+    results = [measure_case(c, repeats, robust=robust) for c in cases]
     categories = {}
     for r in results:
         categories.setdefault(r["category"], []).append(r)
@@ -334,6 +335,7 @@ def run(repeats=DEFAULT_REPEATS, *, photo_manifest=None):
         "platform": platform.platform(),
         "cpu_count": os.cpu_count(),
         "repeats": repeats,
+        "profile": "robust" if robust else "default",
         "summary": summary,
         "cases": results,
     }
@@ -360,7 +362,8 @@ def to_markdown(report, generated):
         "",
         f"Generated: {generated} by `benchmarks/run_benchmark.py` "
         f"(Slice {report['slice_version']}, Python {report['python']}, "
-        f"{report['platform']}, repeats={report['repeats']}).",
+        f"{report['platform']}, repeats={report['repeats']}, "
+        f"profile={report['profile']}).",
         "Absolute times are this machine's; ratios and rates are the "
         "portable signal. See the methodology in the script docstring "
         "of `benchmarks/run_benchmark.py`.",
@@ -461,12 +464,16 @@ def main(argv=None):
     ap.add_argument("--json", help="write raw results JSON here")
     ap.add_argument("--photo-manifest", type=Path,
                     help="include local photographs with joint annotations")
+    ap.add_argument("--robust", action="store_true",
+                    help="benchmark the same robust profile as slice analyze")
     args = ap.parse_args(argv)
 
     try:
-        report = run(repeats=args.repeats, photo_manifest=args.photo_manifest)
+        report = run(repeats=args.repeats, photo_manifest=args.photo_manifest,
+                     robust=args.robust)
     except (OSError, ValueError) as exc:
         ap.error(str(exc))
+    print(f"profile={report['profile']}")
     for cat, s in report["summary"].items():
         print(f"{cat}: success={s['success_rate']:.2f} "
               f"median_ms={s['ms_median_of_medians']} "

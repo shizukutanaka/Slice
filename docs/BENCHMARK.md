@@ -1,6 +1,6 @@
 # Slice benchmark results
 
-Generated: 2026-11-18 by `benchmarks/run_benchmark.py` (Slice 0.1.0, Python 3.12.15, macOS-26.6.2-arm64-arm-64bit, repeats=5).
+Generated: 2026-11-18 by `benchmarks/run_benchmark.py` (Slice 0.1.0, Python 3.12.15, macOS-26.6.2-arm64-arm-64bit, repeats=5, profile=default).
 Absolute times are this machine's; ratios and rates are the portable signal. See the methodology in the script docstring of `benchmarks/run_benchmark.py`.
 
 | Category | Cases | Success rate | Median ms/image | Detection | Observed | Mean error (px) | Mean OKS |
@@ -58,6 +58,20 @@ detection, error and OKS separately. These two spacesuit photographs test
 specific scenes, not general accuracy on real photographs. The default
 benchmark remains synthetic.
 
+To compare background handling on the same images, run the same command
+again with `--robust`:
+
+```sh
+python3 benchmarks/run_benchmark.py --robust --photo-manifest benchmarks/photos/manifest.json
+```
+
+The flag uses the same adaptive threshold, shadow rejection and mask cleanup
+as `slice analyze --robust` for both accuracy scoring and pipeline timing.
+Each report identifies its profile. Use `--json` to compare per-image
+accuracy as well as category averages, since improvement on one image can
+hide a regression on another. `python3 -m slice.bench` remains the
+default-profile regression gate.
+
 ## Benchmark your own annotated photographs
 
 To score a different set in the `photo` category, supply a manifest of images
@@ -83,7 +97,7 @@ visible joint annotations. For example:
 Use [Slice landmark names](../slice/landmarks.py) and source-image pixel
 coordinates (x to the right, y down, origin at the top left). Omit any joint
 that cannot be annotated. Use one subject per image. PNG and BMP need no
-extras; JPEG and WebP require Pillow. The benchmark times the default pipeline
+extras; JPEG and WebP require Pillow. The benchmark times the selected profile
 on the original file bytes and scores the estimator against the annotated
 joints only. Mean positional error includes only detected joints; if none
 are detected, it is unreported, rather than zero. Do not read the results

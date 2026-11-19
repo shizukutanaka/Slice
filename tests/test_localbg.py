@@ -7,7 +7,7 @@ drift so the figure stays isolated.
 import unittest
 
 from tests import synthetic_person
-from slice import pose
+from slice import bitmap, pose
 
 EST = pose.HeuristicPoseEstimator()
 BG = (235, 235, 235, 255)
@@ -43,6 +43,33 @@ class TestBandedBackground(unittest.TestCase):
     def test_flat_background_unchanged(self):
         skel = EST.estimate(synthetic_person())
         self.assertEqual(len(skel.joints), 19)
+
+    def test_long_contaminated_edge_does_not_outvote_two_clean_sides(self):
+        bmp = bitmap.Bitmap.new(320, 96, BG)
+        fg = (32, 32, 32, 255)
+        for y in range(8):
+            for x in range(16, 304):
+                bmp.set(x, y, fg)
+        for x in range(bmp.width):
+            bmp.set(x, bmp.height - 1, (32, 32, 32, 0))
+
+        self.assertEqual(EST._background(bmp), (240, 240, 240))
+        self.assertEqual(EST._mask(bmp), [
+            bytearray(16) + bytearray([1]) * 288 + bytearray(16)
+            if y < 8 else bytearray(320) for y in range(96)
+        ])
+
+    def test_band_tie_uses_globally_supported_edge_majority(self):
+        bmp = bitmap.Bitmap.new(80, 120, BG)
+        fg = (32, 32, 32, 255)
+        for y in range(20, 40):
+            for x in range(8):
+                bmp.set(x, y, fg)
+
+        mask = EST._mask(bmp)
+        self.assertEqual(sum(map(sum, mask)), 20 * 8)
+        self.assertTrue(all(mask[y][:8] == bytearray([1]) * 8
+                            for y in range(20, 40)))
 
     def test_transparent_border_samples_ignored(self):
         # transparent black on top/bottom/left must not become the band

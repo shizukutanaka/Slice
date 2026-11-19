@@ -20,6 +20,13 @@ def _skel(px, py, w=200, h=200):
     return s
 
 
+def _with_shoulders(px, half_width, state=OBSERVED):
+    s = _skel(px, 120)
+    s.set(Joint("shoulder_l", px - half_width, 75, 0.9, state))
+    s.set(Joint("shoulder_r", px + half_width, 75, 0.9, state))
+    return s
+
+
 class TestTrack(unittest.TestCase):
     def test_continuous_track(self):
         frames = [_skel(100 + i * 2, 120) for i in range(5)]
@@ -73,6 +80,30 @@ class TestTrack(unittest.TestCase):
         self.assertEqual(track._torso(s),
                          200 * 0.25)
 
+    def test_proportions_veto_nearby_incompatible_links(self):
+        frames = [_with_shoulders(100, 15), _with_shoulders(110, 30),
+                  _with_shoulders(108, 15)]
+        self.assertEqual([a["track_id"] for a in track.track(frames)],
+                         [0, 0, 0])
+        out = track.track(frames, match_proportions=True)
+        self.assertEqual([a["track_id"] for a in out], [0, 1, 0])
+        self.assertEqual(out[2]["state"], "reacquired")
+        self.assertEqual(out[2]["proportion_check"],
+                         {"compared": 1, "distance": 0.0})
+
+    def test_predicted_proportions_fall_back_to_spatial_link(self):
+        frames = [_with_shoulders(100, 15),
+                  _with_shoulders(105, 30, state=PREDICTED)]
+        out = track.track(frames, match_proportions=True)
+        self.assertEqual(out[1]["state"], "linked")
+        self.assertEqual(out[1]["proportion_check"],
+                         {"compared": 0, "distance": None})
+
+    def test_matching_proportions_cannot_override_jump_limit(self):
+        frames = [_with_shoulders(50, 15), _with_shoulders(150, 15)]
+        out = track.track(frames, match_proportions=True)
+        self.assertEqual([a["track_id"] for a in out], [0, 1])
+
     def test_summarize(self):
         frames = ([_skel(50 + i, 120) for i in range(3)]
                   + [Skeleton(image_width=200, image_height=200)]
@@ -117,6 +148,14 @@ class TestTrackCli(unittest.TestCase):
         self.assertEqual(hits[2]["gap"], 1)
         self.assertEqual(report["summary"]["empty_frames"], 1)
         self.assertEqual(report["max_jump_torso"], 0)
+
+    def test_match_proportions_reports_evidence(self):
+        status, out, err = self._run(self.person, self.person,
+                                     "--match-proportions")
+        self.assertEqual((status, err), (0, ""))
+        check = json.loads(out)["assignments"][1]["proportion_check"]
+        self.assertEqual(check["distance"], 0.0)
+        self.assertGreater(check["compared"], 0)
 
     def test_rejects_mixed_frame_sizes(self):
         other = self._write("other.png", bitmap.Bitmap.new(

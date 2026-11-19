@@ -2,7 +2,7 @@ import unittest
 
 from tests import synthetic_person
 
-from slice import bitmap, crop, knowledge, pipeline
+from slice import audit, bitmap, crop, knowledge, pipeline
 
 
 class TestPipeline(unittest.TestCase):
@@ -15,6 +15,15 @@ class TestPipeline(unittest.TestCase):
             self.assertIn(key, out, key)
         self.assertIsInstance(out["warnings"], list)
         self.assertNotIn("no_observed_head", out["warnings"])
+
+    def test_analysis_embeds_document_audit(self):
+        out = pipeline.strip_runtime(
+            pipeline.analyze(bitmap.encode_png(synthetic_person())))
+        report = out["analysis"]["audit"]
+        self.assertEqual(report, audit.audit(out))
+        self.assertEqual(report["errors"], [])
+        self.assertEqual(report["observed_fraction"],
+                         out["coverage"]["observed_ratio"])
 
     def test_analysis_block_integrates_layers(self):
         doc = pipeline.analyze(
@@ -41,6 +50,9 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(doc["analysis"]["detection_failure"]["reason"],
                          "no_foreground")
         self.assertEqual(doc["analysis"]["joint_basis"], {})
+        report = doc["analysis"]["audit"]
+        self.assertEqual(report["verdict"], "flagged")
+        self.assertIn("low_observed", [w["code"] for w in report["warnings"]])
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
 

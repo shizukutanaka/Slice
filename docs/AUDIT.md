@@ -179,7 +179,8 @@
 
 ### P3 — Phase 3 布石
 18. **真の3D**: liftの先、SMPLパラメータ近似の研究対応表（RESEARCH.mdに追加）
-19. **temporal ID**: smooth/motion の先に「同一人物の連続」reid統合
+19. **temporal ID**: `slice track --match-proportions` は空間距離に加え、
+    観測関節の比率を `reid` で照合する（本人確認ではない）
 20. **rig→retarget→bvh の動作検証デモ**: [`examples/demo_3d.py`](../examples/demo_3d.py)
     でリターゲット後の骨格を BVH / glTF に出力し、推定の由来も記録する
 

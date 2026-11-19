@@ -535,7 +535,8 @@ def _cmd_track(a) -> int:
             return 2
         frame_size = size
         frames.append(est.estimate(bmp, a.model or "adult"))
-    assignments = track.track(frames, max_jump_torso=a.max_jump_torso)
+    assignments = track.track(frames, max_jump_torso=a.max_jump_torso,
+                              match_proportions=a.match_proportions)
     print(json.dumps({"assignments": assignments,
                       "summary": track.summarize(assignments),
                       "max_jump_torso": a.max_jump_torso},
@@ -1545,6 +1546,8 @@ def main(argv=None) -> int:
     tr.add_argument("--max-jump-torso", type=float,
                     default=track.DEFAULT_MAX_JUMP_TORSO,
                     help="maximum link distance in torso lengths")
+    tr.add_argument("--match-proportions", action="store_true",
+                    help="rule out links when observed bone ratios differ")
     tr.set_defaults(fn=_cmd_track)
 
     d = sub.add_parser("describe",

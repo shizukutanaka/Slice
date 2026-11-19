@@ -11,9 +11,9 @@ is greedy nearest by pelvis distance (or centroid when pelvis is missing),
 with a configurable max jump in torso-length units so a re-appearing
 person elsewhere in frame starts a new track instead of teleporting.
 
-Every assignment reports `state:"linked"` (continuity claim backed by a
-distance measurement) — a track is a hypothesis, not a fact; the
-`gap` field records frames skipped inside a track honestly.
+An optional proportion check rejects nearby candidates whose observed
+bone ratios differ. A track is a continuity hypothesis, not proof of
+identity; `gap` records frames skipped inside a track.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 from typing import List, Optional, Sequence
 
+from . import reid
 from .skeleton import Skeleton
 
 DEFAULT_MAX_JUMP_TORSO = 0.8
@@ -52,7 +53,8 @@ def _torso(skel: Skeleton) -> float:
 
 
 def track(frames: Sequence[Skeleton],
-          max_jump_torso: float = DEFAULT_MAX_JUMP_TORSO) -> List[dict]:
+          max_jump_torso: float = DEFAULT_MAX_JUMP_TORSO, *,
+          match_proportions: bool = False) -> List[dict]:
     """Assign each frame to a track.
 
     Returns a list parallel to `frames`:
@@ -62,9 +64,14 @@ def track(frames: Sequence[Skeleton],
     (None on a track's first frame). `gap` counts frames where the
     track had no assignment between its previous hit and this one.
     Frames with no joints get `track_id: None, state: "empty"`.
+
+    With `match_proportions`, incompatible observed ratios rule out a
+    link. Without any shared observed ratios, distance alone can link
+    the frames. Linked assignments report both the number of compared
+    ratios and their mean absolute difference in `proportion_check`.
     """
     out: List[dict] = []
-    tracks: List[dict] = []  # {id, last_frame_idx, last_anchor, last_seen}
+    tracks: List[dict] = []
     next_id = 0
     for i, skel in enumerate(frames):
         anchor = _anchor(skel) if skel.joints else None
@@ -73,23 +80,35 @@ def track(frames: Sequence[Skeleton],
                         "gap": None, "jump": None, "anchor": None})
             continue
         best = None
+        torso = _torso(skel)
+        features = reid.features(skel) if match_proportions else None
         for tr in tracks:
             jump = math.hypot(anchor[0] - tr["last_anchor"][0],
                               anchor[1] - tr["last_anchor"][1])
-            jump_t = jump / _torso(skel)
-            if best is None or jump_t < best[1]:
-                best = (tr, jump_t)
-        if best is not None and best[1] <= max_jump_torso:
-            tr, jump_t = best
+            jump_t = jump / torso
+            if not jump_t <= max_jump_torso or (best and jump_t >= best[1]):
+                continue
+            check = None
+            if match_proportions:
+                check = reid.compare(tr["features"], features)
+                if check["same_person"] is False:
+                    continue
+            best = (tr, jump_t, check)
+        if best is not None:
+            tr, jump_t, check = best
             gap = i - tr["last_seen"] - 1
             tr["last_anchor"], tr["last_seen"] = anchor, i
+            tr["features"] = features
             out.append({"frame": i, "track_id": tr["id"],
                         "state": "linked" if gap == 0 else "reacquired",
                         "gap": gap, "jump": round(jump_t, 3),
                         "anchor": anchor})
+            if check is not None:
+                out[-1]["proportion_check"] = {
+                    "compared": check["compared"], "distance": check["distance"]}
         else:
             tracks.append({"id": next_id, "last_anchor": anchor,
-                           "last_seen": i})
+                           "last_seen": i, "features": features})
             out.append({"frame": i, "track_id": next_id,
                         "state": "new_track", "gap": None,
                         "jump": None, "anchor": anchor})

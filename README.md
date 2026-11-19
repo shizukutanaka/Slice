@@ -85,6 +85,12 @@ with one assignment per input (including empty frames) and a summary.
 `--max-jump-torso` controls how far an anchor can move between assignments,
 in torso lengths (default: 0.8). Track IDs are based on spatial continuity,
 not identity verification; the command cannot distinguish simultaneous people.
+Use `--match-proportions` to also reject links when shared observed bone
+ratios differ beyond the `slice reid` default threshold (0.08 mean absolute
+difference). With no shared observed ratios, the tracker uses distance
+alone. Accepted links report `proportion_check` (ratio count and
+difference, or `null` for the difference when nothing was compared).
+Changes in viewpoint can change these ratios even for the same person.
 
 ---
 

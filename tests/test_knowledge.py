@@ -192,6 +192,46 @@ class TestKnowledge(unittest.TestCase):
             ent = [e for e in store.list() if e["id"] == kid]
             self.assertEqual(ent[0]["body_model"], "child")
 
+    def test_store_list_refreshes_rewritten_doc_after_unrelated_save(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            path = os.path.join(d, kid + ".json")
+            doc["skeleton"]["body_model"] = {"name": "child"}
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(doc, f)
+            index_stat = os.stat(os.path.join(d, knowledge.INDEX_NAME))
+            os.utime(path, ns=(index_stat.st_atime_ns,
+                               index_stat.st_mtime_ns - 1_000_000_000))
+            store.save(dict(doc, id="k_000000000000"))
+
+            items = {item["id"]: item for item in store.list()}
+            self.assertEqual(items[kid]["body_model"], "child")
+
+    def test_store_list_rebuilds_legacy_cache_and_reuses_valid_entry(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            path = os.path.join(d, knowledge.INDEX_NAME)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"schema": "slice.index/v1", "entries": {
+                    kid: {"id": kid, "body_model": "stale"}}}, f)
+
+            expected = [{"id": kid, "created_at": doc["created_at"],
+                         "body_model": doc["skeleton"]["body_model"]["name"]}]
+            self.assertEqual(store.list(), expected)
+            load = json.load
+
+            def read_manifest_only(stream):
+                self.assertEqual(stream.name, path)
+                return load(stream)
+
+            with patch.object(knowledge.json, "load",
+                              side_effect=read_manifest_only):
+                self.assertEqual(store.list(), expected)
+
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()
         self.assertEqual(doc["schema"], knowledge.SCHEMA_V11)

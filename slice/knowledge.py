@@ -191,19 +191,25 @@ def validate(doc: dict) -> list:
 INDEX_NAME = "_index.json"
 
 
-def _atomic_write_json(path: str, data: dict, *, indent=None) -> None:
+def _atomic_write_json(path: str, data: dict, *, indent=None) -> os.stat_result:
     fd, tmp = tempfile.mkstemp(prefix=".slice-", suffix=".tmp",
                                dir=os.path.dirname(path))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=indent)
+        written = os.stat(tmp)
         os.replace(tmp, path)
+        return written
     except BaseException:
         try:
             os.unlink(tmp)
         except OSError:
             pass
         raise
+
+
+def _file_stamp(stat: os.stat_result) -> list[int]:
+    return [stat.st_ino, stat.st_size, stat.st_mtime_ns]
 
 
 def _list_entry(doc: dict) -> dict:
@@ -234,8 +240,8 @@ class KnowledgeStore:
                 r"k_[0-9a-f]{12}", kid):
             raise ValueError("invalid knowledge id: %r" % kid)
         path = os.path.join(self.root, kid + ".json")
-        _atomic_write_json(path, doc, indent=2)
-        self._index_add(doc)
+        written = _atomic_write_json(path, doc, indent=2)
+        self._index_add(doc, written)
         return doc["id"]
 
     def get(self, kid: str) -> dict:
@@ -255,17 +261,15 @@ class KnowledgeStore:
     def _index_path(self) -> str:
         return os.path.join(self.root, INDEX_NAME)
 
-    def _index_load(self) -> tuple[Optional[dict], float]:
-        """Read the cached entries and timestamp from the same snapshot."""
+    def _index_load(self) -> Optional[dict]:
         try:
             with open(self._index_path(), encoding="utf-8") as f:
                 d = json.load(f)
-                mtime = os.fstat(f.fileno()).st_mtime
         except (OSError, json.JSONDecodeError):
-            return None, 0.0
+            return None
         if not isinstance(d, dict) or not isinstance(d.get("entries"), dict):
-            return None, 0.0
-        return d["entries"], mtime
+            return None
+        return d["entries"]
 
     def _index_write(self, entries: dict) -> None:
         try:
@@ -274,57 +278,38 @@ class KnowledgeStore:
         except OSError:
             pass
 
-    def _index_add(self, doc: dict) -> None:
+    def _index_add(self, doc: dict, written: os.stat_result) -> None:
         """Best-effort index update; a broken index self-heals in list()."""
-        entries, _ = self._index_load()
-        if entries is None:
-            entries = {}
-        entries[doc["id"]] = _list_entry(doc)
+        entries = self._index_load() or {}
+        entries[doc["id"]] = dict(_list_entry(doc), file_stamp=_file_stamp(written))
         self._index_write(entries)
 
     def list(self) -> list:
         files = [fn for fn in sorted(os.listdir(self.root))
                  if fn.endswith(".json") and fn != INDEX_NAME]
-        indexed, index_mtime = self._index_load()
-        out, healed = [], indexed is None
-        entries = dict(indexed) if indexed else {}
+        indexed = self._index_load()
+        out, known = [], {}
         for fn in files:
             kid = fn[:-5]
-            ent = entries.pop(kid, None)
-            if ent is not None and ent.get("id") != kid:
-                # a cached entry whose id disagrees with the filename
-                # names a document that can never be retrieved — drop
-                # it and let the file itself be judged below
-                healed = True
-                ent = None
-            if ent is not None:
-                # a file rewritten after the index was built leaves a
-                # stale entry — re-read it so list() never reports a
-                # document that no longer exists on disk
-                try:
-                    if os.path.getmtime(
-                            os.path.join(self.root, fn)) < index_mtime:
-                        out.append(ent)
-                        continue
-                except OSError:
-                    pass
-                ent = None
-            if ent is None:
-                healed = True
-                try:
-                    with open(os.path.join(self.root, fn),
-                              encoding="utf-8") as f:
-                        d = json.load(f)
-                except (OSError, json.JSONDecodeError):
+            path = os.path.join(self.root, fn)
+            ent = indexed.get(kid) if indexed else None
+            try:
+                if (isinstance(ent, dict) and ent.get("id") == kid
+                        and ent.get("file_stamp") == _file_stamp(os.stat(path))):
+                    known[kid] = ent
+                    out.append({k: v for k, v in ent.items() if k != "file_stamp"})
                     continue
-                if not isinstance(d, dict) or d.get("id") != kid:
-                    # filename is the document's identity — a file that
-                    # claims another id is corruption, not a listable doc
-                    continue
-                ent = _list_entry(d)
-            out.append(ent)
-        if healed or entries:  # index was missing/stale -> rewrite it
-            known = {e.get("id"): e for e in out if e.get("id")}
+                with open(path, encoding="utf-8") as f:
+                    stamp = _file_stamp(os.fstat(f.fileno()))
+                    doc = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(doc, dict) or doc.get("id") != kid:
+                continue
+            entry = _list_entry(doc)
+            out.append(entry)
+            known[kid] = dict(entry, file_stamp=stamp)
+        if known != indexed:
             self._index_write(known)
         return out
 

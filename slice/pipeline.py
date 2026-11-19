@@ -29,24 +29,6 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
     added = predict.complete(skel, model)
     ratios = ratio.analyze(skel, centroid=skel.centroid)
     cls = classify.analyze(skel)
-    doc = knowledge.build(
-        skel, ratios, cls,
-        image_sha256=image_sha,
-        source_name=source_name,
-        engine={"name": estimator.name, "version": estimator.version,
-                "slice": __version__,
-                "profile": "robust" if robust else "default"},
-    )
-    # the mask decision that produced every joint's evidence —
-    # Otsu value or the fixed fallback, whichever actually ran.
-    # Carried on the skeleton (not read off the shared estimator) so
-    # concurrent REST calls can't cross-attribute each other's choice
-    thr = getattr(skel, "mask_threshold", None)
-    if thr:
-        doc["engine"]["mask_threshold"] = {
-            "value": round(thr[0], 1), "method": thr[1]}
-    doc["prediction"]["filled"] = [j.name for j in added]
-    doc["style"] = style.analyze(bmp)
     analysis = {
         "angles": angles.analyze(skel),
         "symmetry": symmetry.score(skel),
@@ -66,7 +48,25 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
             "basis": "upright silhouette gate; no orientation retry accepted",
         }
     # every layer must be a dict (knowledge.validate); omit empty ones
-    doc["analysis"] = {k: v for k, v in analysis.items() if v is not None}
+    doc = knowledge.build(
+        skel, ratios, cls,
+        image_sha256=image_sha,
+        source_name=source_name,
+        engine={"name": estimator.name, "version": estimator.version,
+                "slice": __version__,
+                "profile": "robust" if robust else "default"},
+        analysis={k: v for k, v in analysis.items() if v is not None},
+    )
+    # the mask decision that produced every joint's evidence —
+    # Otsu value or the fixed fallback, whichever actually ran.
+    # Carried on the skeleton (not read off the shared estimator) so
+    # concurrent REST calls can't cross-attribute each other's choice
+    thr = getattr(skel, "mask_threshold", None)
+    if thr:
+        doc["engine"]["mask_threshold"] = {
+            "value": round(thr[0], 1), "method": thr[1]}
+    doc["prediction"]["filled"] = [j.name for j in added]
+    doc["style"] = style.analyze(bmp)
     if (bmp.width, bmp.height) != (skel.image_width, skel.image_height):
         # joints live in the estimator's downscaled working space —
         # record the source resolution so coordinates can be mapped

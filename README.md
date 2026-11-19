@@ -67,7 +67,7 @@ python3 -m slice serve --port 8000
 
 Pipeline: Import → Pose (silhouette estimation) → Skeleton →
 Prediction (missing joints completed from symmetry and priors) →
-Ratio / pose classification → Knowledge (`slice.knowledge/v1` JSON) → Export.
+Ratio / pose classification → Knowledge (`slice.knowledge/v1.1` JSON) → Export.
 
 The Knowledge JSON format is a fixed spec — fields, compatibility
 promise and validation rules: `docs/KNOWLEDGE_JSON.md`.
@@ -171,7 +171,7 @@ Import → Pose(シルエット推定) → Skeleton
        → Prediction(対称+プライアで欠損補完)
        → Ratio(頭身/肩幅/脚長/重心/対称性)
        → Pose Classification(立つ/座る/歩く/走る/寝る/しゃがむ)
-       → Knowledge(slice.knowledge/v1 JSON) → Export
+       → Knowledge(slice.knowledge/v1.1 JSON) → Export
 ```
 
 ## モジュール

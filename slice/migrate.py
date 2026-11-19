@@ -2,7 +2,7 @@
 
 Stored documents age: schema bumps, new blocks (`coverage`,
 `prediction`), fields that didn't exist when the doc was written.
-`upgrade` normalizes a document to the current schema — but every
+`upgrade` normalizes a document to a supported schema — but every
 gap it fixes is a *disclosed* fix, not silent fabrication:
 
 - missing `id`/`created_at`/`engine` get real defaults and a change
@@ -15,8 +15,8 @@ gap it fixes is a *disclosed* fix, not silent fabrication:
   evidence
 - a joint missing `x`/`y` cannot be invented: it is *dropped* and
   recorded as `joint_dropped`
-- `schema` is set to the current `SCHEMA` once the doc actually
-  satisfies it — never before
+- supported `schema` versions are preserved; missing or unrecognized
+  versions are set to the base `SCHEMA`
 
 `upgrade(doc)` returns {document, changes, valid_before,
 valid_after} — the caller sees exactly what was repaired and can
@@ -29,7 +29,7 @@ import copy
 import secrets
 from typing import Dict, List
 
-from .knowledge import SCHEMA, validate
+from .knowledge import SCHEMA, SCHEMAS, validate
 from .landmarks import BONES, JOINTS
 from .skeleton import OBSERVED, PREDICTED
 
@@ -39,12 +39,12 @@ def _chg(changes: List[Dict], code: str, detail: str) -> None:
 
 
 def upgrade(doc: dict) -> Dict:
-    """Normalize `doc` to the current schema; return doc + changes."""
+    """Normalize `doc` while preserving supported schema versions."""
     changes: List[Dict] = []
     before = validate(doc)
     d = copy.deepcopy(doc)
 
-    if d.get("schema") != SCHEMA:
+    if d.get("schema") not in SCHEMAS:
         _chg(changes, "schema_set",
              "schema '%s' → '%s'" % (d.get("schema"), SCHEMA))
         d["schema"] = SCHEMA

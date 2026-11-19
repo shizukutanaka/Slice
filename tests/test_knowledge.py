@@ -191,16 +191,15 @@ class TestKnowledge(unittest.TestCase):
 
     def test_schema_v11_analysis_slot(self):
         doc = analyze_synth()
-        self.assertEqual(doc["schema"], "slice.knowledge/v1")
-        # analysis upgrades the document to v1.1
+        self.assertEqual(doc["schema"], knowledge.SCHEMA_V11)
         doc11 = dict(doc)
-        doc11["schema"] = "slice.knowledge/v1.1"
         doc11["analysis"] = {"angles": {"elbow_l_flex": 170.0},
                              "gesture": {"count": 0}}
         self.assertFalse(knowledge.validate(doc11))
         # v1 doc carrying analysis is tolerated (read compatibility
         # for documents written before the version bump)
         legacy = dict(doc)
+        legacy["schema"] = knowledge.SCHEMA
         legacy["analysis"] = doc11["analysis"]
         self.assertFalse(knowledge.validate(legacy))
         # analysis layers must be dicts

@@ -34,7 +34,7 @@
 | 6 | 評価ハーネス + OKS | `evaluate.py`, `oks.py` | 済 |
 | 7 | 意味レイヤの拡充（角度/バランス/歩行/ジェスチャ等） | `angles.py`他~20層 | 済 |
 | 8 | データセット管理（export/bundle/dedup/diff/stats） | 該当モジュール | 済 |
-| 9 | 実画像フィクスチャ | 実写正解データ | **未** |
+| 9 | 実画像フィクスチャ | [ローカルの実写正解データで評価](BENCHMARK.md#benchmark-your-own-annotated-photographs) | 一部（データは未同梱） |
 | 10 | CI | GitHub Actions | **PR中** |
 | 11 | 複数人検出 | `estimate_multi`経路 | 一部（peopleはPR中） |
 | 12 | 部分人体診断 | `framefit`相当 | **PR中** |

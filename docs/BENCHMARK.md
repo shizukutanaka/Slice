@@ -42,3 +42,36 @@ Absolute times are this machine's; ratios and rates are the portable signal. See
 - Real photographs: no redistributable photo corpus is bundled with this repository, so no number here describes performance on real photos. `photo_like` is a synthetic stand-in (same flat figure, hostile backgrounds).
 - JPEG / WebP input (requires Pillow), the REST server (`slice serve`) latency, multi-person images, and video.
 - Any form of identity: Slice reports anatomical inference, never who a person is, and this suite measures nothing identity-related by design.
+
+## Benchmark your own annotated photographs
+
+The published numbers above use only the built-in fixtures. To append a
+separate `photo` category to your local report, supply a manifest of images
+you have permission to use:
+
+```sh
+python3 benchmarks/run_benchmark.py --photo-manifest photos.json --json results.json
+```
+
+The manifest maps each image path (relative to the manifest directory) to its
+visible joint annotations. For example:
+
+```json
+{
+  "images/standing.png": {
+    "shoulder_l": [95, 108],
+    "elbow_l": [118, 154],
+    "wrist_l": [126, 188]
+  }
+}
+```
+
+Use [Slice landmark names](../slice/landmarks.py) and source-image pixel
+coordinates (x to the right, y down, origin at the top left). Omit any joint
+that cannot be annotated. Use one subject per image. PNG and BMP need no
+extras; JPEG and WebP require Pillow. The benchmark times the default pipeline
+on the original file bytes and scores the estimator against the annotated
+joints only. Mean positional error includes only detected joints; if none
+are detected, it is unreported, rather than zero. Do not read the results
+as representative of photos outside your dataset. The script does not upload
+images or annotations.

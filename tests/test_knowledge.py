@@ -1,7 +1,10 @@
 import json
 import os
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 
 from tests import synthetic_person
 
@@ -217,6 +220,66 @@ class TestKnowledge(unittest.TestCase):
             with open(os.path.join(d, kid + ".json"),
                       encoding="utf-8") as f:
                 self.assertEqual(json.load(f)["id"], doc["id"])
+
+    def test_concurrent_saves_of_same_id_publish_complete_documents(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        first = dict(doc, note="a")
+        second = dict(doc, note="b")
+        kid = doc["id"]
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            store.save(doc)
+            destination = os.path.join(d, kid + ".json")
+            barrier = threading.Barrier(2, timeout=5)
+            replace = os.replace
+
+            def publish(src, dst):
+                if dst == destination:
+                    self.assertEqual(store.get(kid), doc)
+                    barrier.wait()
+                return replace(src, dst)
+
+            with patch.object(knowledge.os, "replace", side_effect=publish):
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    self.assertEqual(list(pool.map(store.save, (first, second))),
+                                     [kid, kid])
+
+            self.assertIn(store.get(kid), (first, second))
+            self.assertFalse(any(f.endswith(".tmp") for f in os.listdir(d)))
+
+    def test_manifest_is_readable_while_next_version_is_written(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        second = dict(doc, id="k_000000000000")
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            store.save(doc)
+            path = os.path.join(d, knowledge.INDEX_NAME)
+            dump = json.dump
+
+            def write(data, stream, **kwargs):
+                if data["schema"] == "slice.index/v1":
+                    with open(path, encoding="utf-8") as f:
+                        self.assertEqual(set(json.load(f)["entries"]), {doc["id"]})
+                return dump(data, stream, **kwargs)
+
+            with patch.object(knowledge.json, "dump", side_effect=write):
+                store.save(second)
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(set(json.load(f)["entries"]),
+                                 {doc["id"], second["id"]})
+
+    def test_failed_replace_preserves_document_and_cleans_temp(self):
+        doc = pipeline.strip_runtime(analyze_synth())
+        with tempfile.TemporaryDirectory() as d:
+            store = knowledge.KnowledgeStore(d)
+            kid = store.save(doc)
+            with patch.object(knowledge.os, "replace",
+                              side_effect=OSError("replace failed")):
+                with self.assertRaisesRegex(OSError, "replace failed"):
+                    store.save(dict(doc, note="replacement"))
+
+            self.assertEqual(store.get(kid), doc)
+            self.assertFalse(any(f.endswith(".tmp") for f in os.listdir(d)))
 
     def test_validate_catches_bad(self):
         self.assertTrue(knowledge.validate({"schema": "x"}))

@@ -169,7 +169,9 @@
 9. **pipeline統合**: 単一・複数人物の analyze 出力に `coverage`、
    [`analysis.audit`](KNOWLEDGE_JSON.md#誠実性の監査)、`warnings` を標準添付
 10. **store索引**: `list()` を manifest キャッシュ化（O(1) read）
-11. **原子的書き込み**: `save()` を tmp+os.replace に
+11. **原子的書き込み**: Knowledge 文書と一覧キャッシュはそれぞれ専用の一時ファイルに書き、
+    完了後に置換する。一覧キャッシュは派生データで、文書と同時に更新されるわけではない。
+    欠けた項目は `list()` が文書ファイルから補う。
 12. **実画像フィクスチャ**: [手動で関節を付与した NASA の実写 2 枚](BENCHMARK.md#benchmark-the-bundled-annotated-photographs)
     を合成画像と分けて評価する
 

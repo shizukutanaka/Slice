@@ -14,6 +14,7 @@ import json
 import os
 import re
 import secrets
+import tempfile
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -190,6 +191,21 @@ def validate(doc: dict) -> list:
 INDEX_NAME = "_index.json"
 
 
+def _atomic_write_json(path: str, data: dict, *, indent=None) -> None:
+    fd, tmp = tempfile.mkstemp(prefix=".slice-", suffix=".tmp",
+                               dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=indent)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def _list_entry(doc: dict) -> dict:
     skel = doc.get("skeleton")
     bm = skel.get("body_model") if isinstance(skel, dict) else None
@@ -218,11 +234,7 @@ class KnowledgeStore:
                 r"k_[0-9a-f]{12}", kid):
             raise ValueError("invalid knowledge id: %r" % kid)
         path = os.path.join(self.root, kid + ".json")
-        # atomic write: a crash mid-save must never leave a torn JSON
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(doc, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, path)
+        _atomic_write_json(path, doc, indent=2)
         self._index_add(doc)
         return doc["id"]
 
@@ -243,42 +255,39 @@ class KnowledgeStore:
     def _index_path(self) -> str:
         return os.path.join(self.root, INDEX_NAME)
 
-    def _index_load(self) -> Optional[dict]:
-        """Load the cached index -> {kid: entry}, or None if unusable."""
+    def _index_load(self) -> tuple[Optional[dict], float]:
+        """Read the cached entries and timestamp from the same snapshot."""
         try:
             with open(self._index_path(), encoding="utf-8") as f:
                 d = json.load(f)
+                mtime = os.fstat(f.fileno()).st_mtime
         except (OSError, json.JSONDecodeError):
-            return None
+            return None, 0.0
         if not isinstance(d, dict) or not isinstance(d.get("entries"), dict):
-            return None
-        return d["entries"]
+            return None, 0.0
+        return d["entries"], mtime
+
+    def _index_write(self, entries: dict) -> None:
+        try:
+            _atomic_write_json(self._index_path(),
+                               {"schema": "slice.index/v1", "entries": entries})
+        except OSError:
+            pass
 
     def _index_add(self, doc: dict) -> None:
         """Best-effort index update; a broken index self-heals in list()."""
-        entries = self._index_load()
+        entries, _ = self._index_load()
         if entries is None:
             entries = {}
         entries[doc["id"]] = _list_entry(doc)
-        try:
-            with open(self._index_path(), "w", encoding="utf-8") as f:
-                json.dump({"schema": "slice.index/v1", "entries": entries},
-                          f, ensure_ascii=False)
-        except OSError:
-            pass
+        self._index_write(entries)
 
     def list(self) -> list:
         files = [fn for fn in sorted(os.listdir(self.root))
                  if fn.endswith(".json") and fn != INDEX_NAME]
-        indexed = self._index_load()
+        indexed, index_mtime = self._index_load()
         out, healed = [], indexed is None
         entries = dict(indexed) if indexed else {}
-        index_mtime = 0.0
-        if indexed is not None:
-            try:
-                index_mtime = os.path.getmtime(self._index_path())
-            except OSError:
-                index_mtime = 0.0
         for fn in files:
             kid = fn[:-5]
             ent = entries.pop(kid, None)
@@ -316,12 +325,7 @@ class KnowledgeStore:
             out.append(ent)
         if healed or entries:  # index was missing/stale -> rewrite it
             known = {e.get("id"): e for e in out if e.get("id")}
-            try:
-                with open(self._index_path(), "w", encoding="utf-8") as f:
-                    json.dump({"schema": "slice.index/v1",
-                               "entries": known}, f, ensure_ascii=False)
-            except OSError:
-                pass
+            self._index_write(known)
         return out
 
 

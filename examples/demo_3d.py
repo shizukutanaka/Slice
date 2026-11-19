@@ -7,8 +7,9 @@ Walks the full chain on a synthetic figure:
 
 Every stage prints what it produced and what it *assumed* — the demo
 exists to show the honesty contract holding across the 3D boundary:
-depth cues say `basis`, retargeted joints say `predicted`, exports
-carry the provenance through.
+depth cues say `basis`, and the retargeted joints are marked
+`predicted` in glTF node extras and a JSON sidecar for BVH. The
+exports are planar; the pseudo-depth is shown only as a diagnostic.
 
 Run:
     python3 examples/demo_3d.py [out_dir]
@@ -62,14 +63,18 @@ def run(out_dir: str = "demo_3d_out") -> dict:
 
     bvh_path = os.path.join(out_dir, "figure.bvh")
     with open(bvh_path, "w") as f:
-        f.write(bvh.export(skel))
+        f.write(bvh.export(ret))
+    bvh_report_path = bvh_path + ".json"
+    with open(bvh_report_path, "w") as f:
+        json.dump(bvh.report(ret), f, indent=2)
     gltf_path = os.path.join(out_dir, "figure.gltf")
     with open(gltf_path, "w") as f:
-        json.dump(gltf.to_gltf(skel), f, indent=2)
+        json.dump(gltf.to_gltf(ret), f, indent=2)
     print(f"[5] export: {bvh_path}, {gltf_path}")
-    print("done — every stage carried its provenance forward")
+    print(f"BVH provenance: {bvh_report_path} (glTF uses node extras)")
     return {"bvh": bvh_path, "gltf": gltf_path,
-            "joints": len(skel.joints), "bones": len(bones)}
+            "bvh_report": bvh_report_path,
+            "joints": len(ret.joints), "bones": len(rig.build(ret))}
 
 
 if __name__ == "__main__":

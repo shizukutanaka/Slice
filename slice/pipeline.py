@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from . import (__version__, angles, balance, bitmap, classify,
+from . import (__version__, angles, balance, basis, bitmap, classify,
                consistency, dynamics, framefit, framepos, gesture, knowledge,
                occlusion, pose, predict, ratio, spine, style, symmetry)
 from .anatomy import BODY_MODELS
@@ -35,6 +35,8 @@ def _build_doc(skel, bmp, image_sha: str, source_name: str,
         "balance": balance.assess(skel),
         "spine": spine.classify(skel),
         "gesture": gesture.summarize(skel),
+        "joint_basis": {name: basis.category(joint.basis)
+                        for name, joint in skel.joints.items()},
         "dynamics": dynamics.score(skel),
         "occlusion": occlusion.audit(skel),
         "framefit": framefit.assess(skel),

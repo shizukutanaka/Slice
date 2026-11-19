@@ -220,7 +220,7 @@ knee_l, knee_r, ankle_l, ankle_r, foot_l, foot_r, spine
   `assumption` 語彙（estimated / implied 等）を持ってよい。
   現行パイプラインのレイヤは `angles`, `symmetry`, `balance`,
   `spine`, `gesture`, `dynamics`, `occlusion`, `framefit`,
-  `frame`, `consistency`。一部は算出できないときに省略される。
+  `frame`, `consistency`, `joint_basis`。一部は算出できないときに省略される。
 - `framefit` は作業座標系で観測関節と画像端の距離を調べ、
   切り取りの可能性がある辺を `possibly_truncated` に列挙する。
   `partial` は推定の手がかりであり、切り取りの確定ではない。
@@ -242,6 +242,26 @@ knee_l, knee_r, ankle_l, ankle_r, foot_l, foot_r, spine
   「`analysis` はレイヤ名 → dict の辞書である」という容器の形だけ。
 - 関節の `state` は引き続き observed / predicted のみ
   （拡張語彙はジョイントではなくレイヤ側に閉じ込める）。
+
+### joint_basis
+
+`analysis.joint_basis` は関節名から根拠の分類コードへの辞書。
+例: `{"head": "observation", "wrist_r": "mirror"}`。
+関節がない場合は空の辞書になる。旧文書ではこのレイヤはなくてもよい。
+
+| コード | 根拠の種類 |
+|---|---|
+| `observation` | シルエット上の特徴の計測 |
+| `mirror` | 左右反転 |
+| `interpolation` | アンカー間の補間 |
+| `prior` | 人体比率や位置の事前知識 |
+| `inference` | シルエットの間接的な手掛かりからの推定 |
+| `transform` | リターゲットなどの変換 |
+| `unknown` | 根拠の記載がないか、語彙表と一致しない |
+
+分類は生成時の `basis` 文字列から導出し、関節の `basis` や
+`state` は変更しない。分類は配置方法を示すもので、観測の確かさや
+推定の信頼度を表すものではない。
 
 ## 互換性の約束
 

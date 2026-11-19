@@ -6,11 +6,12 @@ shared vocabulary (AUDIT P4-22). It does NOT rename existing strings —
 stored Knowledge documents must stay readable — it classifies them into
 evidence categories and defines the prefixes new code should use.
 
-Categories (weakest → strongest evidence):
-    "observation"    measured directly from pixels
+Categories (placement methods, not evidence grades):
+    "observation"    measured from a silhouette feature
     "mirror"         copied across the body axis from an observed peer
-    "interpolation"  placed between two observed anchors
-    "prior"          placed by anatomical statistics alone
+    "interpolation"  placed between two anchors
+    "prior"          placed using anatomical proportions or offsets
+    "inference"      inferred from indirect silhouette cues
     "transform"      produced by a spatial/pose transform (retarget etc.)
     "unknown"        unrecognised wording — flagged, not rejected
 
@@ -28,6 +29,7 @@ PREFIXES = [
     ("interpolated", "interpolation"),
     ("mirrored", "mirror"),
     ("prior", "prior"),
+    ("foot below ankle (", "prior"),
     ("retargeted", "transform"),
     ("transformed", "transform"),
     ("scaled", "transform"),
@@ -40,10 +42,17 @@ OBSERVED_BASES = {
     "top blob centroid", "widest upper row", "widest hip-band row",
     "crotch split row", "arm blob extremity", "arm blob mid-extent",
     "leg run at knee height", "leg run at bottom",
-    "merged leg run", "legs not separable",
+    "merged leg run",
     "axis midpoint", "midpoint shoulders-pelvis",
     "clavicle midpoint below shoulder row",
-    "silhouette bottom",
+    "silhouette bottom", "torso edge at arm strip",
+    "arm strip midpoint", "arm strip tip",
+}
+
+INFERRED_BASES = {
+    "legs not separable",
+    "torso excess width (fused arm inferred)",
+    "fused arm mid-extent (inferred)",
 }
 
 # Observed-state joints stamped from a prior, not pixels — still
@@ -55,14 +64,15 @@ def category(basis: Optional[str]) -> str:
     """Classify a basis string into an evidence category."""
     if not basis:
         return "unknown"
-    low = basis.strip().lower()
+    low = basis.partition(";")[0].strip().lower()
     for prefix, cat in PREFIXES:
         if low.startswith(prefix):
             return cat
     if low in OBSERVED_PRIOR_BASES:
         return "prior"
-    if low in OBSERVED_BASES or any(
-            low.startswith(b) for b in OBSERVED_BASES):
+    if low in INFERRED_BASES:
+        return "inference"
+    if low in OBSERVED_BASES:
         return "observation"
     return "unknown"
 

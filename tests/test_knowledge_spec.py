@@ -78,6 +78,18 @@ class TestSpecConformance(unittest.TestCase):
         self.assertEqual(doc["schema"], knowledge.SCHEMA)
         self.assertEqual(knowledge.validate(doc), [])
 
+    def test_source_name_keeps_base_name_only(self):
+        # a shared document must not carry the caller's OS user or
+        # folder names, whichever separator the path used
+        for given in ("/home/hanako/family/beach.png",
+                      "C:\\Users\\hanako\\beach.png",
+                      "beach.png"):
+            doc = knowledge.build(Skeleton(100, 200), {}, None,
+                                  source_name=given,
+                                  engine={"name": "spec-test"})
+            self.assertEqual(doc["source"]["name"], "beach.png")
+        self.assertEqual(_bare_build_doc()["source"]["name"], "")
+
     def test_build_with_analysis_stamps_v11(self):
         skel = Skeleton(100, 200)
         doc = knowledge.build(skel, {}, None,
@@ -132,6 +144,24 @@ class TestValidateCli(unittest.TestCase):
             rc, out, _ = _run_validate_cli([p])
         self.assertEqual(rc, 0)
         self.assertIn("valid", out)
+
+    def test_analyze_cli_drops_directory_from_source(self):
+        raw = bitmap.encode_png(synthetic_person())
+        with tempfile.TemporaryDirectory() as tmp:
+            img = os.path.join(tmp, "hanako", "beach.png")
+            os.makedirs(os.path.dirname(img))
+            with open(img, "wb") as f:
+                f.write(raw)
+            out = os.path.join(tmp, "k.json")
+            with redirect_stdout(io.StringIO()), \
+                    redirect_stderr(io.StringIO()):
+                rc = __main__.main(["analyze", img, "-o", out])
+            self.assertEqual(rc, 0)
+            with open(out, encoding="utf-8") as f:
+                text = f.read()
+        self.assertEqual(json.loads(text)["source"]["name"], "beach.png")
+        self.assertNotIn(tmp, text)
+        self.assertNotIn("hanako", text)
 
     def test_invalid_file_exit1_with_reasons(self):
         doc = _pipeline_doc()

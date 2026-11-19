@@ -39,7 +39,9 @@ def build(skel: Skeleton, ratios: dict, pose: Optional[dict] = None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "engine": engine,
         "source": {
-            "name": source_name,
+            # base name only: a caller's path would carry the OS user
+            # and folder names into a document meant to be shared
+            "name": re.split(r"[\\/]", source_name)[-1],
             "sha256": image_sha256,
             "image_retained": False,
         },

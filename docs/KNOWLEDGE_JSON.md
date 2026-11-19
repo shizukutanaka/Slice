@@ -44,7 +44,7 @@ Slice の成果物の形式仕様。画像そのものではなく、画像か�
 | `id` | string | 核 | `k_<12桁の小文字hex>`。文書の同一性はこの値（保存時はファイル名と一致しなければならない） |
 | `created_at` | string | 核 | ISO 8601 UTC（例 `2026-01-01T00:00:00+00:00`）。移行された旧文書では空文字列がありうる |
 | `engine` | object | 核 | 推定器の識別。下記 |
-| `source` | object | 核 | `{name, sha256, image_retained}`。`name` は入力名（空もありうる）、`sha256` は元画像バイト列の SHA-256 hex（画像なしで構築した場合は空文字列）、`image_retained` は常に `false` |
+| `source` | object | 核 | `{name, sha256, image_retained}`。`name` は入力のファイル名部分のみ（空もありうる。CLI に渡したパスや `X-Image-Name` のディレクトリ部分は `/` と `\` のどちらの区切りでも捨てる — 共有される文書に OS のユーザー名やフォルダ名を残さないため）、`sha256` は元画像バイト列の SHA-256 hex（画像なしで構築した場合は空文字列）、`image_retained` は常に `false` |
 | `skeleton` | object | 核 | 下記 |
 | `pose` | object | 核 | 姿勢分類 `{pose, label, confidence, signals}`。構築時に姿勢が渡されなければ空オブジェクト |
 | `ratio` | object | 核 | 比率解析結果。下記（エラー形あり） |

@@ -57,6 +57,9 @@ python3 -m slice analyze person.png --overlay overlay.png
 # Choose a body model (adult / child / deformed)
 python3 -m slice analyze person.png --model deformed
 
+# Try to separate touching silhouettes; output a Knowledge JSON array
+python3 -m slice analyze group.png --split-touching
+
 # Local web viewer (drag & drop to analyze)
 python3 -m slice serve --port 8000
 # -> http://127.0.0.1:8000
@@ -126,7 +129,15 @@ python3 -m slice analyze person.png --store knowledge/
 
 # 人体モデル指定（adult / child / deformed）
 python3 -m slice analyze person.png --model deformed
+
+# 接触したシルエットの分離を試み、Knowledge JSON の配列を出力
+python3 -m slice analyze group.png --split-touching
 ```
+
+`--multi` は独立した前景成分を解析する。接触した成分も分けてみるには
+`--split-touching`（Python API: `pipeline.analyze_multi(..., split_touching=True)`）
+を使う。分割はヒューリスティックで、分離できない場合もある。
+分割された領域は `people.state: "estimated"` で区別できる。
 
 ### REST + ビューア
 

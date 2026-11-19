@@ -109,7 +109,7 @@ from . import (human)
 def _cmd_analyze(a) -> int:
     with open(a.image, "rb") as f:
         raw = f.read()
-    if a.multi:
+    if a.multi or a.split_touching:
         return _cmd_analyze_multi(a, raw)
     try:
         doc = pipeline.analyze(raw, model=a.model, source_name=a.image,
@@ -185,7 +185,8 @@ def _cmd_analyze_multi(a, raw) -> int:
     try:
         docs = pipeline.analyze_multi(raw, model=a.model,
                                       source_name=a.image,
-                                      robust=a.robust)
+                                      robust=a.robust,
+                                      split_touching=a.split_touching)
     except bitmap.UnsupportedFormat as e:
         print(f"unsupported image: {e}", file=sys.stderr)
         return 2
@@ -1401,7 +1402,9 @@ def main(argv=None) -> int:
     a.add_argument("--overlay")
     a.add_argument("--store")
     a.add_argument("--multi", action="store_true",
-                   help="detect every foreground person (JSON array out)")
+                   help="analyze separate foreground components (JSON array out)")
+    a.add_argument("--split-touching", action="store_true",
+                   help="try splitting touching silhouettes (JSON array out)")
     a.set_defaults(fn=_cmd_analyze)
 
     b = sub.add_parser("batch", help="analyze a directory of images")

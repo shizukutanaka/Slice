@@ -10,16 +10,16 @@ import urllib.request
 from contextlib import redirect_stderr, redirect_stdout
 from http.server import ThreadingHTTPServer
 
-from slice import __main__, bitmap, evaluate, knowledge, rest
+from slice import __main__, bitmap, evaluate, knowledge, pipeline, rest
 from slice.bitmap import Bitmap
 
 BG = (235, 235, 235, 255)
 
 
-def _two_people_png() -> bytes:
+def _two_people_png(*, touching=False) -> bytes:
     person, _ = evaluate.draw_case(120, 260)
     wide = Bitmap.new(320, 300, BG)
-    for dx in (10, 190):
+    for dx in (10, 55 if touching else 190):
         for y in range(person.height):
             for x in range(person.width):
                 p = person.get(x, y)
@@ -83,6 +83,44 @@ class TestMultiApi(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(len(json.loads(out.getvalue())), 2)
             self.assertIn("people: 2", err.getvalue())
+
+    def test_cli_split_touching_saves_estimated_regions(self):
+        with tempfile.TemporaryDirectory() as td:
+            img = os.path.join(td, "touching.png")
+            store = os.path.join(td, "store")
+            raw = _two_people_png(touching=True)
+            self.assertEqual(len(pipeline.analyze_multi(raw)), 1)
+            with open(img, "wb") as f:
+                f.write(raw)
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                rc = __main__.main(["analyze", img, "--split-touching",
+                                    "--store", store])
+            self.assertEqual(rc, 0)
+            docs = json.loads(out.getvalue())
+            self.assertEqual(len(docs), 2)
+            for i, doc in enumerate(docs):
+                self.assertEqual(doc["people"], {
+                    "index": i, "count": 2, "components": 2,
+                    "state": "estimated", "basis": "watershed split region",
+                })
+                joints = doc["skeleton"]["joints"]
+                self.assertIn("split region", joints["head"]["basis"])
+                ratio = doc["ratio"]
+                head_px = joints["neck"]["y"] - joints["head"]["y"]
+                self.assertAlmostEqual(ratio["head_to_body"],
+                                       ratio["body_height_px"] / head_px,
+                                       delta=0.01)
+                self.assertEqual(knowledge.KnowledgeStore(store).get(doc["id"]),
+                                 doc)
+
+    def test_split_touching_keeps_separate_components_observed(self):
+        docs = pipeline.analyze_multi(_two_people_png(), split_touching=True)
+        self.assertEqual(len(docs), 2)
+        for doc in docs:
+            self.assertEqual(doc["people"]["state"], "observed")
+            self.assertNotIn("split region",
+                             doc["skeleton"]["joints"]["head"]["basis"])
 
 
 if __name__ == "__main__":

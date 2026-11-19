@@ -52,7 +52,7 @@ class Skeleton:
     orientation: dict = field(default_factory=dict)
     body_model: dict = field(default_factory=dict)
     centroid: Optional[Point] = None
-    # runtime only (not serialized): how many foreground components
+    # runtime only (not serialized): how many foreground regions
     # were offered for skeletonization when estimate_multi/split ran
     # — 0 means the skeleton came from the single-person path
     component_count: int = 0
@@ -60,6 +60,7 @@ class Skeleton:
     # decision this skeleton was estimated under — set by the
     # estimator so the doc can disclose it per call, thread-safely
     mask_threshold: Optional[tuple] = None
+    split_region: bool = False  # runtime only: watershed partition
 
     def set(self, joint: Joint) -> None:
         self.joints[joint.name] = joint
@@ -130,7 +131,7 @@ def head_length_px(skel: Skeleton) -> Optional[float]:
     head, neck = skel.get("head"), skel.get("neck")
     if not head or not neck or neck.y <= head.y:
         return None
-    mult = 1.0 if neck.basis == NECK_CLAVICLE_BASIS else 2.0
+    mult = 1.0 if neck.basis.partition("; ")[0] == NECK_CLAVICLE_BASIS else 2.0
     return (neck.y - head.y) * mult
 
 

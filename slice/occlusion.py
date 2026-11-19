@@ -29,7 +29,10 @@ def _inside_mask(mask, w: int, h: int, x: float, y: float,
 
 def reason(skel: Skeleton, name: str, mask=None, w: int = 0,
            h: int = 0) -> dict:
-    """{joint, state, reason, in_frame, in_foreground}."""
+    """{joint, state, reason, in_frame, in_foreground}.
+
+    Dimensions default to the skeleton's working frame.
+    """
     j = skel.joints.get(name)
     out = {"joint": name, "state": j.state if j else "missing"}
     if j and j.state == "observed":
@@ -39,7 +42,8 @@ def reason(skel: Skeleton, name: str, mask=None, w: int = 0,
         out.update(reason="absent", in_frame=None, in_foreground=None)
         return out
 
-    in_frame = 0 <= j.x < (w or 10**9) and 0 <= j.y < (h or 10**9)
+    w, h = w or skel.image_width, h or skel.image_height
+    in_frame = 0 <= j.x < w and 0 <= j.y < h
     out["in_frame"] = in_frame
     if not in_frame:
         out.update(reason="truncated", in_foreground=None)

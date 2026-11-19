@@ -186,7 +186,8 @@
 
 ### P4 — 仕上げ
 21. **READMEのモジュール一覧**と日本語ガイド
-22. **basis語彙のenum化**（"symmetry"/"prior"/"interp" 等の語彙表）
+22. **basis語彙のenum化**: 関節の根拠文字列を残したまま、
+    [`analysis.joint_basis`](KNOWLEDGE_JSON.md#joint_basis) に分類コードを記録する
 23. **色覚対応**: PNG オーバーレイと Web ビューアで観測を実線・塗りつぶし、
     推定を破線・中空のマーカーで区別する（色にも対応）
 24. **完成度指標の定量化**: Phase基準をテスト可能な形式で docs に

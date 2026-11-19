@@ -24,6 +24,20 @@ class TestBasis(unittest.TestCase):
     def test_prior_wording(self):
         self.assertEqual(basis.category("head height prior"), "prior")
 
+    def test_estimator_and_completion_bases(self):
+        for text, expected in (
+                ("head height prior; split region", "prior"),
+                ("arm strip tip; estimated on 90deg-rotated mask",
+                 "observation"),
+                ("foot below ankle (adult) (predicted anchor)", "prior"),
+                ("torso excess width (fused arm inferred); split region",
+                 "inference"),
+                ("fused arm mid-extent (inferred)", "inference"),
+                ("legs not separable", "inference"),
+                ("arm blob extremity fabricated", "unknown")):
+            with self.subTest(text=text):
+                self.assertEqual(basis.category(text), expected)
+
     def test_first_word_collision_not_observation(self):
         # "top guess" / "arm pose guess" share only a first word with
         # observed bases — counting them as observation would let

@@ -40,6 +40,7 @@ class TestPipeline(unittest.TestCase):
                          ["no_body_extent"])
         self.assertEqual(doc["analysis"]["detection_failure"]["reason"],
                          "no_foreground")
+        self.assertEqual(doc["analysis"]["joint_basis"], {})
         self.assertEqual(
             knowledge.validate(pipeline.strip_runtime(doc)), [])
 
@@ -77,6 +78,18 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(joint["state"], "predicted")
         self.assertEqual(doc["analysis"]["occlusion"]["reasons"]["wrist_r"],
                          "truncated")
+
+    def test_analysis_reports_categories_without_replacing_basis_or_state(self):
+        bmp = crop.crop(synthetic_person(), (35, 0, 65, 300))
+        out = pipeline.strip_runtime(pipeline.analyze(bitmap.encode_png(bmp)))
+        joints = out["skeleton"]["joints"]
+        categories = out["analysis"]["joint_basis"]
+        self.assertEqual(categories.keys(), joints.keys())
+        self.assertEqual(categories["head"], "observation")
+        self.assertEqual(categories["wrist_r"], "mirror")
+        self.assertEqual(joints["wrist_r"]["basis"], "mirrored from wrist_l")
+        self.assertEqual(joints["wrist_r"]["state"], "predicted")
+        self.assertEqual(knowledge.validate(out), [])
 
     def test_warnings_for_sparse_evidence(self):
         # an image with almost no figure should warn

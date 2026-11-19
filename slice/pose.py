@@ -11,7 +11,7 @@ Engine fills those in later, keeping observed vs predicted separate.
 
 from __future__ import annotations
 
-from collections import deque
+from collections import Counter, deque
 from typing import List, Optional, Tuple
 
 from .anatomy import BODY_MODELS, DEFAULT_MODEL, select_model
@@ -569,30 +569,40 @@ class HeuristicPoseEstimator(PoseEstimator):
 
     # -- segmentation ----------------------------------------------------
 
+    @staticmethod
+    def _border_vote(bmp, edges, *, prior=None, min_alpha=128):
+        """Prefer agreement between edge majorities over raw pixel count."""
+        counts, votes = Counter(), Counter()
+        for edge in edges:
+            local = Counter()
+            for x, y in edge:
+                r, g, b, a = bmp.get(x, y)
+                if a >= min_alpha:
+                    key = (r // 32 * 32 + 16, g // 32 * 32 + 16,
+                           b // 32 * 32 + 16)
+                    local[key] += 1
+            if local:
+                counts.update(local)
+                color, count = local.most_common(1)[0]
+                if count * 2 > sum(local.values()):
+                    votes[color] += 1
+        if not counts:
+            return None
+        return max(counts, key=lambda color: (
+            votes[color] if votes[color] >= 2 else 0,
+            counts[color], color == prior and votes[color] > 0,
+        ))
+
     def _background(self, bmp: Bitmap) -> Tuple[int, int, int]:
-        """Most common quantized color along the image border."""
-        counts: dict = {}
-        fallback: dict = {}
+        """Estimate a global color from the four border segments."""
         w, h = bmp.width, bmp.height
-        for x in range(0, w, 4):
-            for y in (0, h - 1):
-                r, g, b, a = bmp.get(x, y)
-                key = (r // 32, g // 32, b // 32)
-                fallback[key] = fallback.get(key, 0) + 1
-                if a >= 128:
-                    counts[key] = counts.get(key, 0) + 1
-        for y in range(0, h, 4):
-            for x in (0, w - 1):
-                r, g, b, a = bmp.get(x, y)
-                key = (r // 32, g // 32, b // 32)
-                fallback[key] = fallback.get(key, 0) + 1
-                if a >= 128:
-                    counts[key] = counts.get(key, 0) + 1
-        # transparent pixels carry no colour information; prefer
-        # opaque samples, keep the old behaviour when none exist
-        use = counts or fallback
-        q = max(use, key=use.get)
-        return q[0] * 32 + 16, q[1] * 32 + 16, q[2] * 32 + 16
+        edges = [tuple((x, y) for x in range(0, w, 4))
+                 for y in ((0, h - 1) if h > 1 else (0,))]
+        edges += [tuple((x, y) for y in range(0, h, 4))
+                  for x in ((0, w - 1) if w > 1 else (0,))]
+        # Preserve the stored RGB fallback for cutouts with no opaque border.
+        return (self._border_vote(bmp, edges)
+                or self._border_vote(bmp, edges, min_alpha=0))
 
     def _background_bands(self, bmp: Bitmap, n: int = 6
                           ) -> List[Tuple[int, int, int]]:
@@ -605,32 +615,17 @@ class HeuristicPoseEstimator(PoseEstimator):
         back to the global estimate.
         """
         w, h = bmp.width, bmp.height
+        sides = (0, w - 1) if w > 1 else (0,)
+        prior = self._background(bmp)
         bands: List[Tuple[int, int, int]] = []
         for b in range(n):
             y0, y1 = b * h // n, (b + 1) * h // n
-            counts: dict = {}
-            for y in range(y0, y1, 4):
-                for x in (0, w - 1):
-                    r, g, bl, a = bmp.get(x, y)
-                    if a < 128:
-                        continue
-                    key = (r // 32, g // 32, bl // 32)
-                    counts[key] = counts.get(key, 0) + 1
-            # the outer bands also see the top/bottom edge
+            edges = [tuple((x, y) for y in range(y0, y1, 4))
+                     for x in sides]
             edge_y = y0 if b == 0 else (y1 - 1 if b == n - 1 else None)
             if edge_y is not None:
-                for x in range(0, w, 4):
-                    r, g, bl, a = bmp.get(x, edge_y)
-                    if a < 128:
-                        continue
-                    key = (r // 32, g // 32, bl // 32)
-                    counts[key] = counts.get(key, 0) + 1
-            if counts:
-                q = max(counts, key=counts.get)
-                bands.append((q[0] * 32 + 16, q[1] * 32 + 16,
-                              q[2] * 32 + 16))
-            else:
-                bands.append(self._background(bmp))
+                edges.append(tuple((x, edge_y) for x in range(0, w, 4)))
+            bands.append(self._border_vote(bmp, edges, prior=prior) or prior)
         return bands
 
     def _mask(self, bmp: Bitmap) -> List[bytearray]:

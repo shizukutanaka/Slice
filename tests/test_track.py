@@ -1,8 +1,15 @@
 """Tests for slice.track — temporal ID across frames."""
+import io
+import json
+import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 
+from slice import bitmap, track
+from slice.__main__ import main
 from slice.skeleton import Joint, Skeleton, OBSERVED, PREDICTED
-from slice import track
+from tests import synthetic_person
 
 
 def _skel(px, py, w=200, h=200):
@@ -75,6 +82,56 @@ class TestTrack(unittest.TestCase):
         self.assertEqual(sm["empty_frames"], 1)
         self.assertEqual(sm["occupancy"], {"0": 6})
         self.assertEqual(sm["longest_run"], 3)
+
+
+class TestTrackCli(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.person = self._write("z.png", synthetic_person())
+        self.blank = self._write("a.png", bitmap.Bitmap.new(
+            160, 300, (235, 235, 235, 255)))
+
+    def _write(self, name, bmp):
+        path = self.root / name
+        path.write_bytes(bitmap.encode_png(bmp))
+        return str(path)
+
+    def _run(self, *args):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            status = main(["track", *args])
+        return status, out.getvalue(), err.getvalue()
+
+    def test_argument_order_and_detection_gap(self):
+        status, out, err = self._run(self.person, self.blank, self.person,
+                                     "--max-jump-torso", "0")
+        self.assertEqual((status, err), (0, ""))
+        report = json.loads(out)
+        hits = report["assignments"]
+        self.assertEqual([h["frame"] for h in hits], [0, 1, 2])
+        self.assertEqual([h["state"] for h in hits],
+                         ["new_track", "empty", "reacquired"])
+        self.assertEqual([h["track_id"] for h in hits], [0, None, 0])
+        self.assertEqual(hits[2]["gap"], 1)
+        self.assertEqual(report["summary"]["empty_frames"], 1)
+        self.assertEqual(report["max_jump_torso"], 0)
+
+    def test_rejects_mixed_frame_sizes(self):
+        other = self._write("other.png", bitmap.Bitmap.new(
+            80, 100, (235, 235, 235, 255)))
+        status, out, err = self._run(self.person, other)
+        self.assertEqual((status, out), (2, ""))
+        self.assertIn("frame dimensions differ", err)
+
+    def test_rejects_invalid_jump_threshold(self):
+        for jump in ("-1", "nan", "inf"):
+            with self.subTest(jump=jump):
+                status, out, err = self._run(self.person,
+                                             "--max-jump-torso", jump)
+                self.assertEqual((status, out), (2, ""))
+                self.assertIn("finite and non-negative", err)
 
 
 if __name__ == "__main__":
